@@ -30,6 +30,12 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # IntelliJ based IDEs
 .idea
 
+# VS Code
+.vscode/
+
+# Claude Code memory
+.claude/
+
 # Finder (MacOS) folder config
 .DS_Store
 
