@@ -102,12 +102,7 @@ describe("Schedule", () => {
 
     it("should not be equal to a schedule with a different id", () => {
       const a = createSchedule();
-      const b = new Schedule(
-        new ScheduleId("SCH2"),
-        a.weekdays,
-        a.dateRange,
-        [],
-      );
+      const b = new Schedule(new ScheduleId("SCH2"), a.weekdays, a.dateRange, []);
       expect(a.equals(b)).toBe(false);
     });
   });

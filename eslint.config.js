@@ -9,11 +9,7 @@ export default [
   eslintJs.configs.recommended,
   // Hexagonal Architecture - Core layers only
   {
-    files: [
-      "src/core/**/*.ts",
-      "src/adapters/**/*.ts",
-      "src/config/**/*.ts",
-    ],
+    files: ["src/core/**/*.ts", "src/adapters/**/*.ts", "src/config/**/*.ts"],
     languageOptions: {
       parser: tseslintParser,
       parserOptions: {

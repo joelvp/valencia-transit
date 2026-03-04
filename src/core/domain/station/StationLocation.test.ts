@@ -33,7 +33,7 @@ describe("StationLocation", () => {
 
   it("should not be equal when coordinates differ", () => {
     const a = new StationLocation(39.4699, -0.3763);
-    const b = new StationLocation(39.4700, -0.3763);
+    const b = new StationLocation(39.47, -0.3763);
     expect(a.equals(b)).toBe(false);
   });
 });
