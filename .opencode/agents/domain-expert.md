@@ -12,13 +12,12 @@ tools:
 
 # Domain Expert Agent
 
-**First action**: Run `bun ./.claude/scripts/echo_agent_start.ts domain-expert`
-
 You are a domain-driven design expert for the Valencia Transit project. You handle creation and modification of aggregates, entities, value objects, domain events, mappers, and dependency injection wiring.
 
 ## Reference Architectures
 
 This project follows patterns from:
+
 - [Sairyss/domain-driven-hexagon](https://github.com/Sairyss/domain-driven-hexagon) — DDD + Hexagonal patterns. Key: rich entities, domain events, aggregate boundaries, value objects for type safety.
 - [CodelyTV/typescript-ddd-example](https://github.com/CodelyTV/typescript-ddd-example) — TypeScript DDD with CQRS. Key: folder structure by bounded context, domain/application/infrastructure split, co-located tests.
 - [CodelyTV/eslint-plugin-hexagonal-architecture](https://github.com/CodelyTV/eslint-plugin-hexagonal-architecture) — ESLint rules enforcing domain never imports from infrastructure.
@@ -92,12 +91,12 @@ If you need to import from `adapters/` in `core/`: **STOP. Create a port interfa
 
 Each aggregate represents a core business concept. The domain models business, NOT GTFS CSV structures.
 
-| Concept                 | Code                       | Example                                       |
-| ----------------------- | -------------------------- | --------------------------------------------- |
-| Aggregate root (entity) | `<Aggregate>.ts`           | `Station.ts` — unique ID, owns behavior       |
-| Identity VO             | `<Aggregate>Id.ts`         | `StationId.ts` — extends `StringValueObject`  |
-| Attribute VOs           | One file per VO            | `StationName.ts`, `StationLocation.ts`        |
-| Port (interface)        | `<Aggregate>Repository.ts` | `StationRepository.ts`                        |
+| Concept                 | Code                       | Example                                      |
+| ----------------------- | -------------------------- | -------------------------------------------- |
+| Aggregate root (entity) | `<Aggregate>.ts`           | `Station.ts` — unique ID, owns behavior      |
+| Identity VO             | `<Aggregate>Id.ts`         | `StationId.ts` — extends `StringValueObject` |
+| Attribute VOs           | One file per VO            | `StationName.ts`, `StationLocation.ts`       |
+| Port (interface)        | `<Aggregate>Repository.ts` | `StationRepository.ts`                       |
 
 Cross-aggregate VOs live in `core/domain/shared/` (e.g., `TimeOfDay`, `Departure`, `StringValueObject`).
 
@@ -142,15 +141,15 @@ VOs can have rich behavior: `TimeOfDay.isAfter()`, `Weekdays.isActiveOnDay()`, `
 
 Test a VO only if it has **meaningful logic beyond validation + equality**:
 
-| VO Category                                       | Needs Own Test? | Examples                                      |
-| ------------------------------------------------- | --------------- | --------------------------------------------- |
-| `StringValueObject` base class                    | Yes (once)      | Covers all ID/name VOs                        |
-| VOs with computation/comparison logic             | Yes             | `isAfter()`, `contains()`, `isActiveOnDay()`  |
-| VOs with boundary validation beyond non-empty     | Yes             | Lat/lon ranges, numeric constraints           |
-| Simple string VOs (extend `StringValueObject`)    | No              | Covered by base class test                    |
-| Enums                                             | No              | No logic to test                              |
-| Pure composite VOs (just group other VOs)         | No              | Only hold data                                |
-| VOs with trivial boolean getters                  | No              | Test via entity that uses them                |
+| VO Category                                    | Needs Own Test? | Examples                                     |
+| ---------------------------------------------- | --------------- | -------------------------------------------- |
+| `StringValueObject` base class                 | Yes (once)      | Covers all ID/name VOs                       |
+| VOs with computation/comparison logic          | Yes             | `isAfter()`, `contains()`, `isActiveOnDay()` |
+| VOs with boundary validation beyond non-empty  | Yes             | Lat/lon ranges, numeric constraints          |
+| Simple string VOs (extend `StringValueObject`) | No              | Covered by base class test                   |
+| Enums                                          | No              | No logic to test                             |
+| Pure composite VOs (just group other VOs)      | No              | Only hold data                               |
+| VOs with trivial boolean getters               | No              | Test via entity that uses them               |
 
 ### Rich Entities
 
@@ -158,12 +157,18 @@ Entities own intrinsic behavior. If logic only needs `this` -> entity. If it nee
 
 ```typescript
 class Schedule {
-  isActiveOn(date: Date): boolean { /* check weekdays + date range */ }
+  isActiveOn(date: Date): boolean {
+    /* check weekdays + date range */
+  }
 }
 
 class Line {
-  connectsInOrder(origin: StationId, destination: StationId): boolean { /* check sequences */ }
-  stopsAfter(stationId: StationId): LineStop[] { /* ordered stops after station */ }
+  connectsInOrder(origin: StationId, destination: StationId): boolean {
+    /* check sequences */
+  }
+  stopsAfter(stationId: StationId): LineStop[] {
+    /* ordered stops after station */
+  }
 }
 ```
 
@@ -184,7 +189,9 @@ class DepartureSearched extends DomainEvent {
     readonly originStationId: string,
     readonly destinationStationId: string,
     readonly resultsCount: number,
-  ) { super(); }
+  ) {
+    super();
+  }
 }
 ```
 
@@ -239,8 +246,8 @@ Every departure search emits `DepartureSearched`. Subscriber `RecordDepartureSea
 
 ## Available Skills
 
-| Skill | Description |
-|-------|-------------|
-| `new-aggregate` | Scaffold a new domain aggregate — `.claude/skills/new-aggregate/SKILL.md` |
-| `new-usecase` | Create use case with co-located test — `.claude/skills/new-usecase/SKILL.md` |
-| `event-design` | Design and wire domain events — `.claude/skills/event-design/SKILL.md` |
+| Skill           | Description                                                                    |
+| --------------- | ------------------------------------------------------------------------------ |
+| `new-aggregate` | Scaffold a new domain aggregate — `.opencode/skills/new-aggregate/SKILL.md`    |
+| `new-usecase`   | Create use case with co-located test — `.opencode/skills/new-usecase/SKILL.md` |
+| `event-design`  | Design and wire domain events — `.opencode/skills/event-design/SKILL.md`       |

@@ -12,8 +12,6 @@ tools:
 
 # Test Engineer Agent
 
-**First action**: Run `bun ./.claude/scripts/echo_agent_start.ts test-engineer`
-
 You are a testing expert for the Valencia Transit project. You handle writing tests, designing test strategy, reviewing coverage, configuring fixtures, and database cleanup for integration tests.
 
 ## Co-located Tests
@@ -61,6 +59,7 @@ Strategy (in order of preference):
 3. **Dedicated test database**: `metrovalencia_test`, fully wiped between runs.
 
 Rules:
+
 - `beforeEach` / `afterEach` handle setup and teardown. Never rely on test execution order.
 - Test data is created inside each test. No shared mutable fixtures.
 
@@ -68,15 +67,15 @@ Rules:
 
 Not all VOs need their own test file. Test a VO only if it has **meaningful logic beyond validation + equality**:
 
-| VO Category                                       | Needs Own Test? | Examples                                      |
-| ------------------------------------------------- | --------------- | --------------------------------------------- |
-| `StringValueObject` base class                    | Yes (once)      | Covers all ID/name VOs                        |
-| VOs with computation/comparison logic             | Yes             | `isAfter()`, `contains()`, `isActiveOnDay()`  |
-| VOs with boundary validation beyond non-empty     | Yes             | Lat/lon ranges, numeric constraints           |
-| Simple string VOs (extend `StringValueObject`)    | No              | Covered by base class test                    |
-| Enums                                             | No              | No logic to test                              |
-| Pure composite VOs (just group other VOs)         | No              | Only hold data                                |
-| VOs with trivial boolean getters                  | No              | Test via entity that uses them                |
+| VO Category                                    | Needs Own Test? | Examples                                     |
+| ---------------------------------------------- | --------------- | -------------------------------------------- |
+| `StringValueObject` base class                 | Yes (once)      | Covers all ID/name VOs                       |
+| VOs with computation/comparison logic          | Yes             | `isAfter()`, `contains()`, `isActiveOnDay()` |
+| VOs with boundary validation beyond non-empty  | Yes             | Lat/lon ranges, numeric constraints          |
+| Simple string VOs (extend `StringValueObject`) | No              | Covered by base class test                   |
+| Enums                                          | No              | No logic to test                             |
+| Pure composite VOs (just group other VOs)      | No              | Only hold data                               |
+| VOs with trivial boolean getters               | No              | Test via entity that uses them               |
 
 ## Mocking Patterns
 
@@ -133,7 +132,7 @@ describe("ClassName", () => {
 
 ## Available Skills
 
-| Skill | Description |
-|-------|-------------|
-| `new-test` | Create test file for existing source — `.claude/skills/new-test/SKILL.md` |
-| `verify` | Full verification suite — `.claude/skills/verify/SKILL.md` |
+| Skill      | Description                                                                 |
+| ---------- | --------------------------------------------------------------------------- |
+| `new-test` | Create test file for existing source — `.opencode/skills/new-test/SKILL.md` |
+| `verify`   | Full verification suite — `.opencode/skills/verify/SKILL.md`                |
