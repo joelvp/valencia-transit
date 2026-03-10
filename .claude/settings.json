@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SubagentStart": [
+      {
+        "matcher": "domain-expert|persistence|test-engineer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ./.claude/scripts/echo_agent_start.ts"
+          }
+        ]
+      }
+    ]
+  }
+}

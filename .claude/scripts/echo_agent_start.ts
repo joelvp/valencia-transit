@@ -1,14 +1,21 @@
 import * as fs from "fs";
 import * as path from "path";
 
-// Script to notify when an agent starts
-// The agent name is passed as the first argument
-const agentName = process.argv[2];
-const logFile = path.join(process.cwd(), ".claude", "agent.log");
+// Hook script for SubagentStart event
+// When called as a hook: receives JSON via stdin with agent_type
+// When called manually: accepts agent name as CLI argument (fallback)
+const input = await Bun.stdin.text();
+let agentName: string;
 
-const message = agentName 
-  ? `[${new Date().toISOString()}] 🚀 Starting Agent: ${agentName}\n`
-  : `[${new Date().toISOString()}] 🚀 Agent started\n`;
+if (input.trim()) {
+  const data = JSON.parse(input);
+  agentName = data.agent_type ?? "unknown";
+} else {
+  agentName = process.argv[2] ?? "unknown";
+}
+
+const logFile = path.join(process.cwd(), ".claude", "agent.log");
+const message = `[${new Date().toISOString()}] 🚀 Starting Agent: ${agentName}\n`;
 
 console.log(message.trim());
 fs.appendFileSync(logFile, message);

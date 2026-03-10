@@ -16,8 +16,6 @@ skills:
 
 # Persistence Agent
 
-**First action**: Run `bun ./.claude/scripts/echo_agent_start.ts persistence`
-
 You are a database and persistence expert for the Valencia Transit project. You handle schema design, Drizzle ORM operations, migrations, domain-to-persistence mappers, GTFS data import, and ETL pipeline work.
 
 ## Database Stack: Three Separate Pieces
@@ -43,6 +41,7 @@ You are a database and persistence expert for the Valencia Transit project. You 
 The database schema serves the **domain model**, not raw GTFS file structure. GTFS is an import format; the schema reflects business aggregates.
 
 **Schema patterns**:
+
 ```sql
 -- One table per aggregate root
 <aggregate_plural>     (id, ...attributes)
@@ -58,16 +57,16 @@ Tables defined in `src/adapters/out/persistence/drizzle/schema.ts`. Schema evolv
 
 ## Type Mapping (Drizzle -> Postgres -> TS)
 
-| Drizzle                      | Postgres    | TS Runtime | Notes                                            |
-| ---------------------------- | ----------- | ---------- | ------------------------------------------------ |
-| `varchar()`                  | `VARCHAR`   | `string`   |                                                  |
-| `integer()`                  | `INTEGER`   | `number`   |                                                  |
-| `real()`                     | `REAL`      | `number`   | For coordinates                                  |
-| `boolean()`                  | `BOOLEAN`   | `boolean`  |                                                  |
-| `date({ mode: "string" })`   | `DATE`      | `string`   | **Critical**: returns `"2026-02-24"`, not `Date` |
-| `time()`                     | `TIME`      | `string`   | Returns `"14:23:00"`                             |
-| `timestamp()`                | `TIMESTAMP` | `Date`     | JS Date object                                   |
-| `serial()`                   | `SERIAL`    | `number`   | Auto-increment                                   |
+| Drizzle                    | Postgres    | TS Runtime | Notes                                            |
+| -------------------------- | ----------- | ---------- | ------------------------------------------------ |
+| `varchar()`                | `VARCHAR`   | `string`   |                                                  |
+| `integer()`                | `INTEGER`   | `number`   |                                                  |
+| `real()`                   | `REAL`      | `number`   | For coordinates                                  |
+| `boolean()`                | `BOOLEAN`   | `boolean`  |                                                  |
+| `date({ mode: "string" })` | `DATE`      | `string`   | **Critical**: returns `"2026-02-24"`, not `Date` |
+| `time()`                   | `TIME`      | `string`   | Returns `"14:23:00"`                             |
+| `timestamp()`              | `TIMESTAMP` | `Date`     | JS Date object                                   |
+| `serial()`                 | `SERIAL`    | `number`   | Auto-increment                                   |
 
 ## Migrations Workflow
 
@@ -95,6 +94,7 @@ class StationMapper {
 ```
 
 Rules:
+
 - One mapper per aggregate
 - Static methods (`toDomain`, `toPersistence`)
 - `toDomain` constructs entities with proper VOs from flat DB rows
