@@ -22,11 +22,11 @@ IMPORTANT: Match user **intent**, not just technical keywords. Users often descr
 - If the user mentions **data storage, imports, or schema**, delegate to `persistence`.
 - If the user mentions **testing or verification**, delegate to `test-engineer`.
 
-| User intent | Delegate to |
-|---|---|
+| User intent                                                                                        | Delegate to     |
+| -------------------------------------------------------------------------------------------------- | --------------- |
 | Create, modify, or query any **business concept** — even if they never say "aggregate" or "entity" | `domain-expert` |
-| Database schema, migrations, Drizzle queries, mappers, data import, ETL | `persistence` |
-| Write/fix tests, test coverage, test strategy, mocking, DB test setup | `test-engineer` |
+| Database schema, migrations, Drizzle queries, mappers, data import, ETL                            | `persistence`   |
+| Write/fix tests, test coverage, test strategy, mocking, DB test setup                              | `test-engineer` |
 
 Agent definitions: `.claude/agents/`
 
@@ -37,14 +37,16 @@ If the task does not match any subagent, work directly. Do not ask for permissio
 ### One subagent
 
 If the task matches a subagent, **ask the user for permission before delegating**. State:
+
 - Which subagent you want to use
 - What you will ask it to do
 
-Use the `Agent` tool with the corresponding `subagent_type` only after receiving confirmation.
+Delegate to the corresponding subagent only after receiving confirmation.
 
 ### Multiple subagents
 
 If the task requires more than one subagent, **present an execution plan to the user**:
+
 1. Which subagents will be used
 2. In what order (sequential or parallel)
 3. What each one will do
@@ -57,16 +59,16 @@ Execute only after full plan approval.
 
 Skills live in `.claude/skills/` and are shared across agents and the main agent.
 
-| Skill | Invoke | Description |
-|-------|--------|-------------|
-| `/verify` | User | Full verification suite (format, typecheck, lint, test) |
-| `/update-logs` | User | Update CHANGELOG.md and PLAN.md |
-| `/new-aggregate` | User | Scaffold a new domain aggregate |
-| `/new-usecase` | User | Create use case with co-located test |
-| `/new-migration` | User | Guide through Drizzle schema changes |
-| `/new-test` | User | Create test file for existing source |
-| `new-mapper` | Agent | Create domain-to-persistence mapper |
-| `event-design` | Agent | Design and wire domain events |
+| Skill            | Invoke | Description                                             |
+| ---------------- | ------ | ------------------------------------------------------- |
+| `/verify`        | User   | Full verification suite (format, typecheck, lint, test) |
+| `/update-logs`   | User   | Update CHANGELOG.md and PLAN.md                         |
+| `/new-aggregate` | User   | Scaffold a new domain aggregate                         |
+| `/new-usecase`   | User   | Create use case with co-located test                    |
+| `/new-migration` | User   | Guide through Drizzle schema changes                    |
+| `/new-test`      | User   | Create test file for existing source                    |
+| `new-mapper`     | Agent  | Create domain-to-persistence mapper                     |
+| `event-design`   | Agent  | Design and wire domain events                           |
 
 ---
 
@@ -107,7 +109,7 @@ Need to import from `adapters/` in `core/`? **Create a port interface in domain.
 
 - **Branches**: `main` (prod) ← `dev` (staging) ← `feature/*`
 - **Commits**: Conventional Commits — `<type>(<scope>): <description>`
-- **Not in repo**: `CLAUDE.md`, `AGENTS.md`, `PLAN.md`, `CHANGELOG.md`, `.env`, `data/gtfs/`
+- **Not in repo**: `CHANGELOG.md`, `.env`, `data/gtfs/`
 
 ---
 
