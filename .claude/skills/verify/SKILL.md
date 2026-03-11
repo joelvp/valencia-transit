@@ -3,11 +3,12 @@ name: verify
 description: Run the full verification suite (format, typecheck, lint, test)
 user-invocable: true
 allowed-tools: Bash
-hooks:
-  PreToolUse:
-    - matcher: "Bash"
-      command: "bun ./.claude/scripts/echo_skill_start.ts"
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts verify
+```
 
 # Verify
 

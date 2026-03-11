@@ -2,11 +2,12 @@
 name: new-test
 description: Create a test file for an existing source file, auto-detecting the correct test type and patterns
 user-invocable: true
-hooks:
-  PreToolUse:
-    - matcher: "Bash"
-      command: "bun ./.claude/scripts/echo_skill_start.ts"
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts new-test
+```
 
 # New Test
 

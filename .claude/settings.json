@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ./.claude/scripts/echo_agent_start.ts"
+            "command": "bun ./.claude/hooks/echo_agent_start.ts"
           }
         ]
       }

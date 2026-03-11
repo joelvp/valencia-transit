@@ -1,11 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 
-// Hook script for PreToolUse on Skill tool
-// Receives JSON via stdin with tool_input.skill containing the skill name
-const input = await Bun.stdin.text();
-const data = JSON.parse(input);
-const skillName = data.tool_input?.skill ?? "unknown";
+// Skill tracking hook — called explicitly at the start of each skill.
+// Usage: bun ./.claude/hooks/echo_skill_start.ts <skill-name>
+const skillName = process.argv[2] ?? "unknown";
 
 const logFile = path.join(process.cwd(), ".claude", "agent.log");
 const message = `[${new Date().toISOString()}] Activating Skill: ${skillName}\n`;

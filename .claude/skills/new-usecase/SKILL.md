@@ -2,11 +2,12 @@
 name: new-usecase
 description: Create a new use case with co-located test following the project pattern
 user-invocable: true
-hooks:
-  PreToolUse:
-    - matcher: "Bash"
-      command: "bun ./.claude/scripts/echo_skill_start.ts"
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts new-usecase
+```
 
 # New Use Case
 

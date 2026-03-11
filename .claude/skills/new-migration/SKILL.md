@@ -2,11 +2,12 @@
 name: new-migration
 description: Guide through schema changes and Drizzle migration workflow
 user-invocable: true
-hooks:
-  PreToolUse:
-    - matcher: "Bash"
-      command: "bun ./.claude/scripts/echo_skill_start.ts"
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts new-migration
+```
 
 # New Migration
 

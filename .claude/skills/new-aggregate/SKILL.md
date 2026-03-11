@@ -2,11 +2,12 @@
 name: new-aggregate
 description: Create a new domain aggregate with all required files following the project pattern
 user-invocable: true
-hooks:
-  PreToolUse:
-    - matcher: "Bash"
-      command: "bun ./.claude/scripts/echo_skill_start.ts"
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts new-aggregate
+```
 
 # New Aggregate
 

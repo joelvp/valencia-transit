@@ -2,11 +2,12 @@
 name: event-design
 description: Design and wire domain events with subscribers following the project event-driven pattern
 user-invocable: false
-hooks:
-  PreToolUse:
-    - matcher: "Bash"
-      command: "bun ./.claude/scripts/echo_skill_start.ts"
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts event-design
+```
 
 # Event Design
 

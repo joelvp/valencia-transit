@@ -2,11 +2,12 @@
 name: new-mapper
 description: Create a domain-to-persistence mapper following the project pattern
 user-invocable: false
-hooks:
-  PreToolUse:
-    - matcher: "Bash"
-      command: "bun ./.claude/scripts/echo_skill_start.ts"
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts new-mapper
+```
 
 # New Mapper
 
