@@ -236,11 +236,11 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 
 #### 3B — Mappers
 
-- [ ] `StationMapper` — `toDomain(row)` / `toPersistence(entity)`
-- [ ] `LineMapper` — `toDomain(row, lineStationRows)` / `toPersistence(entity)`
-- [ ] `ScheduleMapper` — `toDomain(row, exceptionRows)` / `toPersistence(entity)`
-- [ ] `TripMapper` — `toDomain(row, passingTimeRows)` / `toPersistence(entity)`
-- [ ] Unit tests for mappers (both directions)
+- [x] `StationMapper` — `toDomain(row)` / `toPersistence(entity)`
+- [x] `LineMapper` — `toDomain(row, lineStationRows)` / `toPersistence(entity)`
+- [x] `ScheduleMapper` — `toDomain(row, exceptionRows)` / `toPersistence(entity)`
+- [x] `TripMapper` — `toDomain(row, passingTimeRows)` / `toPersistence(entity)`
+- [x] Unit tests for mappers (both directions + round-trip) — 128 tests pass
 
 #### 3C — Repository Implementations
 
