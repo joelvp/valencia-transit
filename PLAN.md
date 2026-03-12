@@ -227,10 +227,10 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
   - `trips` (id, feed_id, line_id, schedule_id, direction, headsign) — FKs
   - `passing_times` (trip_id, station_id, feed_id, arrival_time, departure_time, sequence) — composite PK
   - `dataset_versions` (id serial, feed_id, detected_at, validity_start, validity_end, status, error_message)
-  - `search_logs` (id serial, feed_id, origin_station_id, destination_station_id, searched_at, results_count)
+  - `domain_events` (id serial, event_id unique, event_name, occurred_on, feed_id nullable, payload JSONB) — Event Store
 - [x] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
 - [x] `drizzle.config.ts` pointing to schema
-- [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_fair_ikaris.sql`
+- [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_normal_swarm.sql`
 - [ ] Apply migration: `bun run db:migrate` (requires live DB — manual step)
 - [ ] Verify tables in Drizzle Studio
 
@@ -377,19 +377,19 @@ Next departures:
 
 ---
 
-### Phase 7 — Event Bus & Analytics
+### Phase 7 — Event Bus & Event Store
 
-Wire up domain events and start collecting search analytics.
+Wire up domain events, persist them to the Event Store, and enable analytics queries.
 
 - [ ] `InMemoryEventBus.ts` — simple sync event bus implementing `EventBus` port
-- [ ] `AnalyticsRepository` — port interface in `core/domain/shared/` (not aggregate-bound): `saveSearchLog(event)`, `getMostSearchedRoutes()`, `getPopularStations()`
-- [ ] `AnalyticsRepositoryDrizzle.ts` — implements `AnalyticsRepository` port, persists to `search_logs`
-- [ ] `RecordDepartureSearch.ts` use case — subscribes to `DepartureSearched`, calls `AnalyticsRepository`
+- [ ] `DomainEventRepository` — port interface in `core/domain/event/`: `save(event: DomainEvent, feedId?: string)`, `findByName(eventName: string)`, `findAll()`
+- [ ] `DomainEventRepositoryDrizzle.ts` — implements `DomainEventRepository` port, persists to `domain_events` table (JSONB payload)
+- [ ] `PersistDomainEvent.ts` use case — generic subscriber that persists any published event to the Event Store
 - [ ] Wire event subscriptions in `container.ts`
 - [ ] Verify events flow correctly in integration test
-- [ ] Add admin command or script to query analytics (most searched routes, popular stations)
+- [ ] Add admin command or script to query analytics from Event Store (most searched routes, popular stations — queried via JSONB)
 
-**Exit criteria**: Every departure search creates a record in `search_logs`. Analytics queries return meaningful data.
+**Exit criteria**: Every domain event is persisted to `domain_events`. Analytics queries (e.g., most searched routes) work via JSONB queries on the Event Store.
 
 ---
 
