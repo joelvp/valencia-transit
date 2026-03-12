@@ -169,17 +169,20 @@ Set up continuous integration with GitHub Actions and continuous deployment to R
 
 #### 2A — GitHub Actions CI
 
-- [x] `.github/workflows/ci.yml` — runs on PRs to `dev` and `main`:
+- [x] `.github/workflows/ci.yml` — runs on push + PRs to `dev` and `main`:
   - `bun install --frozen-lockfile`
   - `bun run format:check`
   - `bun run lint`
   - `bun x tsc --noEmit`
   - `bun test`
-- [ ] Branch protection on `dev` and `main` (require CI green to merge)
+- [x] Bun version pinned to `1.3.9` in CI
+- [x] Dependency caching with `actions/cache` (~15-30s faster)
+- [x] `.github/dependabot.yml` — weekly auto-updates for npm + GitHub Actions
+- [x] Branch protection on `dev` and `main` (require CI green to merge)
 
 #### 2B — Dockerfile & Docker Compose
 
-- [x] `Dockerfile` — portable app container (Bun runtime)
+- [x] `Dockerfile` — portable app container (Bun 1.3.9 pinned)
   - Works on Railway, VPS, Fly.io, any Docker host
 - [x] `.dockerignore` — exclude node_modules, .env, data, etc.
 - [x] `docker-compose.yml` updated with `app` service
@@ -188,10 +191,9 @@ Set up continuous integration with GitHub Actions and continuous deployment to R
 
 #### 2C — Railway Deployment
 
-- [ ] Create Railway project with 2 environments: `staging` (branch `dev`), `production` (branch `main`)
-- [ ] Add Postgres addon in each environment
-- [ ] Configure env vars: `APP_ENV`, `BOT_TOKEN`, `ADMIN_CHAT_ID`
-- [ ] Verify: push to `dev` → Railway builds Dockerfile and deploys
+- [x] Create Railway project with 2 environments: `staging` (branch `dev`), `production` (branch `main`)
+- [x] Configure env var: `APP_ENV` (`staging` / `production`)
+- [x] Verify: push to `dev` → Railway builds Dockerfile and deploys
 
 **Pipeline**:
 
@@ -254,7 +256,13 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 - [ ] Run `bun run db:migrate` before tests
 - [ ] Integration tests execute against CI Postgres
 
-**Exit criteria**: All tables created in Postgres. Repositories pass integration tests with real data. Mappers correctly translate between domain and persistence. CI includes database tests.
+#### 3E — Railway Database Setup
+
+- [ ] Add Postgres addon in Railway environments (`staging`, `production`)
+- [ ] Verify `DATABASE_URL` is automatically added to Railway variables
+- [ ] Run remote migrations against Railway Postgres
+
+**Exit criteria**: All tables created in Postgres. Repositories pass integration tests with real data. Mappers correctly translate between domain and persistence. CI includes database tests. App deploys successfully to Railway with working database connection.
 
 ---
 
@@ -335,6 +343,7 @@ Wire the Telegram bot to the use cases. Users can search departures and list sta
 - [ ] `TelegramBot.ts` — grammY bot initialization, middleware (error handling, logging)
 - [ ] `config/container.ts` — dependency injection wiring (manual factory function)
 - [ ] `main.ts` — entry point: load env, create DB, create container, start bot
+- [ ] Configure Telegram env vars in Railway: `BOT_TOKEN`, `ADMIN_CHAT_ID`
 
 #### 6B — Handlers
 
