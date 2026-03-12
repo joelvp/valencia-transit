@@ -214,24 +214,24 @@ feature/* ──PR──> dev ──PR──> main
 
 Define the Drizzle schema, generate migrations, and implement repository adapters. This is where domain meets infrastructure.
 
-#### 3A — Schema & Migrations
+#### 3A — Schema & Migrations ✅
 
-- [ ] `config/database.ts` — raw postgres client from `DATABASE_URL`
-- [ ] `config/env.ts` — validate all env vars, export typed config
-- [ ] `adapters/out/persistence/drizzle/schema.ts` — all tables:
-  - `stations` (id, name, latitude, longitude)
-  - `lines` (id, name, short_name, transport_type)
-  - `line_stations` (line_id, station_id, sequence, direction) — composite PK
-  - `schedules` (id, monday..sunday booleans, start_date, end_date)
-  - `schedule_exceptions` (schedule_id, date, is_active) — composite PK
-  - `trips` (id, line_id, schedule_id, direction) — FKs
-  - `passing_times` (trip_id, station_id, arrival_time, departure_time, sequence) — composite PK
-  - `dataset_versions` (id serial, detected_at, validity_start, validity_end, status, error_message)
-  - `search_logs` (id serial, origin_station_id, destination_station_id, searched_at, results_count)
-- [ ] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
-- [ ] `drizzle.config.ts` pointing to schema
-- [ ] Generate initial migration: `bun run db:generate`
-- [ ] Apply migration: `bun run db:migrate`
+- [x] `config/database.ts` — raw postgres client from `DATABASE_URL`
+- [x] `config/env.ts` — validate all env vars, export typed config
+- [x] `adapters/out/persistence/drizzle/schema.ts` — all tables:
+  - `stations` (id, feed_id, name, latitude, longitude, transport_type)
+  - `lines` (id, feed_id, name, short_name, transport_type)
+  - `line_stations` (line_id, station_id, feed_id, sequence, direction) — composite PK
+  - `schedules` (id, feed_id, monday..sunday booleans, start_date, end_date)
+  - `schedule_exceptions` (schedule_id, feed_id, date, is_active) — composite PK
+  - `trips` (id, feed_id, line_id, schedule_id, direction, headsign) — FKs
+  - `passing_times` (trip_id, station_id, feed_id, arrival_time, departure_time, sequence) — composite PK
+  - `dataset_versions` (id serial, feed_id, detected_at, validity_start, validity_end, status, error_message)
+  - `search_logs` (id serial, feed_id, origin_station_id, destination_station_id, searched_at, results_count)
+- [x] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
+- [x] `drizzle.config.ts` pointing to schema
+- [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_fair_ikaris.sql`
+- [ ] Apply migration: `bun run db:migrate` (requires live DB — manual step)
 - [ ] Verify tables in Drizzle Studio
 
 #### 3B — Mappers
