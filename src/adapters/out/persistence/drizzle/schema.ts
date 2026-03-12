@@ -10,6 +10,7 @@ import {
   foreignKey,
   serial,
   timestamp,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 // Stations and Bus Stops (generalized as 'stations' to match domain aggregate)
@@ -164,25 +165,12 @@ export const datasetVersions = pgTable("dataset_versions", {
   errorMessage: text("error_message"),
 });
 
-// Application concern: Search logs for analytics
-export const searchLogs = pgTable(
-  "search_logs",
-  {
-    id: serial("id").primaryKey(),
-    feedId: text("feed_id").notNull(),
-    originStationId: text("origin_station_id").notNull(),
-    destinationStationId: text("destination_station_id").notNull(),
-    searchedAt: timestamp("searched_at").notNull().defaultNow(),
-    resultsCount: integer("results_count").notNull(),
-  },
-  (t) => ({
-    originFk: foreignKey({
-      columns: [t.originStationId, t.feedId],
-      foreignColumns: [stations.id, stations.feedId],
-    }),
-    destinationFk: foreignKey({
-      columns: [t.destinationStationId, t.feedId],
-      foreignColumns: [stations.id, stations.feedId],
-    }),
-  }),
-);
+// Event Store: append-only log of all domain events
+export const domainEvents = pgTable("domain_events", {
+  id: serial("id").primaryKey(),
+  eventId: text("event_id").notNull().unique(),
+  eventName: text("event_name").notNull(),
+  occurredOn: timestamp("occurred_on").notNull(),
+  feedId: text("feed_id"),
+  payload: jsonb("payload").notNull(),
+});
