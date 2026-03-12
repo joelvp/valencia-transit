@@ -7,9 +7,12 @@ import globals from "globals";
 
 export default [
   eslintJs.configs.recommended,
-  // Hexagonal Architecture - Core layers only
+  // Hexagonal Architecture — enforce on core layers (domain + application)
+  // The plugin hardcodes a folder check for /application|domain|infrastructure/,
+  // so it only works on src/core/ where paths naturally contain "domain" or "application".
+  // This enforces the critical invariant: domain never imports from infrastructure.
   {
-    files: ["src/core/**/*.ts", "src/adapters/**/*.ts", "src/config/**/*.ts"],
+    files: ["src/core/**/*.ts"],
     languageOptions: {
       parser: tseslintParser,
       parserOptions: {
@@ -27,7 +30,6 @@ export default [
     },
     rules: {
       ...tseslint.configs.recommended.rules,
-      // Hexagonal architecture enforcement
       "hexagonal-architecture/enforce": [
         "error",
         {
@@ -46,17 +48,30 @@ export default [
               from: "application",
               allow: ["domain"],
             },
-            {
-              from: "adapters",
-              allow: ["domain", "application", "config"],
-            },
-            {
-              from: "config",
-              allow: [],
-            },
           ],
         },
       ],
+    },
+  },
+  // Adapters and config — TypeScript rules only, no hexagonal folder enforcement
+  {
+    files: ["src/adapters/**/*.ts", "src/config/**/*.ts"],
+    languageOptions: {
+      parser: tseslintParser,
+      parserOptions: {
+        project: "./tsconfig.json",
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+      globals: {
+        ...globals.node,
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tseslint,
+    },
+    rules: {
+      ...tseslint.configs.recommended.rules,
     },
   },
   // Entry points and utilities - Outside hexagonal architecture

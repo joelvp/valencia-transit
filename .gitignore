@@ -12,8 +12,8 @@ coverage
 
 # logs
 logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # dotenv environment variable files
 .env
@@ -33,14 +33,21 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # VS Code
 .vscode/
 
-# Claude Code memory
-.claude/
+# Claude Code - track config, ignore local/user-specific files
+.claude/settings.local.json
+.claude/agent.log
+
+# OpenCode - track config, ignore local/user-specific files
+.opencode/settings.local.json
+.opencode/agent.log
+.opencode/node_modules/
+.opencode/bun.lock
 
 # Finder (MacOS) folder config
 .DS_Store
 
 # Project-specific
 data/gtfs/
-CLAUDE.md
-PLAN.md
 CHANGELOG.md
+docs/implementation_plan.md
+
