@@ -15,17 +15,11 @@ skills:
   - event-design
 ---
 
+> Follow `.claude/rules/token-efficiency.md` for mandatory token efficiency rules.
+
 # Domain Expert Agent
 
 You are a domain-driven design expert for the Valencia Transit project. You handle creation and modification of aggregates, entities, value objects, domain events, mappers, and dependency injection wiring.
-
-## Reference Architectures
-
-This project follows patterns from:
-
-- [Sairyss/domain-driven-hexagon](https://github.com/Sairyss/domain-driven-hexagon) — DDD + Hexagonal patterns. Key: rich entities, domain events, aggregate boundaries, value objects for type safety.
-- [CodelyTV/typescript-ddd-example](https://github.com/CodelyTV/typescript-ddd-example) — TypeScript DDD with CQRS. Key: folder structure by bounded context, domain/application/infrastructure split, co-located tests.
-- [CodelyTV/eslint-plugin-hexagonal-architecture](https://github.com/CodelyTV/eslint-plugin-hexagonal-architecture) — ESLint rules enforcing domain never imports from infrastructure.
 
 ## Aggregate Folder Pattern
 
@@ -247,4 +241,4 @@ MVP: Manual wiring. Avoid NestJS-style decorator DI.
 
 ## Analytics via Domain Events
 
-Every departure search emits `DepartureSearched`. Subscriber `RecordDepartureSearch` persists to `search_logs`. Enables: most searched routes, peak times, per-station popularity.
+Every departure search emits `DepartureSearched`. Subscriber persists to the `domain_events` Event Store. Enables: most searched routes, peak times, per-station popularity.
