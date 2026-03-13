@@ -28,7 +28,6 @@ export class <EventName> extends DomainEvent {
 ```
 
 Rules:
-
 - Event name format: `<aggregate>.<past-tense-verb>` (e.g., `departure.searched`, `dataset.imported`)
 - Extend `DomainEvent` base class (provides `occurredOn`, `eventId`)
 - Use only primitive types in constructor (events must be serializable)
@@ -37,7 +36,6 @@ Rules:
 ### 2. Create subscriber: `src/core/application/<context>/<SubscriberName>.ts`
 
 The subscriber is a use case that reacts to the event:
-
 ```typescript
 export class <SubscriberName> {
   constructor(private readonly repo: SomeRepository) {}
@@ -58,7 +56,6 @@ eventBus.subscribe("<aggregate>.<past-tense-verb>", new <SubscriberName>(repo));
 ### 4. Emit from aggregate root
 
 The aggregate root records the event, and the use case publishes it:
-
 ```typescript
 // In the aggregate root entity:
 class SomeAggregate {
@@ -95,3 +92,31 @@ Use case calls aggregate method
 ```
 
 MVP implementation: `InMemoryEventBus` (sync, in-process).
+
+## Analytics via Domain Events
+
+Every departure search emits `DepartureSearched`. A subscriber persists it to the `domain_events` Event Store table. This enables analytics: most searched routes, peak times, per-station popularity.
+
+Pattern: one event -> one subscriber -> one persistence call. Keep subscribers focused.
+
+## DI Wiring for Events
+
+Events are wired in `src/config/container.ts` after use cases are instantiated:
+
+```typescript
+export function createContainer(db: DrizzleInstance) {
+  // 1. Driven adapters
+  const stationRepo = new StationRepositoryDrizzle(db);
+  const eventBus = new InMemoryEventBus();
+
+  // 2. Use cases
+  const searchNextDepartures = new SearchNextDepartures(stationRepo, eventBus);
+
+  // 3. Event subscribers (always last)
+  eventBus.subscribe("departure.searched", new RecordDepartureSearch(/* analyticsRepo */));
+
+  return { searchNextDepartures };
+}
+```
+
+The `EventBus` port is defined in `core/domain/` and implemented in `adapters/out/`. Use cases receive it via constructor injection.

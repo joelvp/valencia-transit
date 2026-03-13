@@ -2,6 +2,7 @@
 
 Guidelines for agents on the valencia-transit codebase.
 Conventions (naming, formatting, layer rules, testing) in `.opencode/rules/code-conventions.md`.
+Token efficiency rules in `.opencode/rules/token-efficiency.md`.
 
 ---
 
@@ -68,7 +69,9 @@ Skills live in `.opencode/skills/` and are shared across agents and the main age
 | `/new-migration` | User   | Guide through Drizzle schema changes                    |
 | `/new-test`      | User   | Create test file for existing source                    |
 | `new-mapper`     | Agent  | Create domain-to-persistence mapper                     |
+| `new-repository` | Agent  | Create repository implementation                        |
 | `event-design`   | Agent  | Design and wire domain events                           |
+| `gtfs-import`    | Agent  | GTFS data import pipeline and ETL                       |
 
 ---
 

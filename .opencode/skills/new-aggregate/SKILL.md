@@ -7,6 +7,21 @@ description: Create a new domain aggregate with all required files following the
 
 Create a new domain aggregate scaffold. The aggregate name is provided via `$ARGUMENTS` (e.g., `/new-aggregate Bus`).
 
+## Aggregate Folder Pattern
+
+Every aggregate in `src/core/domain/<aggregate>/` must contain:
+
+| File                       | Required?            | Rule                                          |
+| -------------------------- | -------------------- | --------------------------------------------- |
+| `<Aggregate>.ts`           | Always               | Aggregate root entity                         |
+| `<Aggregate>Id.ts`         | Always               | ID value object (`extends StringValueObject`) |
+| `<Name>VO.ts`              | As needed            | One file per value object                     |
+| `<Aggregate>Repository.ts` | Always               | Port interface for persistence                |
+| `<Aggregate>.test.ts`      | Always               | Entity behavior tests                         |
+| `<VO>.test.ts`             | Only if VO has logic | VOs with computation/comparison need own test |
+
+Cross-aggregate VOs (e.g., `TimeOfDay`, `Departure`, `StringValueObject`) live in `src/core/domain/shared/`.
+
 ## Files to Create
 
 Given aggregate name `<Aggregate>` (PascalCase), create:
@@ -20,14 +35,12 @@ Given aggregate name `<Aggregate>` (PascalCase), create:
   - Add meaningful behavior methods (not just getters)
 
 - **`<Aggregate>Id.ts`** — Identity value object
-
   ```typescript
   import { StringValueObject } from "@/core/domain/shared/StringValueObject";
   export class <Aggregate>Id extends StringValueObject {}
   ```
 
 - **`<Aggregate>Repository.ts`** — Port interface
-
   ```typescript
   export interface <Aggregate>Repository {
     findById(id: <Aggregate>Id): Promise<<Aggregate> | null>;
@@ -66,7 +79,6 @@ Given aggregate name `<Aggregate>` (PascalCase), create:
 ## Checklist
 
 After creation, verify:
-
 - [ ] All files follow naming conventions (PascalCase, one class per file)
 - [ ] Domain has zero imports from outside `core/domain/`
 - [ ] Port interface is in domain, implementation in adapters
