@@ -68,7 +68,7 @@ Rules:
 - Never mock domain entities — use real ones
 - Naming: `describe("ClassName")` -> `it("should <behavior>")`
 
-### 3. Registration in `src/config/container.ts`
+### 3. Registration in `src/adapters/container.ts`
 
 - Instantiate the use case, injecting port implementations
 - Add to the container return type

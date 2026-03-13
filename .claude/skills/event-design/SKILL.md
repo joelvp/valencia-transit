@@ -52,7 +52,7 @@ export class <SubscriberName> {
 }
 ```
 
-### 3. Wire in `src/config/container.ts`
+### 3. Wire in `src/adapters/container.ts`
 
 ```typescript
 // In the event wiring section (step 3):
@@ -107,7 +107,7 @@ Pattern: one event -> one subscriber -> one persistence call. Keep subscribers f
 
 ## DI Wiring for Events
 
-Events are wired in `src/config/container.ts` after use cases are instantiated:
+Events are wired in `src/adapters/container.ts` after use cases are instantiated:
 
 ```typescript
 export function createContainer(db: DrizzleInstance) {

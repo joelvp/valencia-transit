@@ -341,7 +341,7 @@ Wire the Telegram bot to the use cases. Users can search departures and list sta
 #### 6A — Bot Setup
 
 - [ ] `TelegramBot.ts` — grammY bot initialization, middleware (error handling, logging)
-- [ ] `config/container.ts` — dependency injection wiring (manual factory function)
+- [ ] `src/adapters/container.ts` — dependency injection wiring (manual factory function)
 - [ ] `main.ts` — entry point: load env, create DB, create container, start bot
 - [ ] Configure Telegram env vars in Railway: `BOT_TOKEN`, `ADMIN_CHAT_ID`
 
@@ -385,7 +385,7 @@ Wire up domain events, persist them to the Event Store, and enable analytics que
 - [ ] `DomainEventRepository` — port interface in `core/domain/event/`: `save(event: DomainEvent, feedId?: string)`, `findByName(eventName: string)`, `findAll()`
 - [ ] `DomainEventRepositoryDrizzle.ts` — implements `DomainEventRepository` port, persists to `domain_events` table (JSONB payload)
 - [ ] `PersistDomainEvent.ts` use case — generic subscriber that persists any published event to the Event Store
-- [ ] Wire event subscriptions in `container.ts`
+- [ ] Wire event subscriptions in `src/adapters/container.ts`
 - [ ] Verify events flow correctly in integration test
 - [ ] Add admin command or script to query analytics from Event Store (most searched routes, popular stations — queried via JSONB)
 
@@ -468,7 +468,7 @@ These are not prioritized yet. They represent growth directions.
 
 1. **Domain-driven, not GTFS-driven**: The domain models stations, lines, schedules, and trips as business concepts. GTFS is just one import format handled by an adapter.
 2. **Co-located tests**: TS best practice. Tests live next to their source files, not in a separate tree.
-3. **Manual DI over framework DI**: A simple factory function in `container.ts` is sufficient. No `@Injectable()` decorators coupling domain to frameworks.
+3. **Manual DI over framework DI**: A simple factory function in `src/adapters/container.ts` is sufficient. No `@Injectable()` decorators coupling domain to frameworks.
 4. **TypeScript for ETL**: GTFS parsing is simple CSV → domain mapping. Keeping it in TS avoids a Python/TS interop boundary and shares domain types.
 5. **Sync events (MVP)**: `InMemoryEventBus` is sufficient for analytics. Async event bus (RabbitMQ/Redis) only if needed for performance or multi-service communication.
 6. **No cache initially**: ~200K rows in Postgres is fast enough for schedule queries. Add caching only if there's a measured performance problem.

@@ -1,6 +1,6 @@
 ---
 name: new-aggregate
-description: Create a new domain aggregate with all required files following the project pattern
+description: Create a new domain aggregate with all required files following the project pattern. Use when user wants to create a new domain entity with repository, tests, and persistence adapter.
 user-invocable: true
 ---
 
@@ -25,6 +25,7 @@ Every aggregate in `src/core/domain/<aggregate>/` must contain:
 | `<Aggregate>Repository.ts` | Always               | Port interface for persistence                |
 | `<Aggregate>.test.ts`      | Always               | Entity behavior tests                         |
 | `<VO>.test.ts`             | Only if VO has logic | VOs with computation/comparison need own test |
+| `index.ts`                 | Always               | Barrel export for the aggregate               |
 
 Cross-aggregate VOs (e.g., `TimeOfDay`, `Departure`, `StringValueObject`) live in `src/core/domain/shared/`.
 
@@ -47,10 +48,13 @@ Given aggregate name `<Aggregate>` (PascalCase), create:
   ```
 
 - **`<Aggregate>Repository.ts`** — Port interface
+  - Include common methods: `findById`, `save`, plus aggregate-specific queries
+  - Add methods based on aggregate needs (e.g., `findByName`, `findAll`, `searchByName`)
   ```typescript
   export interface <Aggregate>Repository {
     findById(id: <Aggregate>Id): Promise<<Aggregate> | null>;
     save(entity: <Aggregate>): Promise<void>;
+    // Add aggregate-specific methods here
   }
   ```
 
@@ -61,26 +65,50 @@ Given aggregate name `<Aggregate>` (PascalCase), create:
   - Test equality by ID
   - No mocks — pure domain logic
 
+- **`index.ts`** — Barrel exports
+  ```typescript
+  export * from "./<Aggregate>.js";
+  export * from "./<Aggregate>Id.js";
+  export * from "./<Aggregate>Repository.js";
+  // Export VOs as needed
+  ```
+
 ### 2. Application folder: `src/core/application/<context>/`
 
 - Create the context folder if it doesn't exist
 - Leave empty — use cases will be added separately with `/new-usecase`
 
-### 3. Persistence adapter: `src/adapters/out/persistence/drizzle/`
+### 3. Drizzle schema: `src/adapters/out/persistence/drizzle/schema.ts`
 
-- **`<Aggregate>RepositoryDrizzle.ts`** — Repository implementation
+- Add the new aggregate table definition
+- Follow existing patterns (e.g., `stations`, `trips` tables)
+
+### 4. Persistence adapter: `src/adapters/out/persistence/drizzle/`
+
+- **`repositories/<Aggregate>RepositoryDrizzle.ts`** — Repository implementation
   - Implements `<Aggregate>Repository` port
   - Uses Drizzle queries
   - Uses mapper for domain <-> persistence translation
 
 - **`mappers/<Aggregate>Mapper.ts`** — Domain <-> persistence mapper
+  - Define explicit `Row` and `Insert` types (NOT using `$inferSelect` or `$inferInsert`)
   - Static `toDomain(row)` and `toPersistence(entity)` methods
-  - NEVER derive domain types from Drizzle (`typeof table.$inferSelect` is WRONG)
 
-### 4. Registration in `src/config/container.ts`
+### 5. Registration in DI container
 
-- Instantiate the repository adapter
+The DI container lives at `src/adapters/container.ts` (NOT in `config/` since it must import adapters).
+
+- Import and instantiate the repository adapter
 - Add to the container return type
+- Example pattern:
+  ```typescript
+  const stationRepo = new StationRepositoryDrizzle(db);
+  // ...
+  return {
+    stationRepository: stationRepo,
+    // ...
+  };
+  ```
 
 ## Checklist
 
@@ -88,4 +116,6 @@ After creation, verify:
 - [ ] All files follow naming conventions (PascalCase, one class per file)
 - [ ] Domain has zero imports from outside `core/domain/`
 - [ ] Port interface is in domain, implementation in adapters
+- [ ] Mapper uses explicit types, NOT `typeof table.$inferSelect`
+- [ ] DI container updated at `src/adapters/container.ts`
 - [ ] Tests pass with `bun test`

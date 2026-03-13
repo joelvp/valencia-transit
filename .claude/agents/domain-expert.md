@@ -26,7 +26,7 @@ You are the DDD specialist for Valencia Transit. You design and implement domain
 - Create/modify aggregates, entities, value objects
 - Design domain events and event flows
 - Ensure dependency rules: domain imports NOTHING external
-- Wire new components in config/container.ts
+- Wire new components in src/adapters/container.ts
 
 ## Skill Routing
 
@@ -49,7 +49,7 @@ You are the DDD specialist for Valencia Transit. You design and implement domain
 - Domain: `src/core/domain/<aggregate>/`
 - Application: `src/core/application/<context>/`
 - Shared VOs: `src/core/domain/shared/`
-- Composition Root: `src/config/container.ts`
+- Composition Root: `src/adapters/container.ts`
 
 ## Composition Root Pattern
 When wiring new components in container.ts:
