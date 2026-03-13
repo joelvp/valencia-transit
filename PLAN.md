@@ -231,8 +231,8 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 - [x] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
 - [x] `drizzle.config.ts` pointing to schema
 - [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_normal_swarm.sql`
-- [ ] Apply migration: `bun run db:migrate` (requires live DB — manual step)
-- [ ] Verify tables in Drizzle Studio
+- [x] Apply migration: `bun run db:migrate` (requires live DB — manual step)
+- [x] Verify tables in Drizzle Studio
 
 #### 3B — Mappers
 
@@ -244,11 +244,11 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 
 #### 3C — Repository Implementations
 
-- [ ] `StationRepositoryDrizzle` — implements `StationRepository` port
-- [ ] `LineRepositoryDrizzle` — implements `LineRepository` (includes JOIN with `line_stations`)
-- [ ] `ScheduleRepositoryDrizzle` — implements `ScheduleRepository` (includes JOIN with `schedule_exceptions`)
-- [ ] `TripRepositoryDrizzle` — implements `TripRepository` (includes JOIN with `passing_times`)
-- [ ] Integration tests for each repository (real DB, Docker Compose)
+- [x] `StationRepositoryDrizzle` — implements `StationRepository` port
+- [x] `LineRepositoryDrizzle` — implements `LineRepository` (includes JOIN with `line_stations`)
+- [x] `ScheduleRepositoryDrizzle` — implements `ScheduleRepository` (includes JOIN with `schedule_exceptions`)
+- [x] `TripRepositoryDrizzle` — implements `TripRepository` (includes JOIN with `passing_times`)
+- [x] Integration tests for each repository (real DB, Docker Compose)
 
 #### 3D — Expand CI with Postgres
 
