@@ -1,8 +1,9 @@
 # AGENTS.md — Valencia Transit
 
 Guidelines for agents on the valencia-transit codebase.
-Conventions (naming, formatting, layer rules, testing) in `.opencode/rules/code-conventions.md`.
-Token efficiency rules in `.opencode/rules/token-efficiency.md`.
+Conventions: @.opencode/rules/code-conventions.md
+Design principles: @.opencode/rules/design-principles.md
+Workflow: @.opencode/rules/workflow.md
 
 ---
 
@@ -56,25 +57,6 @@ Execute only after full plan approval.
 
 ---
 
-## Skills
-
-Skills live in `.opencode/skills/` and are shared across agents and the main agent.
-
-| Skill            | Invoke | Description                                             |
-| ---------------- | ------ | ------------------------------------------------------- |
-| `/verify`        | User   | Full verification suite (format, typecheck, lint, test) |
-| `/update-logs`   | User   | Update CHANGELOG.md and PLAN.md                         |
-| `/new-aggregate` | User   | Scaffold a new domain aggregate                         |
-| `/new-usecase`   | User   | Create use case with co-located test                    |
-| `/new-migration` | User   | Guide through Drizzle schema changes                    |
-| `/new-test`      | User   | Create test file for existing source                    |
-| `new-mapper`     | Agent  | Create domain-to-persistence mapper                     |
-| `new-repository` | Agent  | Create repository implementation                        |
-| `event-design`   | Agent  | Design and wire domain events                           |
-| `gtfs-import`    | Agent  | GTFS data import pipeline and ETL                       |
-
----
-
 ## Build Commands
 
 ```
@@ -89,8 +71,6 @@ bun run db:generate    # Generate Drizzle migrations
 bun run db:migrate     # Apply migrations
 bun run import:gtfs    # GTFS import pipeline
 ```
-
-**Full verification**: `bun run format:check && bun x tsc --noEmit && bun run lint && bun test`
 
 ---
 
@@ -113,45 +93,3 @@ Need to import from `adapters/` in `core/`? **Create a port interface in domain.
 - **Branches**: `main` (prod) ← `dev` (staging) ← `feature/*`
 - **Commits**: Conventional Commits — `<type>(<scope>): <description>`
 - **Not in repo**: `CHANGELOG.md`, `.env`, `data/gtfs/`
-
----
-
-## Workflow
-
-### Intent recognition
-
-Users describe tasks in business language. Map intent to action before executing:
-
-- **Real-world concept** (a place, route, timetable, vehicle...) → domain work → delegate to `domain-expert`
-- **Data or storage** (table, migration, import, CSV...) → persistence work → delegate to `persistence`
-- **Quality** (test, coverage, verify, check...) → testing work → delegate to `test-engineer`
-- **None of the above** → work directly, no delegation needed
-
-### After each task
-
-Use `/update-logs`.
-
-### Staleness detection
-
-If during work you detect that any of these files no longer reflect the actual state of the project, **stop and notify the user**:
-
-- `CLAUDE.md` / `AGENTS.md` — outdated sections (new aggregates, use cases, commands, etc.)
-- Agent definitions — patterns, references to files or structures that no longer exist
-- Skill definitions — steps, commands, or paths that are obsolete
-
-**Never update these files without explicit permission.** Describe what is stale and propose the specific change.
-
----
-
-## Design Principles
-
-1. Domain models business, not data formats — GTFS is an import adapter
-2. Rich entities, lean orchestration — entities own behavior
-3. Value Objects everywhere — typed, validated, no primitives
-4. Events for side effects — analytics, notifications via domain events
-5. Dependency inversion — domain defines ports, adapters implement
-6. Co-located tests — tests live next to the code they test
-7. Idempotent imports — truncate and re-insert
-8. Fail-safe — if something fails, notify admin, bot keeps running
-9. No over-engineering — start simple, evolve when needed
-10. Scalable by design — new transport modes = new aggregates/adapters
