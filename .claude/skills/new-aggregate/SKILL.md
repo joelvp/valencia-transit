@@ -13,6 +13,21 @@ bun ./.claude/hooks/echo_skill_start.ts new-aggregate
 
 Create a new domain aggregate scaffold. The aggregate name is provided via `$ARGUMENTS` (e.g., `/new-aggregate Bus`).
 
+## Aggregate Folder Pattern
+
+Every aggregate in `src/core/domain/<aggregate>/` must contain:
+
+| File                       | Required?            | Rule                                          |
+| -------------------------- | -------------------- | --------------------------------------------- |
+| `<Aggregate>.ts`           | Always               | Aggregate root entity                         |
+| `<Aggregate>Id.ts`         | Always               | ID value object (`extends StringValueObject`) |
+| `<Name>VO.ts`              | As needed            | One file per value object                     |
+| `<Aggregate>Repository.ts` | Always               | Port interface for persistence                |
+| `<Aggregate>.test.ts`      | Always               | Entity behavior tests                         |
+| `<VO>.test.ts`             | Only if VO has logic | VOs with computation/comparison need own test |
+
+Cross-aggregate VOs (e.g., `TimeOfDay`, `Departure`, `StringValueObject`) live in `src/core/domain/shared/`.
+
 ## Files to Create
 
 Given aggregate name `<Aggregate>` (PascalCase), create:

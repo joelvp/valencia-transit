@@ -2,6 +2,7 @@
 name: update-logs
 description: Update CHANGELOG.md and PLAN.md after completing a task. Appends to CHANGELOG.md without reading.
 user-invocable: true
+allowed-tools: Bash, Edit, Read
 ---
 
 **MANDATORY FIRST STEP — run this before anything else:**
