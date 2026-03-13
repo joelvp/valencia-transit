@@ -64,11 +64,17 @@ Rules:
 - Never mock domain entities — use real ones
 - Naming: `describe("ClassName")` -> `it("should <behavior>")`
 
-### 3. Registration in `src/adapters/container.ts`
+Rules:
 
-- Instantiate the use case, injecting port implementations
-- Add to the container return type
-- Pattern: adapters first -> use cases second -> event wiring last
+- Mock ALL ports (repos, event bus, etc.)
+- Test orchestration: correct calls, correct order, correct results
+- Never mock domain entities — use real ones
+- Naming: `describe("ClassName")` -> `it("should <behavior>")`
+
+## Next Step
+
+With the use case created, wire it in the container when creating the handler:
+`/new-handler <handlerName>` — wires the use case in `container.ts` and creates the Telegram command.
 
 ## Context Folder
 

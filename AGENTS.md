@@ -27,6 +27,7 @@ IMPORTANT: Match user **intent**, not just technical keywords. Users often descr
 | User intent                                                                                        | Delegate to     |
 | -------------------------------------------------------------------------------------------------- | --------------- |
 | Create, modify, or query any **business concept** — even if they never say "aggregate" or "entity" | `domain-expert` |
+| Telegram commands, bot handlers, use cases, DI wiring                                              | `domain-expert` |
 | Database schema, migrations, Drizzle queries, mappers, data import, ETL                            | `persistence`   |
 | Write/fix tests, test coverage, test strategy, mocking, DB test setup                              | `test-engineer` |
 
