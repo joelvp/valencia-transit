@@ -69,6 +69,35 @@ Rules:
 - `beforeEach` / `afterEach` handle setup and teardown. Never rely on test execution order.
 - Test data is created inside each test. No shared mutable fixtures.
 
+### Integration Test DB Connection Pattern
+
+**Critical**: Never export a module-level DB connection singleton shared across test files. When one test file's `afterAll` calls `sql.end()`, it terminates the shared connection and all subsequent test files fail with `CONNECTION_ENDED`.
+
+**Correct pattern** — factory function, one connection per test file:
+
+```typescript
+// test-db-helper.ts
+export function createTestSetup() {
+  const sql = postgres(CONNECTION_STRING);
+  const db = drizzle(sql, { schema });
+
+  async function cleanDatabase() {
+    await db.execute(sql`TRUNCATE TABLE ... CASCADE`);
+  }
+  async function closeDatabase() { await sql.end(); }
+
+  return { db, cleanDatabase, closeDatabase };
+}
+
+// In each test file — call at module level:
+const { db, cleanDatabase, closeDatabase } = createTestSetup();
+
+describe("MyRepositoryDrizzle", () => {
+  beforeEach(async () => { await cleanDatabase(); });
+  afterAll(async () => { await closeDatabase(); });
+});
+```
+
 ## Value Object Testing Strategy
 
 Not all VOs need their own test file. Test a VO only if it has **meaningful logic beyond validation + equality**:

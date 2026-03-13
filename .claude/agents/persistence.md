@@ -137,25 +137,22 @@ TelegramNotifier             -> Notifies admin of success/failure
 
 ## Repository Implementation Pattern
 
+Use **constructor injection** for the `db` instance — required for testability (integration tests pass a test-specific db instance).
+
 ```typescript
 import { eq } from "drizzle-orm";
-import { <Aggregate>Repository } from "@/core/domain/<aggregate>/<Aggregate>Repository";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { <Aggregate>Repository } from "@/core/domain/<aggregate>/<Aggregate>Repository";
 import { <Aggregate>Mapper } from "./mappers/<Aggregate>Mapper";
 import { <tableName> } from "./schema";
-import { db } from "./db";
+import type * as schema from "./schema";
 
 export class <Aggregate>RepositoryDrizzle implements <Aggregate>Repository {
-  async findById(id: <Aggregate>Id): Promise<<Aggregate> | null> {
-    const rows = await db.select().from(<tableName>).where(eq(<tableName>.id, id.value));
-    return rows[0] ? <Aggregate>Mapper.toDomain(rows[0]) : null;
-  }
+  constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
 
-  async save(entity: <Aggregate>): Promise<void> {
-    const data = <Aggregate>Mapper.toPersistence(entity);
-    await db.insert(<tableName>).values(data).onConflictDoUpdate({
-      target: <tableName>.id,
-      set: data,
-    });
+  async findById(id: <Aggregate>Id): Promise<<Aggregate> | null> {
+    const rows = await this.db.select().from(<tableName>).where(eq(<tableName>.id, id.value));
+    return rows[0] ? <Aggregate>Mapper.toDomain(rows[0]) : null;
   }
 }
 ```
