@@ -24,35 +24,41 @@ import { <Aggregate> } from "@/core/domain/<aggregate>/<Aggregate>";
 import { <Aggregate>Id } from "@/core/domain/<aggregate>/<Aggregate>Id";
 // ... other VO imports
 
-// Import Drizzle schema types
-import { type InferSelectModel, type InferInsertModel } from "drizzle-orm";
-import { <tableName> } from "../schema";
+type <Aggregate>Row = {
+  id: string;
+  // ... columns returned by SELECT (no feedId — it's a filter, not a domain field)
+};
 
-type <Aggregate>Row = InferSelectModel<typeof <tableName>>;
-type <Aggregate>Insert = InferInsertModel<typeof <tableName>>;
+type <Aggregate>Insert = {
+  id: string;
+  feedId: string;
+  // ... all columns needed for INSERT
+};
 
-export class <Aggregate>Mapper {
-  static toDomain(row: <Aggregate>Row): <Aggregate> {
+export const <Aggregate>Mapper = {
+  toDomain(row: <Aggregate>Row): <Aggregate> {
     return <Aggregate>.create(
       new <Aggregate>Id(row.id),
       // ... map other columns to VOs
     );
-  }
+  },
 
-  static toPersistence(entity: <Aggregate>): <Aggregate>Insert {
+  toPersistence(entity: <Aggregate>, feedId: string): <Aggregate>Insert {
     return {
       id: entity.id.value,
+      feedId,
       // ... map VOs to plain values
     };
-  }
-}
+  },
+};
 ```
 
 ## Rules
 
-- **NEVER** derive domain types from Drizzle: `typeof table.$inferSelect` as domain type is WRONG
-- Domain defines its own types; the mapper handles translation
+- **NEVER** use `InferSelectModel`, `InferInsertModel`, `$inferSelect`, or `$inferInsert` — define explicit `Row` and `Insert` types manually
+- **Object literal**, not a class — `export const Mapper = { toDomain, toPersistence }`
 - `toDomain` constructs domain entities with proper VOs from flat DB rows
-- `toPersistence` extracts primitive values from VOs for DB insertion
-- Static methods only — mappers are stateless
+- `toPersistence` takes the entity **and `feedId: string`** as parameters — `feedId` is a persistence concern, not part of the domain model
+- `Row` type reflects what SELECT returns (typically excludes `feedId`)
+- `Insert` type includes all columns needed for INSERT (including `feedId`)
 - One mapper per aggregate
