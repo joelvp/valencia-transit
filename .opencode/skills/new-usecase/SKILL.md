@@ -64,13 +64,6 @@ Rules:
 - Never mock domain entities — use real ones
 - Naming: `describe("ClassName")` -> `it("should <behavior>")`
 
-Rules:
-
-- Mock ALL ports (repos, event bus, etc.)
-- Test orchestration: correct calls, correct order, correct results
-- Never mock domain entities — use real ones
-- Naming: `describe("ClassName")` -> `it("should <behavior>")`
-
 ## Next Step
 
 With the use case created, wire it in the container when creating the handler:

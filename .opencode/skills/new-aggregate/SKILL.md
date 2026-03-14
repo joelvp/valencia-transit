@@ -132,7 +132,7 @@ Given aggregate name `<Aggregate>` (PascalCase), create:
 
 ## Next Steps
 
-The domain scaffold is now complete. Continue with the `persistence` agent:
+The domain scaffold is now complete. Continue with the `adapters` agent:
 
 1. **Schema + migration** → `new-migration` — add the table to `schema.ts` and generate the migration
 2. **Mapper** → `new-mapper` — create `<Aggregate>Mapper.ts`
