@@ -27,16 +27,19 @@ Developer prompt
 
 ### Skills (slash commands)
 
-| Skill            | Description                                             |
-| ---------------- | ------------------------------------------------------- |
-| `/new-aggregate` | Scaffold a new domain aggregate with all files          |
-| `/new-usecase`   | Create a use case with co-located test                  |
-| `/new-migration` | Guide through Drizzle schema changes                    |
-| `/new-test`      | Create test file for existing source                    |
-| `/verify`        | Full verification suite (format, typecheck, lint, test) |
-| `/update-logs`   | Update CHANGELOG.md and PLAN.md after a task            |
-| `new-mapper`     | Create domain-to-persistence mapper (agent-only)        |
-| `event-design`   | Design and wire domain events (agent-only)              |
+| Skill            | Type        | Description                                             |
+| ---------------- | ----------- | ------------------------------------------------------- |
+| `/new-aggregate` | user        | Scaffold a new domain aggregate with all files          |
+| `/new-usecase`   | user        | Create a use case with co-located test                  |
+| `/new-handler`   | user        | Create a primary adapter handler (Telegram/REST/CLI)    |
+| `/new-migration` | user        | Guide through Drizzle schema changes                    |
+| `/new-test`      | user        | Create test file for existing source                    |
+| `/verify`        | user        | Full verification suite (format, typecheck, lint, test) |
+| `/update-logs`   | user        | Update CHANGELOG.md and PLAN.md after a task            |
+| `new-mapper`     | agent-only  | Create domain-to-persistence mapper                     |
+| `new-repository` | agent-only  | Create repository implementation                        |
+| `event-design`   | agent-only  | Design and wire domain events                           |
+| `gtfs-import`    | agent-only  | GTFS import pipeline architecture and ETL               |
 
 ## How Delegation Works
 
@@ -85,8 +88,11 @@ You can skip intent recognition and invoke directly:
 ├── hooks/                  # Logging scripts (TypeScript)
 │   ├── echo_agent_start.ts
 │   └── echo_skill_start.ts
-├── rules/                  # Shared coding conventions
-│   └── code-conventions.md
+├── rules/                  # Shared coding conventions and workflow
+│   ├── code-conventions.md
+│   ├── design-principles.md
+│   ├── token-efficiency.md
+│   └── workflow.md
 ├── settings.json           # Hooks config + permissions (shared)
 ├── settings.local.json     # Local permissions (gitignored)
 └── agent.log               # Activity log (gitignored)

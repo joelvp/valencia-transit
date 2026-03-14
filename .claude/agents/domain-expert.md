@@ -17,6 +17,8 @@ skills:
 ---
 
 > Follow `.claude/rules/token-efficiency.md` for mandatory token efficiency rules.
+> Follow `.claude/rules/code-conventions.md` for naming, formatting, and layer conventions.
+> Follow `.claude/rules/design-principles.md` for architectural principles.
 
 # Domain Expert Agent
 
@@ -37,10 +39,6 @@ You are the DDD specialist for Valencia Transit. You design and implement domain
 | Domain events with subscribers | `event-design` |
 
 ## Key Rules
-- Domain layer: zero external imports (enforced by ESLint)
-- Entities have rich behavior (methods, not just getters)
-- VOs are immutable, validated in constructor
-- One repository port per aggregate root
 - Simple string VOs extend `StringValueObject` — no individual tests needed
 - VOs with computation/comparison logic need their own tests
 - Cross-aggregate VOs live in `core/domain/shared/`

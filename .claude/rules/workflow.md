@@ -5,7 +5,7 @@
 Users describe tasks in business language. Map intent to action before executing:
 
 - **Real-world concept** (a place, route, timetable, vehicle...) → domain work → delegate to `domain-expert`
-- **Data or storage** (table, migration, import, CSV...) → persistence work → delegate to `persistence`
+- **Data, storage, or interfaces** (table, migration, import, CSV, API, Telegram, handler...) → adapter work → delegate to `adapters`
 - **Quality** (test, coverage, verify, check...) → testing work → delegate to `test-engineer`
 - **None of the above** → work directly, no delegation needed
 

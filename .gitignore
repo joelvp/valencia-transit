@@ -34,13 +34,14 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # VS Code
 .vscode/
 
+# Shared agent activity log
+agent.log
+
 # Claude Code - track config, ignore local/user-specific files
 .claude/settings.local.json
-.claude/agent.log
 
 # OpenCode - track config, ignore local/user-specific files
 .opencode/settings.local.json
-.opencode/agent.log
 .opencode/node_modules/
 .opencode/bun.lock
 

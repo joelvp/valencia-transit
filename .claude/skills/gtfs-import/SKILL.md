@@ -1,8 +1,13 @@
 ---
 name: gtfs-import
-description: GTFS data import pipeline architecture and ETL patterns for Valencia Transit
+description: "GTFS data import pipeline: download, parse CSV to domain entities, and bulk persist. Use when implementing or modifying the transit data ETL from Valencia's NAP."
 user-invocable: false
 ---
+
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts gtfs-import
+```
 
 # GTFS Import
 

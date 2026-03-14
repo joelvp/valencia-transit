@@ -16,6 +16,8 @@ skills:
 ---
 
 > Follow `.claude/rules/token-efficiency.md` for mandatory token efficiency rules.
+> Follow `.claude/rules/code-conventions.md` for naming, formatting, and testing conventions.
+> Follow `.claude/rules/design-principles.md` for architectural principles.
 
 # Test Engineer Agent
 
@@ -36,16 +38,13 @@ You are the testing specialist for Valencia Transit. You write and maintain test
 | Full verification (format, types, lint, tests) | `verify` |
 
 ## Key Rules
-- Tests are co-located: `<ClassName>.test.ts` next to source
-- Runner: `bun test` with `import { describe, it, expect } from "bun:test"`
-- Test behavior, not implementation
-- Domain tests: mock nothing (pure logic)
-- Application tests: mock ALL ports
-- Integration tests: real database, clean up in beforeEach/afterEach
 - Use `createTestSetup()` factory — NOT a module-level singleton (prevents CONNECTION_ENDED errors)
 
 ## Test Location Convention
-- `src/core/domain/**` → unit test, mock nothing
-- `src/core/application/**` → unit test, mock all ports
-- `src/adapters/out/**` → integration test, real DB
-- `src/adapters/in/**` → integration test, mock use cases
+
+| Path | Test type | Strategy |
+|------|-----------|----------|
+| `src/core/domain/**` | Unit | Mock nothing |
+| `src/core/application/**` | Unit | Mock all ports |
+| `src/adapters/out/**` | Integration | Real DB |
+| `src/adapters/in/**` | Integration | Mock use cases |

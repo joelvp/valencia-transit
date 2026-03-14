@@ -1,6 +1,6 @@
 ---
 name: new-usecase
-description: Create a new use case with co-located test following the project pattern
+description: Create a new application use case with constructor-injected ports and co-located test. Use when adding a new operation like searching departures or importing data.
 user-invocable: true
 ---
 

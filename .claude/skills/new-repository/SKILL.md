@@ -4,6 +4,11 @@ description: Create a repository implementation following the project pattern wi
 user-invocable: false
 ---
 
+**MANDATORY FIRST STEP — run this before anything else:**
+```bash
+bun ./.claude/hooks/echo_skill_start.ts new-repository
+```
+
 # New Repository
 
 Create a Drizzle repository implementation for a domain aggregate.
@@ -37,9 +42,9 @@ export class <Aggregate>RepositoryDrizzle implements <Aggregate>Repository {
     await this.db.insert(<aggregate>s).values(data).onConflictDoNothing();
   }
 
-  async saveMany(entities: <Aggregate>[]): Promise<void> {
+  async saveMany(entities: <Aggregate>[], feedId: FeedId): Promise<void> {
     if (entities.length === 0) return;
-    const data = entities.map(<Aggregate>Mapper.toPersistence);
+    const data = entities.map((e) => <Aggregate>Mapper.toPersistence(e, feedId.value));
     await this.db.insert(<aggregate>s).values(data).onConflictDoNothing();
   }
 }

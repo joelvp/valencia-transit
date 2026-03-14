@@ -1,6 +1,6 @@
 ---
 name: new-aggregate
-description: Create a new domain aggregate with all required files following the project pattern. Use when user wants to create a new domain entity with repository, tests, and persistence adapter.
+description: Scaffold a new domain aggregate (entity, VOs, port, tests) in core/domain/. Use when creating a new business concept like a station, line, or vehicle.
 user-invocable: true
 ---
 
@@ -138,7 +138,7 @@ Given aggregate name `<Aggregate>` (PascalCase), create:
 
 ## Next Steps
 
-The domain scaffold is now complete. Continue with the `persistence` agent:
+The domain scaffold is now complete. Continue with the `adapters` agent:
 
 1. **Schema + migration** → `new-migration` — add the table to `schema.ts` and generate the migration
 2. **Mapper** → `new-mapper` — create `<Aggregate>Mapper.ts`

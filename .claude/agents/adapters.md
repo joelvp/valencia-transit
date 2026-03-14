@@ -19,6 +19,8 @@ skills:
 ---
 
 > Follow `.claude/rules/token-efficiency.md` for mandatory token efficiency rules.
+> Follow `.claude/rules/code-conventions.md` for naming, formatting, and layer conventions.
+> Follow `.claude/rules/design-principles.md` for architectural principles.
 
 # Adapters Agent
 
@@ -44,8 +46,6 @@ You are the Delivery and Persistence specialist for Valencia Transit. You handle
 | GTFS import or ETL pipeline | `gtfs-import` |
 
 ## Key Rules
-- Adapters depend on Domain/Application, NEVER the other way around.
-- Primary adapters parse input, call a use case, and format the output.
 - Schema is domain-driven, NOT GTFS-mirrored
 - All domain tables use composite PKs: `(id, feedId)`
 - Repositories take `PostgresJsDatabase<typeof schema>` via constructor injection
