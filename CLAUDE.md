@@ -3,6 +3,7 @@
 Conventions: @.claude/rules/code-conventions.md
 Design principles: @.claude/rules/design-principles.md
 Workflow: @.claude/rules/workflow.md
+Model strategy: @.claude/rules/model-strategy.md
 
 ---
 
