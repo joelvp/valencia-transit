@@ -2,7 +2,7 @@
   "hooks": {
     "SubagentStart": [
       {
-        "matcher": "domain-expert|persistence|test-engineer",
+        "matcher": "domain-expert|adapters|test-engineer",
         "hooks": [
           {
             "type": "command",

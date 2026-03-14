@@ -21,14 +21,13 @@ Transit information system for Valencia's metro. Tells users next departures wit
 IMPORTANT: Match user **intent**, not just technical keywords. Users often describe tasks in business language rather than DDD terminology. Before acting, ask yourself: **"What domain concept is the user referring to, and what technical work does it require?"**
 
 - If the user mentions a **real-world concept** (a place, a route, a timetable, a vehicle...), they are likely talking about a domain aggregate or entity — delegate to `domain-expert`.
-- If the user mentions **data storage, imports, or schema**, delegate to `persistence`.
+- If the user mentions **data storage, interfaces, APIs, or schema**, delegate to `adapters`.
 - If the user mentions **testing or verification**, delegate to `test-engineer`.
 
 | User intent                                                                                        | Delegate to     |
 | -------------------------------------------------------------------------------------------------- | --------------- |
 | Create, modify, or query any **business concept** — even if they never say "aggregate" or "entity" | `domain-expert` |
-| Telegram commands, bot handlers, use cases, DI wiring                                              | `domain-expert` |
-| Database schema, migrations, Drizzle queries, mappers, data import, ETL                            | `persistence`   |
+| UI, Telegram commands, REST APIs, DI wiring, database schema, migrations, mappers, ETL             | `adapters`      |
 | Write/fix tests, test coverage, test strategy, mocking, DB test setup                              | `test-engineer` |
 
 Agent definitions: `.opencode/agents/`

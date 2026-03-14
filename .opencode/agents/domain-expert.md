@@ -26,7 +26,6 @@ You are the DDD specialist for Valencia Transit. You design and implement domain
 |------|--------|
 | New aggregate from scratch | `new-aggregate` |
 | New use case with test | `new-usecase` |
-| Telegram command handler | `new-handler` |
 | Domain events with subscribers | `event-design` |
 
 ## Key Rules

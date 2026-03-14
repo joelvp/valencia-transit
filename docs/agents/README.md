@@ -22,7 +22,7 @@ Developer prompt
 | Agent           | Specialization                                    | When to use                                         |
 | --------------- | ------------------------------------------------- | --------------------------------------------------- |
 | `domain-expert` | DDD patterns, aggregates, entities, VOs, events   | Any business concept — even without DDD terminology |
-| `persistence`   | Drizzle schema, migrations, mappers, repositories | Database, data import, ETL                          |
+| `adapters`      | Primary/Secondary adapters, schema, APIs, repos   | Database, UI, Telegram handlers, REST APIs, ETL     |
 | `test-engineer` | Unit/integration tests, test strategy             | Testing, verification, coverage                     |
 
 ### Skills (slash commands)
@@ -43,7 +43,7 @@ Developer prompt
 1. You write a prompt in natural language (business or technical)
 2. The main agent matches your **intent** to a subagent:
    - Real-world concepts (places, routes, timetables) → `domain-expert`
-   - Data/storage (tables, migrations, CSV import) → `persistence`
+   - Interfaces/storage (tables, APIs, Telegram, DB schema) → `adapters`
    - Quality (tests, coverage, verification) → `test-engineer`
 3. The main agent **asks your permission** before delegating
 4. The subagent executes, using skills as needed
@@ -70,8 +70,8 @@ You can skip intent recognition and invoke directly:
 ```
 .claude/                    # Claude Code specific
 ├── agents/                 # Subagent definitions (frontmatter + prompt)
+│   ├── adapters.md
 │   ├── domain-expert.md
-│   ├── persistence.md
 │   └── test-engineer.md
 ├── skills/                 # Skill definitions (SKILL.md per skill)
 │   ├── new-aggregate/
