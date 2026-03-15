@@ -252,9 +252,9 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 
 #### 3D — Expand CI with Postgres
 
-- [ ] Add Postgres service container to GitHub Actions CI
-- [ ] Run `bun run db:migrate` before tests
-- [ ] Integration tests execute against CI Postgres
+- [x] Add Postgres service container to GitHub Actions CI
+- [x] Run `bun run db:migrate` before tests
+- [x] Integration tests execute against CI Postgres
 
 #### 3E — Railway Database Setup
 
