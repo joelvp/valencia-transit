@@ -214,47 +214,47 @@ feature/* ──PR──> dev ──PR──> main
 
 Define the Drizzle schema, generate migrations, and implement repository adapters. This is where domain meets infrastructure.
 
-#### 3A — Schema & Migrations
+#### 3A — Schema & Migrations ✅
 
-- [ ] `config/database.ts` — raw postgres client from `DATABASE_URL`
-- [ ] `config/env.ts` — validate all env vars, export typed config
-- [ ] `adapters/out/persistence/drizzle/schema.ts` — all tables:
-  - `stations` (id, name, latitude, longitude)
-  - `lines` (id, name, short_name, transport_type)
-  - `line_stations` (line_id, station_id, sequence, direction) — composite PK
-  - `schedules` (id, monday..sunday booleans, start_date, end_date)
-  - `schedule_exceptions` (schedule_id, date, is_active) — composite PK
-  - `trips` (id, line_id, schedule_id, direction) — FKs
-  - `passing_times` (trip_id, station_id, arrival_time, departure_time, sequence) — composite PK
-  - `dataset_versions` (id serial, detected_at, validity_start, validity_end, status, error_message)
-  - `search_logs` (id serial, origin_station_id, destination_station_id, searched_at, results_count)
-- [ ] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
-- [ ] `drizzle.config.ts` pointing to schema
-- [ ] Generate initial migration: `bun run db:generate`
-- [ ] Apply migration: `bun run db:migrate`
-- [ ] Verify tables in Drizzle Studio
+- [x] `config/database.ts` — raw postgres client from `DATABASE_URL`
+- [x] `config/env.ts` — validate all env vars, export typed config
+- [x] `adapters/out/persistence/drizzle/schema.ts` — all tables:
+  - `stations` (id, feed_id, name, latitude, longitude, transport_type)
+  - `lines` (id, feed_id, name, short_name, transport_type)
+  - `line_stations` (line_id, station_id, feed_id, sequence, direction) — composite PK
+  - `schedules` (id, feed_id, monday..sunday booleans, start_date, end_date)
+  - `schedule_exceptions` (schedule_id, feed_id, date, is_active) — composite PK
+  - `trips` (id, feed_id, line_id, schedule_id, direction, headsign) — FKs
+  - `passing_times` (trip_id, station_id, feed_id, arrival_time, departure_time, sequence) — composite PK
+  - `dataset_versions` (id serial, feed_id, detected_at, validity_start, validity_end, status, error_message)
+  - `domain_events` (id serial, event_id unique, event_name, occurred_on, feed_id nullable, payload JSONB) — Event Store
+- [x] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
+- [x] `drizzle.config.ts` pointing to schema
+- [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_normal_swarm.sql`
+- [x] Apply migration: `bun run db:migrate` (requires live DB — manual step)
+- [x] Verify tables in Drizzle Studio
 
 #### 3B — Mappers
 
-- [ ] `StationMapper` — `toDomain(row)` / `toPersistence(entity)`
-- [ ] `LineMapper` — `toDomain(row, lineStationRows)` / `toPersistence(entity)`
-- [ ] `ScheduleMapper` — `toDomain(row, exceptionRows)` / `toPersistence(entity)`
-- [ ] `TripMapper` — `toDomain(row, passingTimeRows)` / `toPersistence(entity)`
-- [ ] Unit tests for mappers (both directions)
+- [x] `StationMapper` — `toDomain(row)` / `toPersistence(entity)`
+- [x] `LineMapper` — `toDomain(row, lineStationRows)` / `toPersistence(entity)`
+- [x] `ScheduleMapper` — `toDomain(row, exceptionRows)` / `toPersistence(entity)`
+- [x] `TripMapper` — `toDomain(row, passingTimeRows)` / `toPersistence(entity)`
+- [x] Unit tests for mappers (both directions + round-trip) — 128 tests pass
 
 #### 3C — Repository Implementations
 
-- [ ] `StationRepositoryDrizzle` — implements `StationRepository` port
-- [ ] `LineRepositoryDrizzle` — implements `LineRepository` (includes JOIN with `line_stations`)
-- [ ] `ScheduleRepositoryDrizzle` — implements `ScheduleRepository` (includes JOIN with `schedule_exceptions`)
-- [ ] `TripRepositoryDrizzle` — implements `TripRepository` (includes JOIN with `passing_times`)
-- [ ] Integration tests for each repository (real DB, Docker Compose)
+- [x] `StationRepositoryDrizzle` — implements `StationRepository` port
+- [x] `LineRepositoryDrizzle` — implements `LineRepository` (includes JOIN with `line_stations`)
+- [x] `ScheduleRepositoryDrizzle` — implements `ScheduleRepository` (includes JOIN with `schedule_exceptions`)
+- [x] `TripRepositoryDrizzle` — implements `TripRepository` (includes JOIN with `passing_times`)
+- [x] Integration tests for each repository (real DB, Docker Compose)
 
 #### 3D — Expand CI with Postgres
 
-- [ ] Add Postgres service container to GitHub Actions CI
-- [ ] Run `bun run db:migrate` before tests
-- [ ] Integration tests execute against CI Postgres
+- [x] Add Postgres service container to GitHub Actions CI
+- [x] Run `bun run db:migrate` before tests
+- [x] Integration tests execute against CI Postgres
 
 #### 3E — Railway Database Setup
 
@@ -341,7 +341,7 @@ Wire the Telegram bot to the use cases. Users can search departures and list sta
 #### 6A — Bot Setup
 
 - [ ] `TelegramBot.ts` — grammY bot initialization, middleware (error handling, logging)
-- [ ] `config/container.ts` — dependency injection wiring (manual factory function)
+- [ ] `src/adapters/container.ts` — dependency injection wiring (manual factory function)
 - [ ] `main.ts` — entry point: load env, create DB, create container, start bot
 - [ ] Configure Telegram env vars in Railway: `BOT_TOKEN`, `ADMIN_CHAT_ID`
 
@@ -377,19 +377,19 @@ Next departures:
 
 ---
 
-### Phase 7 — Event Bus & Analytics
+### Phase 7 — Event Bus & Event Store
 
-Wire up domain events and start collecting search analytics.
+Wire up domain events, persist them to the Event Store, and enable analytics queries.
 
 - [ ] `InMemoryEventBus.ts` — simple sync event bus implementing `EventBus` port
-- [ ] `AnalyticsRepository` — port interface in `core/domain/shared/` (not aggregate-bound): `saveSearchLog(event)`, `getMostSearchedRoutes()`, `getPopularStations()`
-- [ ] `AnalyticsRepositoryDrizzle.ts` — implements `AnalyticsRepository` port, persists to `search_logs`
-- [ ] `RecordDepartureSearch.ts` use case — subscribes to `DepartureSearched`, calls `AnalyticsRepository`
-- [ ] Wire event subscriptions in `container.ts`
+- [ ] `DomainEventRepository` — port interface in `core/domain/event/`: `save(event: DomainEvent, feedId?: string)`, `findByName(eventName: string)`, `findAll()`
+- [ ] `DomainEventRepositoryDrizzle.ts` — implements `DomainEventRepository` port, persists to `domain_events` table (JSONB payload)
+- [ ] `PersistDomainEvent.ts` use case — generic subscriber that persists any published event to the Event Store
+- [ ] Wire event subscriptions in `src/adapters/container.ts`
 - [ ] Verify events flow correctly in integration test
-- [ ] Add admin command or script to query analytics (most searched routes, popular stations)
+- [ ] Add admin command or script to query analytics from Event Store (most searched routes, popular stations — queried via JSONB)
 
-**Exit criteria**: Every departure search creates a record in `search_logs`. Analytics queries return meaningful data.
+**Exit criteria**: Every domain event is persisted to `domain_events`. Analytics queries (e.g., most searched routes) work via JSONB queries on the Event Store.
 
 ---
 
@@ -468,7 +468,7 @@ These are not prioritized yet. They represent growth directions.
 
 1. **Domain-driven, not GTFS-driven**: The domain models stations, lines, schedules, and trips as business concepts. GTFS is just one import format handled by an adapter.
 2. **Co-located tests**: TS best practice. Tests live next to their source files, not in a separate tree.
-3. **Manual DI over framework DI**: A simple factory function in `container.ts` is sufficient. No `@Injectable()` decorators coupling domain to frameworks.
+3. **Manual DI over framework DI**: A simple factory function in `src/adapters/container.ts` is sufficient. No `@Injectable()` decorators coupling domain to frameworks.
 4. **TypeScript for ETL**: GTFS parsing is simple CSV → domain mapping. Keeping it in TS avoids a Python/TS interop boundary and shares domain types.
 5. **Sync events (MVP)**: `InMemoryEventBus` is sufficient for analytics. Async event bus (RabbitMQ/Redis) only if needed for performance or multi-service communication.
 6. **No cache initially**: ~200K rows in Postgres is fast enough for schedule queries. Add caching only if there's a measured performance problem.

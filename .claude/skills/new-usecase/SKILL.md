@@ -1,6 +1,6 @@
 ---
 name: new-usecase
-description: Create a new use case with co-located test following the project pattern
+description: Create a new application use case with constructor-injected ports and co-located test. Use when adding a new operation like searching departures or importing data.
 user-invocable: true
 ---
 
@@ -68,11 +68,10 @@ Rules:
 - Never mock domain entities — use real ones
 - Naming: `describe("ClassName")` -> `it("should <behavior>")`
 
-### 3. Registration in `src/config/container.ts`
+## Next Step
 
-- Instantiate the use case, injecting port implementations
-- Add to the container return type
-- Pattern: adapters first -> use cases second -> event wiring last
+With the use case created, wire it in the container when creating the handler:
+`/new-handler <handlerName>` — wires the use case in `container.ts` and creates the Telegram command.
 
 ## Context Folder
 

@@ -22,28 +22,31 @@ Developer prompt
 | Agent           | Specialization                                    | When to use                                         |
 | --------------- | ------------------------------------------------- | --------------------------------------------------- |
 | `domain-expert` | DDD patterns, aggregates, entities, VOs, events   | Any business concept — even without DDD terminology |
-| `persistence`   | Drizzle schema, migrations, mappers, repositories | Database, data import, ETL                          |
+| `adapters`      | Primary/Secondary adapters, schema, APIs, repos   | Database, UI, Telegram handlers, REST APIs, ETL     |
 | `test-engineer` | Unit/integration tests, test strategy             | Testing, verification, coverage                     |
 
 ### Skills (slash commands)
 
-| Skill            | Description                                             |
-| ---------------- | ------------------------------------------------------- |
-| `/new-aggregate` | Scaffold a new domain aggregate with all files          |
-| `/new-usecase`   | Create a use case with co-located test                  |
-| `/new-migration` | Guide through Drizzle schema changes                    |
-| `/new-test`      | Create test file for existing source                    |
-| `/verify`        | Full verification suite (format, typecheck, lint, test) |
-| `/update-logs`   | Update CHANGELOG.md and PLAN.md after a task            |
-| `new-mapper`     | Create domain-to-persistence mapper (agent-only)        |
-| `event-design`   | Design and wire domain events (agent-only)              |
+| Skill            | Type        | Description                                             |
+| ---------------- | ----------- | ------------------------------------------------------- |
+| `/new-aggregate` | user        | Scaffold a new domain aggregate with all files          |
+| `/new-usecase`   | user        | Create a use case with co-located test                  |
+| `/new-handler`   | user        | Create a primary adapter handler (Telegram/REST/CLI)    |
+| `/new-migration` | user        | Guide through Drizzle schema changes                    |
+| `/new-test`      | user        | Create test file for existing source                    |
+| `/verify`        | user        | Full verification suite (format, typecheck, lint, test) |
+| `/update-logs`   | user        | Update CHANGELOG.md and PLAN.md after a task            |
+| `new-mapper`     | agent-only  | Create domain-to-persistence mapper                     |
+| `new-repository` | agent-only  | Create repository implementation                        |
+| `event-design`   | agent-only  | Design and wire domain events                           |
+| `gtfs-import`    | agent-only  | GTFS import pipeline architecture and ETL               |
 
 ## How Delegation Works
 
 1. You write a prompt in natural language (business or technical)
 2. The main agent matches your **intent** to a subagent:
    - Real-world concepts (places, routes, timetables) → `domain-expert`
-   - Data/storage (tables, migrations, CSV import) → `persistence`
+   - Interfaces/storage (tables, APIs, Telegram, DB schema) → `adapters`
    - Quality (tests, coverage, verification) → `test-engineer`
 3. The main agent **asks your permission** before delegating
 4. The subagent executes, using skills as needed
@@ -70,8 +73,8 @@ You can skip intent recognition and invoke directly:
 ```
 .claude/                    # Claude Code specific
 ├── agents/                 # Subagent definitions (frontmatter + prompt)
+│   ├── adapters.md
 │   ├── domain-expert.md
-│   ├── persistence.md
 │   └── test-engineer.md
 ├── skills/                 # Skill definitions (SKILL.md per skill)
 │   ├── new-aggregate/
@@ -85,8 +88,11 @@ You can skip intent recognition and invoke directly:
 ├── hooks/                  # Logging scripts (TypeScript)
 │   ├── echo_agent_start.ts
 │   └── echo_skill_start.ts
-├── rules/                  # Shared coding conventions
-│   └── code-conventions.md
+├── rules/                  # Shared coding conventions and workflow
+│   ├── code-conventions.md
+│   ├── design-principles.md
+│   ├── token-efficiency.md
+│   └── workflow.md
 ├── settings.json           # Hooks config + permissions (shared)
 ├── settings.local.json     # Local permissions (gitignored)
 └── agent.log               # Activity log (gitignored)

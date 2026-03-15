@@ -122,7 +122,7 @@ tools:
   "hooks": {
     "SubagentStart": [
       {
-        "matcher": "domain-expert|persistence|test-engineer",
+        "matcher": "domain-expert|adapters|test-engineer",
         "hooks": [{ "type": "command", "command": "bun ./.claude/hooks/echo_agent_start.ts" }]
       }
     ]

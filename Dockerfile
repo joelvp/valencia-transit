@@ -7,4 +7,4 @@ RUN bun install --frozen-lockfile --production
 COPY . .
 
 EXPOSE 3000
-CMD ["bun", "run", "src/main.ts"]
+CMD ["sh", "-c", "bun run db:migrate && bun run src/main.ts"]

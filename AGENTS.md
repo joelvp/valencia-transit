@@ -1,7 +1,9 @@
 # AGENTS.md — Valencia Transit
 
 Guidelines for agents on the valencia-transit codebase.
-Conventions (naming, formatting, layer rules, testing) in `.opencode/rules/code-conventions.md`.
+Conventions: @.opencode/rules/code-conventions.md
+Design principles: @.opencode/rules/design-principles.md
+Workflow: @.opencode/rules/workflow.md
 
 ---
 
@@ -19,13 +21,13 @@ Transit information system for Valencia's metro. Tells users next departures wit
 IMPORTANT: Match user **intent**, not just technical keywords. Users often describe tasks in business language rather than DDD terminology. Before acting, ask yourself: **"What domain concept is the user referring to, and what technical work does it require?"**
 
 - If the user mentions a **real-world concept** (a place, a route, a timetable, a vehicle...), they are likely talking about a domain aggregate or entity — delegate to `domain-expert`.
-- If the user mentions **data storage, imports, or schema**, delegate to `persistence`.
+- If the user mentions **data storage, interfaces, APIs, or schema**, delegate to `adapters`.
 - If the user mentions **testing or verification**, delegate to `test-engineer`.
 
 | User intent                                                                                        | Delegate to     |
 | -------------------------------------------------------------------------------------------------- | --------------- |
 | Create, modify, or query any **business concept** — even if they never say "aggregate" or "entity" | `domain-expert` |
-| Database schema, migrations, Drizzle queries, mappers, data import, ETL                            | `persistence`   |
+| UI, Telegram commands, REST APIs, DI wiring, database schema, migrations, mappers, ETL             | `adapters`      |
 | Write/fix tests, test coverage, test strategy, mocking, DB test setup                              | `test-engineer` |
 
 Agent definitions: `.opencode/agents/`
@@ -55,23 +57,6 @@ Execute only after full plan approval.
 
 ---
 
-## Skills
-
-Skills live in `.opencode/skills/` and are shared across agents and the main agent.
-
-| Skill            | Invoke | Description                                             |
-| ---------------- | ------ | ------------------------------------------------------- |
-| `/verify`        | User   | Full verification suite (format, typecheck, lint, test) |
-| `/update-logs`   | User   | Update CHANGELOG.md and PLAN.md                         |
-| `/new-aggregate` | User   | Scaffold a new domain aggregate                         |
-| `/new-usecase`   | User   | Create use case with co-located test                    |
-| `/new-migration` | User   | Guide through Drizzle schema changes                    |
-| `/new-test`      | User   | Create test file for existing source                    |
-| `new-mapper`     | Agent  | Create domain-to-persistence mapper                     |
-| `event-design`   | Agent  | Design and wire domain events                           |
-
----
-
 ## Build Commands
 
 ```
@@ -86,8 +71,6 @@ bun run db:generate    # Generate Drizzle migrations
 bun run db:migrate     # Apply migrations
 bun run import:gtfs    # GTFS import pipeline
 ```
-
-**Full verification**: `bun run format:check && bun x tsc --noEmit && bun run lint && bun test`
 
 ---
 
@@ -110,45 +93,3 @@ Need to import from `adapters/` in `core/`? **Create a port interface in domain.
 - **Branches**: `main` (prod) ← `dev` (staging) ← `feature/*`
 - **Commits**: Conventional Commits — `<type>(<scope>): <description>`
 - **Not in repo**: `CHANGELOG.md`, `.env`, `data/gtfs/`
-
----
-
-## Workflow
-
-### Intent recognition
-
-Users describe tasks in business language. Map intent to action before executing:
-
-- **Real-world concept** (a place, route, timetable, vehicle...) → domain work → delegate to `domain-expert`
-- **Data or storage** (table, migration, import, CSV...) → persistence work → delegate to `persistence`
-- **Quality** (test, coverage, verify, check...) → testing work → delegate to `test-engineer`
-- **None of the above** → work directly, no delegation needed
-
-### After each task
-
-Use `/update-logs`.
-
-### Staleness detection
-
-If during work you detect that any of these files no longer reflect the actual state of the project, **stop and notify the user**:
-
-- `CLAUDE.md` / `AGENTS.md` — outdated sections (new aggregates, use cases, commands, etc.)
-- Agent definitions — patterns, references to files or structures that no longer exist
-- Skill definitions — steps, commands, or paths that are obsolete
-
-**Never update these files without explicit permission.** Describe what is stale and propose the specific change.
-
----
-
-## Design Principles
-
-1. Domain models business, not data formats — GTFS is an import adapter
-2. Rich entities, lean orchestration — entities own behavior
-3. Value Objects everywhere — typed, validated, no primitives
-4. Events for side effects — analytics, notifications via domain events
-5. Dependency inversion — domain defines ports, adapters implement
-6. Co-located tests — tests live next to the code they test
-7. Idempotent imports — truncate and re-insert
-8. Fail-safe — if something fails, notify admin, bot keeps running
-9. No over-engineering — start simple, evolve when needed
-10. Scalable by design — new transport modes = new aggregates/adapters

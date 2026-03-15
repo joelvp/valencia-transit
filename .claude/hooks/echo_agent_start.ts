@@ -14,8 +14,8 @@ if (input.trim()) {
   agentName = process.argv[2] ?? "unknown";
 }
 
-const logFile = path.join(process.cwd(), ".claude", "agent.log");
-const message = `[${new Date().toISOString()}] 🚀 Starting Agent: ${agentName}\n`;
+const logFile = path.join(process.cwd(), "agent.log");
+const message = `[${new Date().toISOString()}] [claude] 🚀 Starting Agent: ${agentName}\n`;
 
 console.log(message.trim());
 fs.appendFileSync(logFile, message);

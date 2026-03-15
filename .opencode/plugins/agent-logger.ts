@@ -2,11 +2,11 @@ import type { Plugin } from "@opencode-ai/plugin";
 import { appendFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const LOG_FILE = ".opencode/agent.log";
+const LOG_FILE = "agent.log";
 
 async function log(worktree: string, emoji: string, message: string) {
   const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] ${emoji} ${message}\n`;
+  const line = `[${timestamp}] [opencode] ${emoji} ${message}\n`;
   await appendFile(join(worktree, LOG_FILE), line);
 }
 
