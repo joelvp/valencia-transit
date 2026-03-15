@@ -17,6 +17,7 @@
     "import:gtfs": "bun run scripts/import-gtfs.ts"
   },
   "dependencies": {
+    "drizzle-kit": "^0.31.9",
     "drizzle-orm": "^0.45.1",
     "grammy": "^1.41.1",
     "postgres": "^3.4.8"
@@ -26,7 +27,6 @@
     "@types/bun": "latest",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
-    "drizzle-kit": "^0.31.9",
     "eslint": "^9",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-hexagonal-architecture": "^1.0.3",
