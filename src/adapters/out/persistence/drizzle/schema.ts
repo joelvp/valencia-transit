@@ -168,9 +168,10 @@ export const datasetVersions = pgTable("dataset_versions", {
 // Event Store: append-only log of all domain events
 export const domainEvents = pgTable("domain_events", {
   id: serial("id").primaryKey(),
-  eventId: text("event_id").notNull().unique(),
-  eventName: text("event_name").notNull(),
+  type: text("type").notNull(),
   occurredOn: timestamp("occurred_on").notNull(),
-  feedId: text("feed_id"),
-  payload: jsonb("payload").notNull(),
+  body: jsonb("body").notNull(),
+  aggregateId: text("aggregate_id"),
+  aggregateType: text("aggregate_type"),
+  traceId: text("trace_id"),
 });

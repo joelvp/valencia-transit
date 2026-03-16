@@ -77,4 +77,39 @@ export class LineRepositoryDrizzle implements LineRepository {
       }),
     );
   }
+
+  async save(line: Line, feedId: string): Promise<void> {
+    const { line: lineRow, lineStations: stopRows } = LineMapper.toPersistence(line, feedId);
+    await this.db
+      .insert(lines)
+      .values(lineRow)
+      .onConflictDoUpdate({
+        target: [lines.id, lines.feedId],
+        set: {
+          name: lineRow.name,
+          shortName: lineRow.shortName,
+          transportType: lineRow.transportType,
+        },
+      });
+
+    if (stopRows.length > 0) {
+      await this.db
+        .insert(lineStations)
+        .values(stopRows)
+        .onConflictDoUpdate({
+          target: [
+            lineStations.lineId,
+            lineStations.stationId,
+            lineStations.sequence,
+            lineStations.direction,
+            lineStations.feedId,
+          ],
+          set: { sequence: lineStations.sequence },
+        });
+    }
+  }
+
+  async deleteByFeedId(feedId: string): Promise<void> {
+    await this.db.delete(lines).where(eq(lines.feedId, feedId));
+  }
 }

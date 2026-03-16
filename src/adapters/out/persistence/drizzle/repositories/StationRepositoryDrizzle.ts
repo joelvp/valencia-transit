@@ -32,4 +32,24 @@ export class StationRepositoryDrizzle implements StationRepository {
     const rows = await this.db.select().from(stations);
     return rows.map((row) => StationMapper.toDomain(row));
   }
+
+  async save(station: Station, feedId: string): Promise<void> {
+    const row = StationMapper.toPersistence(station, feedId);
+    await this.db
+      .insert(stations)
+      .values(row)
+      .onConflictDoUpdate({
+        target: [stations.id, stations.feedId],
+        set: {
+          name: row.name,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          transportType: row.transportType,
+        },
+      });
+  }
+
+  async deleteByFeedId(feedId: string): Promise<void> {
+    await this.db.delete(stations).where(eq(stations.feedId, feedId));
+  }
 }

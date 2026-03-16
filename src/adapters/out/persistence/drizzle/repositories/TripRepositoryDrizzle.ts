@@ -72,4 +72,43 @@ export class TripRepositoryDrizzle implements TripRepository {
       }),
     );
   }
+
+  async save(trip: Trip, feedId: string): Promise<void> {
+    const { trip: tripRow, passingTimes: ptRows } = TripMapper.toPersistence(trip, feedId);
+
+    await this.db
+      .insert(trips)
+      .values(tripRow)
+      .onConflictDoUpdate({
+        target: [trips.id, trips.feedId],
+        set: {
+          lineId: tripRow.lineId,
+          scheduleId: tripRow.scheduleId,
+          direction: tripRow.direction,
+          headsign: tripRow.headsign,
+        },
+      });
+
+    if (ptRows.length > 0) {
+      await this.db
+        .insert(passingTimes)
+        .values(ptRows)
+        .onConflictDoUpdate({
+          target: [
+            passingTimes.tripId,
+            passingTimes.stationId,
+            passingTimes.sequence,
+            passingTimes.feedId,
+          ],
+          set: {
+            arrivalTime: passingTimes.arrivalTime,
+            departureTime: passingTimes.departureTime,
+          },
+        });
+    }
+  }
+
+  async deleteByFeedId(feedId: string): Promise<void> {
+    await this.db.delete(trips).where(eq(trips.feedId, feedId));
+  }
 }

@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { LineRepositoryDrizzle } from "./LineRepositoryDrizzle";
 import { LineId } from "@/core/domain/line/LineId";
+import { LineName } from "@/core/domain/line/LineName";
+import { LineDirection } from "@/core/domain/line/LineDirection";
+import { LineStop } from "@/core/domain/line/LineStop";
+import { Line } from "@/core/domain/line/Line";
 import { StationId } from "@/core/domain/station/StationId";
 import { stations, lines, lineStations } from "../schema";
 import { createTestSetup } from "./test-db-helper";
+import { StationMother } from "./mothers/StationMother";
+import { LineMother } from "./mothers/LineMother";
 
 const FEED_ID = "metrovalencia";
 const { db, cleanDatabase, closeDatabase } = createTestSetup();
@@ -16,21 +22,21 @@ describe("LineRepositoryDrizzle", () => {
     repo = new LineRepositoryDrizzle(db);
 
     await db.insert(stations).values([
-      { id: "ST1", feedId: FEED_ID, name: "Colón", latitude: 39.47, longitude: -0.37, transportType: "metro" },
-      { id: "ST2", feedId: FEED_ID, name: "Xàtiva", latitude: 39.46, longitude: -0.38, transportType: "metro" },
-      { id: "ST3", feedId: FEED_ID, name: "Alameda", latitude: 39.48, longitude: -0.36, transportType: "metro" },
+      StationMother.row(),
+      StationMother.row({ id: "ST2", name: "Xàtiva", longitude: -0.38 }),
+      StationMother.row({ id: "ST3", name: "Alameda", latitude: 39.48, longitude: -0.36 }),
     ]);
 
     await db.insert(lines).values([
-      { id: "L1", feedId: FEED_ID, name: "Línia 1", shortName: "1", transportType: "metro" },
-      { id: "L2", feedId: FEED_ID, name: "Línia 2", shortName: "2", transportType: "metro" },
+      LineMother.row(),
+      LineMother.row({ id: "L2", name: "Línia 2", shortName: "2" }),
     ]);
 
     await db.insert(lineStations).values([
-      { lineId: "L1", stationId: "ST1", feedId: FEED_ID, sequence: 1, direction: "OUTBOUND" },
-      { lineId: "L1", stationId: "ST2", feedId: FEED_ID, sequence: 2, direction: "OUTBOUND" },
-      { lineId: "L2", stationId: "ST2", feedId: FEED_ID, sequence: 1, direction: "OUTBOUND" },
-      { lineId: "L2", stationId: "ST3", feedId: FEED_ID, sequence: 2, direction: "OUTBOUND" },
+      LineMother.stopRow({ stationId: "ST1", sequence: 1 }),
+      LineMother.stopRow({ stationId: "ST2", sequence: 2 }),
+      LineMother.stopRow({ lineId: "L2", stationId: "ST2", sequence: 1 }),
+      LineMother.stopRow({ lineId: "L2", stationId: "ST3", sequence: 2 }),
     ]);
   });
 
@@ -74,5 +80,59 @@ describe("LineRepositoryDrizzle", () => {
     result.forEach((line) => {
       expect(line.stops.length).toBeGreaterThan(0);
     });
+  });
+
+  it("should insert line with stops and allow retrieval after save", async () => {
+    const line = new Line(
+      new LineId("L3"),
+      new LineName("Línia 3"),
+      LineDirection.OUTBOUND,
+      [new LineStop(new StationId("ST1"), 1), new LineStop(new StationId("ST3"), 2)],
+    );
+
+    await repo.save(line, FEED_ID);
+
+    const result = await repo.findById(new LineId("L3"));
+    expect(result).not.toBeNull();
+    expect(result!.id.value).toBe("L3");
+    expect(result!.stops.length).toBe(2);
+  });
+
+  it("should upsert without error when saving an already-existing line", async () => {
+    const line = new Line(
+      new LineId("L1"),
+      new LineName("Línia 1 Updated"),
+      LineDirection.OUTBOUND,
+      [new LineStop(new StationId("ST1"), 1)],
+    );
+
+    await repo.save(line, FEED_ID);
+
+    const result = await repo.findById(new LineId("L1"));
+    expect(result).not.toBeNull();
+    expect(result!.name.value).toBe("Línia 1 Updated");
+  });
+
+  it("should remove all lines and their stops for the given feedId", async () => {
+    await repo.deleteByFeedId(FEED_ID);
+
+    const result = await repo.findAll();
+    expect(result).toEqual([]);
+  });
+
+  it("should not remove lines belonging to a different feedId", async () => {
+    const OTHER_FEED = "other-feed";
+    await db.insert(stations).values([
+      StationMother.row({ id: "STO1", feedId: OTHER_FEED, name: "Other Station", latitude: 39.5, longitude: -0.4 }),
+    ]);
+    await db.insert(lines).values([
+      LineMother.row({ id: "LO1", feedId: OTHER_FEED, name: "Other Line", shortName: "O" }),
+    ]);
+
+    await repo.deleteByFeedId(FEED_ID);
+
+    const rows = await db.select().from(lines);
+    expect(rows.length).toBe(1);
+    expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
 });

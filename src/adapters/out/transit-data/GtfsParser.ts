@@ -16,13 +16,9 @@ import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
 import { PassingTime } from "@/core/domain/trip/PassingTime";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
+import type { GtfsData } from "@/core/domain/shared/GtfsData";
 
-export interface GtfsData {
-  stations: Station[];
-  lines: Line[];
-  schedules: Schedule[];
-  trips: Trip[];
-}
+export type { GtfsData };
 
 const REQUIRED_FILES = [
   "stops.txt",

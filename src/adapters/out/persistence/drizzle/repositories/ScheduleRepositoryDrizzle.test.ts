@@ -1,50 +1,25 @@
 import { describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { ScheduleRepositoryDrizzle } from "./ScheduleRepositoryDrizzle";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
+import { Schedule } from "@/core/domain/schedule/Schedule";
+import { Weekdays } from "@/core/domain/schedule/Weekdays";
+import { DateRange } from "@/core/domain/schedule/DateRange";
 import { schedules, scheduleExceptions } from "../schema";
 import { createTestSetup } from "./test-db-helper";
+import { ScheduleMother } from "./mothers/ScheduleMother";
 
 const FEED_ID = "metrovalencia";
 const { db, cleanDatabase, closeDatabase } = createTestSetup();
 
 // SC1: active Mon–Fri within 2025, no exceptions
 // SC2: active only on weekends within 2025
-const scheduleRows = [
-  {
-    id: "SC1",
-    feedId: FEED_ID,
-    monday: true,
-    tuesday: true,
-    wednesday: true,
-    thursday: true,
-    friday: true,
-    saturday: false,
-    sunday: false,
-    startDate: "2025-01-01",
-    endDate: "2025-12-31",
-  },
-  {
-    id: "SC2",
-    feedId: FEED_ID,
-    monday: false,
-    tuesday: false,
-    wednesday: false,
-    thursday: false,
-    friday: false,
-    saturday: true,
-    sunday: true,
-    startDate: "2025-01-01",
-    endDate: "2025-12-31",
-  },
-];
-
 describe("ScheduleRepositoryDrizzle", () => {
   let repo: ScheduleRepositoryDrizzle;
 
   beforeEach(async () => {
     await cleanDatabase();
     repo = new ScheduleRepositoryDrizzle(db);
-    await db.insert(schedules).values(scheduleRows);
+    await db.insert(schedules).values([ScheduleMother.row(), ScheduleMother.weekendRow()]);
     // Exception: SC1 is removed on 2025-03-10 (a Monday)
     await db.insert(scheduleExceptions).values([
       { scheduleId: "SC1", feedId: FEED_ID, date: "2025-03-10", isActive: false },
@@ -92,5 +67,56 @@ describe("ScheduleRepositoryDrizzle", () => {
     const result = await repo.findActiveOn(outOfRange);
 
     expect(result).toEqual([]);
+  });
+
+  it("should insert schedule and allow retrieval after save", async () => {
+    const schedule = new Schedule(
+      new ScheduleId("SC3"),
+      new Weekdays(true, false, false, false, false, false, false),
+      new DateRange("2026-01-01", "2026-12-31"),
+      [],
+    );
+
+    await repo.save(schedule, FEED_ID);
+
+    const result = await repo.findById(new ScheduleId("SC3"));
+    expect(result).not.toBeNull();
+    expect(result!.id.value).toBe("SC3");
+    expect(result!.weekdays.monday).toBe(true);
+    expect(result!.weekdays.tuesday).toBe(false);
+  });
+
+  it("should upsert without error when saving an already-existing schedule", async () => {
+    const schedule = new Schedule(
+      new ScheduleId("SC1"),
+      new Weekdays(false, false, false, false, false, true, true),
+      new DateRange("2025-01-01", "2025-12-31"),
+      [],
+    );
+
+    await repo.save(schedule, FEED_ID);
+
+    const result = await repo.findById(new ScheduleId("SC1"));
+    expect(result).not.toBeNull();
+    expect(result!.weekdays.monday).toBe(false);
+    expect(result!.weekdays.saturday).toBe(true);
+  });
+
+  it("should remove all schedules for the given feedId", async () => {
+    await repo.deleteByFeedId(FEED_ID);
+
+    const rows = await db.select().from(schedules);
+    expect(rows).toEqual([]);
+  });
+
+  it("should not remove schedules belonging to a different feedId", async () => {
+    const OTHER_FEED = "other-feed";
+    await db.insert(schedules).values([ScheduleMother.row({ id: "SCO1", feedId: OTHER_FEED })]);
+
+    await repo.deleteByFeedId(FEED_ID);
+
+    const rows = await db.select().from(schedules);
+    expect(rows.length).toBe(1);
+    expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
 });
