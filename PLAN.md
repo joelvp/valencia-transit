@@ -22,6 +22,27 @@ Build a transit information system for Valencia's metro. Given an origin and des
 
 ---
 
+## Testing Strategy
+
+| Type            | Location                                                | What it tests                                        | Mocking                                  |
+| --------------- | ------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------- |
+| **Unit**        | Co-located in `src/core/domain/**`                      | Domain logic, entities, VOs, validation              | Nothing — pure logic                     |
+| **Integration** | `tests/integration/` or co-located in `adapters/out/**` | Adapter ↔ infra (repo ↔ DB, event bus ↔ event store) | Nothing — real infra                     |
+| **Component**   | `tests/component/`                                      | Use cases — full paths a user can take               | Mock repos/eventBus to control scenarios |
+| **Technical**   | `tests/technical/`                                      | ETL scripts, background jobs, technical processes    | Nothing — real execution                 |
+| **E2E**         | `tests/e2e/`                                            | Full application flow (Telegram bot end-to-end)      | Nothing — real everything                |
+
+### Testing Patterns
+
+- **Unit tests**: Domain layer — no mocks, pure business logic
+- **Integration tests**: Adapters — test with real database, real HTTP, etc.
+- **Component tests**: Use cases — mock repositories to test orchestration and edge cases
+  - Happy path + unhappy paths (validation errors, domain rule violations, not found)
+- **Technical tests**: Scripts — run real ETL, verify data loaded correctly
+- **E2E tests**: Full flow — e.g., Telegram command → use case → database → response
+
+---
+
 ## GTFS Data Source
 
 - **Portal**: NAP (National Access Point) — Spanish Ministry of Transport
@@ -65,7 +86,12 @@ Set up the project from scratch with all tooling, configuration, and folder stru
   src/adapters/out/notification/
   src/config/
   src/main.ts
-  tests/e2e/
+  tests/
+    unit/           # domain - co-located with source
+    integration/    # adapters with real infra
+    component/      # use cases - full paths
+    technical/      # ETL scripts, background jobs
+    e2e/            # smoke tests, bot full flow
   ```
 
 - [x] Docker Compose for local Postgres 17
@@ -271,7 +297,7 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 
 Download GTFS data from the NAP portal and import it into the database. This is the data ingestion layer.
 
-#### 4A — GTFS Parser (Adapter)
+#### 4A — GTFS Parser (Adapter) ✅
 
 - [x] `GtfsParser.ts` — Extract ZIP, validate required CSVs exist, validate headers
 - [x] Parse `stops.txt` → `Station` creation args
@@ -281,27 +307,30 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 - [x] Handle GTFS edge cases: times > 24:00:00 (next-day trips), missing optional fields
 - [x] Unit tests with sample GTFS data (small fixture files)
 
-#### 4B — Domain Event Persistence & Subscriber Architecture ✅
+#### 4B — Domain Event Restructure ✅
 
 - [x] `DomainEventType` enum — type-safe event names
 - [x] `EventSubscriber` interface — `handle(event)` pattern
+- [x] `DomainEvent` base class — remove `eventId`, add `aggregateId`/`aggregateType`, typed `eventName`
+- [x] `DatasetImported` / `DepartureSearched` — use `DomainEventType` enum
+- [x] `EventBus` port simplified — only `publish()`, no `subscribe()`
 - [x] `StoredDomainEvent` entity — persisted event with metadata
 - [x] `DomainEventRepository` port — Event Store abstraction
-- [x] `PersistAllEventsSubscriber` use case — persists all published events
+
+#### 4C — Event Persistence & Subscribers ✅
+
 - [x] `DomainEventMapper` — domain ↔ persistence translation
 - [x] `DomainEventRepositoryDrizzle` — Drizzle Event Store implementation
 - [x] `domain_events` schema migration — `type`, `body JSONB`, `aggregate_id`, `aggregate_type`, `trace_id`
 - [x] `InMemoryEventBus` refactored — constructor injection of `EventSubscriber[]`
-- [x] `DomainEvent` base class updated — removed `eventId`, added `aggregateId`/`aggregateType`, typed `eventName` as `DomainEventType`
-- [x] `EventBus` port simplified — only `publish()`, no `subscribe()`
+- [x] `PersistAllEventsSubscriber` use case — persists all published events
 - [x] Container wiring updated — subscribers injected into EventBus constructor
-- [x] 204 tests passing (17 new)
 
 **Exit criteria**: ✅ All domain events persisted automatically. EventBus distributes to subscribers. Subscriber pattern extendable without touching EventBus.
 
-#### 4C — Import Use Case
+#### 4D — ImportTransitData Use Case ✅
 
-- [ ] `ImportTransitData.ts` — orchestrate:
+- [x] `ImportTransitData.ts` — orchestrate:
   1. Receive parsed data (from adapter)
   2. Validate business rules
   3. Truncate existing data (within transaction)
@@ -309,18 +338,24 @@ Download GTFS data from the NAP portal and import it into the database. This is 
   5. Verify record counts
   6. Publish `DatasetImported` event
   7. Return import summary
-- [ ] Unit test (mocked repos)
-- [ ] Integration test (real DB, sample data)
+- [x] **Unit test** — mock repos, test orchestration
+- [x] **Component test** — mock repos, test happy + unhappy paths (empty data, partial insert, etc.)
 
-#### 4D — Manual Import Script
+#### 4E — Manual Import Script
 
 - [ ] `scripts/import-gtfs.ts` — CLI script:
   1. Read local GTFS ZIP path from args
   2. Parse with `GtfsParser`
   3. Run `ImportTransitData` use case
   4. Log summary
-- [ ] Test with real MetroValencia GTFS file (manually downloaded)
+- [ ] **Technical test** (`tests/technical/import-gtfs.test.ts`) — run script with sample data, verify execution
 - [ ] Add `import:gtfs` script to `package.json`
+
+#### 4F — Full Import Pipeline Test
+
+- [ ] Run `bun run import:gtfs data/gtfs/metrovalencia.zip` with real MetroValencia GTFS file
+- [ ] **E2E test** — verify record counts match expectations (~144 stations, ~200 lines, ~21K trips)
+- [ ] Verify imported data is queryable (departures search works)
 
 **Exit criteria**: Can run `bun run import:gtfs data/gtfs/metrovalencia.zip` and see all data correctly loaded into Postgres. Record counts match expectations (~144 stations, ~200 lines, ~21K trips).
 
@@ -342,12 +377,12 @@ Implement the main business logic: given origin and destination, find the next d
   9. Return top N (default: 5)
   10. Publish `DepartureSearched` event
 - [ ] Handle domain errors: `StationNotFoundError`, `NoActiveServiceError`, `NoConnectionError`
-- [ ] Unit test with mocked repos (various scenarios: normal, no service, no connection, fuzzy match)
-- [ ] Integration test (real DB with imported GTFS data, real departure query)
+- [ ] **Component test** with mocked repos (various scenarios: normal, no service, no connection, fuzzy match)
+- [ ] **E2E test** with real DB and imported GTFS data (real departure query)
 - [ ] `SearchStations.ts` use case — fuzzy search by name, returns matching stations (for autocomplete and typo tolerance)
-  - Unit test with mocked `StationRepository`
+  - Component test with mocked `StationRepository`
 - [ ] `ListAllStations.ts` use case — returns all stations, optionally grouped by line
-  - Unit test with mocked `StationRepository`
+  - Component test with mocked `StationRepository`
 
 **Exit criteria**: `SearchNextDepartures.execute("Xàtiva", "Colón")` returns correct departures matching the real MetroValencia schedule. All tests pass.
 
@@ -375,7 +410,8 @@ Wire the Telegram bot to the use cases. Users can search departures and list sta
   - List all stations (grouped by line if possible)
 - [ ] `helpHandler.ts` — `/help` command:
   - Usage instructions
-- [ ] Tests for handlers (mocked use cases)
+- [ ] **Component test** for handlers (mocked use cases, happy + unhappy paths)
+- [ ] **E2E test** for bot commands (real bot flow, real use cases)
 
 #### 6C — Response Format
 
@@ -396,14 +432,15 @@ Next departures:
 
 ---
 
-### Phase 7 — Event Bus & Event Store ✅ (completed in Phase 4B)
+### Phase 7 — Event Bus & Event Store ✅ (completed in Phases 4B-4C)
 
-All items below were implemented ahead of schedule as part of Phase 4B:
-- [x] `InMemoryEventBus.ts` — sync event bus, constructor-injected subscribers
-- [x] `DomainEventRepository` port — `save`, `findAll`, `findByType`, `findByAggregateId`
-- [x] `DomainEventRepositoryDrizzle.ts` — persists to `domain_events` Event Store
-- [x] `PersistAllEventsSubscriber` use case — generic event persistence subscriber
-- [x] Event wiring in `src/adapters/container.ts`
+All items below were implemented as part of Phase 4B and 4C:
+
+- [x] `InMemoryEventBus.ts` — sync event bus, constructor-injected subscribers (4C)
+- [x] `DomainEventRepository` port — `save`, `findAll`, `findByType`, `findByAggregateId` (4B)
+- [x] `DomainEventRepositoryDrizzle.ts` — persists to `domain_events` Event Store (4C)
+- [x] `PersistAllEventsSubscriber` use case — generic event persistence subscriber (4C)
+- [x] Event wiring in `src/adapters/container.ts` (4C)
 
 Analytics queries (JSONB-based) deferred to Phase 9 or post-MVP.
 
