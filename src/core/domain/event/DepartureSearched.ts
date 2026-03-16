@@ -1,7 +1,8 @@
 import { DomainEvent } from "./DomainEvent.ts";
+import { DomainEventType } from "./DomainEventType.ts";
 
 export class DepartureSearched extends DomainEvent {
-  readonly eventName = "departure.searched";
+  readonly eventName = DomainEventType.DEPARTURE_SEARCHED;
 
   constructor(
     readonly originStationId: string,

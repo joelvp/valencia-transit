@@ -1,10 +1,12 @@
+import type { DomainEventType } from "./DomainEventType.ts";
+
 export abstract class DomainEvent {
   readonly occurredOn: Date;
-  readonly eventId: string;
-  abstract readonly eventName: string;
+  abstract readonly eventName: DomainEventType;
+  readonly aggregateId?: string;
+  readonly aggregateType?: string;
 
   constructor() {
     this.occurredOn = new Date();
-    this.eventId = crypto.randomUUID();
   }
 }
