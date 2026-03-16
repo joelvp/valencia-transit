@@ -258,9 +258,9 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 
 #### 3E — Railway Database Setup
 
-- [ ] Add Postgres addon in Railway environments (`staging`, `production`)
-- [ ] Verify `DATABASE_URL` is automatically added to Railway variables
-- [ ] Run remote migrations against Railway Postgres
+- [x] Add Postgres addon in Railway environments (`staging`, `production`)
+- [x] Verify `DATABASE_URL` is automatically added to Railway variables
+- [x] Run remote migrations against Railway Postgres
 
 **Exit criteria**: All tables created in Postgres. Repositories pass integration tests with real data. Mappers correctly translate between domain and persistence. CI includes database tests. App deploys successfully to Railway with working database connection.
 
@@ -272,13 +272,13 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 
 #### 4A — GTFS Parser (Adapter)
 
-- [ ] `GtfsParser.ts` — Extract ZIP, validate required CSVs exist, validate headers
-- [ ] Parse `stops.txt` → `Station` creation args
-- [ ] Parse `routes.txt` → `Line` creation args
-- [ ] Parse `trips.txt` + `stop_times.txt` → `Trip` creation args with `PassingTime[]`
-- [ ] Parse `calendar.txt` + `calendar_dates.txt` → `Schedule` creation args with `ScheduleException[]`
-- [ ] Handle GTFS edge cases: times > 24:00:00 (next-day trips), missing optional fields
-- [ ] Unit tests with sample GTFS data (small fixture files)
+- [x] `GtfsParser.ts` — Extract ZIP, validate required CSVs exist, validate headers
+- [x] Parse `stops.txt` → `Station` creation args
+- [x] Parse `routes.txt` → `Line` creation args
+- [x] Parse `trips.txt` + `stop_times.txt` → `Trip` creation args with `PassingTime[]`
+- [x] Parse `calendar.txt` + `calendar_dates.txt` → `Schedule` creation args with `ScheduleException[]`
+- [x] Handle GTFS edge cases: times > 24:00:00 (next-day trips), missing optional fields
+- [x] Unit tests with sample GTFS data (small fixture files)
 
 #### 4B — Import Use Case
 

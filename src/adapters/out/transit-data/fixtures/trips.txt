@@ -1,0 +1,5 @@
+trip_id,route_id,service_id,direction_id
+T1,R1,SVC1,0
+T2,R1,SVC1,1
+T3,R2,SVC2,0
+T4,R2,SVC2,1
