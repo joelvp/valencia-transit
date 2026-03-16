@@ -341,15 +341,15 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 - [x] **Unit test** — mock repos, test orchestration
 - [x] **Component test** — mock repos, test happy + unhappy paths (empty data, partial insert, etc.)
 
-#### 4E — Manual Import Script
+#### 4E — Manual Import Script ✅
 
-- [ ] `scripts/import-gtfs.ts` — CLI script:
+- [x] `scripts/import-gtfs.ts` — CLI script:
   1. Read local GTFS ZIP path from args
   2. Parse with `GtfsParser`
   3. Run `ImportTransitData` use case
   4. Log summary
-- [ ] **Technical test** (`tests/technical/import-gtfs.test.ts`) — run script with sample data, verify execution
-- [ ] Add `import:gtfs` script to `package.json`
+- [x] **Technical test** (`tests/technical/import-gtfs.test.ts`) — run script with sample data, verify execution
+- [x] Add `import:gtfs` script to `package.json`
 
 #### 4F — Full Import Pipeline Test
 
