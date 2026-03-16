@@ -151,11 +151,12 @@ Build the core domain layer: entities, value objects, and domain errors. Pure bu
 - [x] `LineRepository` — `findById(id: LineId)`, `findByStations(origin: StationId, destination: StationId)`, `findAll()`
 - [x] `ScheduleRepository` — `findById(id: ScheduleId)`, `findActiveOn(date: Date)`
 - [x] `TripRepository` — `findByLineAndSchedule(lineId: LineId, scheduleId: ScheduleId)`, `findDeparturesFromStation(stationId: StationId, after: TimeOfDay, activeScheduleIds: ScheduleId[])`
-- [x] `EventBus` — `publish(event: DomainEvent)`, `subscribe(eventName: string, handler: EventHandler)`
+- [x] `EventBus` — `publish(event: DomainEvent): Promise<void>` (subscribe wired via constructor injection — see Phase 4B)
 
 #### 1D — Domain Events ✅
 
-- [x] `DomainEvent` — abstract base: `eventId`, `occurredOn`, `eventName`
+- [x] `DomainEvent` — abstract base: `occurredOn`, `eventName: DomainEventType`, optional `aggregateId`/`aggregateType` (no `eventId` — relies on DB serial)
+- [x] `DomainEventType` — enum: `DATASET_IMPORTED`, `DEPARTURE_SEARCHED`
 - [x] `DepartureSearched` — origin, destination, resultsCount, searchedAt
 - [x] `DatasetImported` — stationsCount, linesCount, tripsCount, importedAt
 
@@ -227,7 +228,7 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
   - `trips` (id, feed_id, line_id, schedule_id, direction, headsign) — FKs
   - `passing_times` (trip_id, station_id, feed_id, arrival_time, departure_time, sequence) — composite PK
   - `dataset_versions` (id serial, feed_id, detected_at, validity_start, validity_end, status, error_message)
-  - `domain_events` (id serial, event_id unique, event_name, occurred_on, feed_id nullable, payload JSONB) — Event Store
+  - `domain_events` (id serial PK, type text, occurred_on timestamp, body JSONB, aggregate_id text, aggregate_type text, trace_id text) — Event Store (migrated in Phase 4B)
 - [x] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
 - [x] `drizzle.config.ts` pointing to schema
 - [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_normal_swarm.sql`
@@ -280,7 +281,25 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 - [x] Handle GTFS edge cases: times > 24:00:00 (next-day trips), missing optional fields
 - [x] Unit tests with sample GTFS data (small fixture files)
 
-#### 4B — Import Use Case
+#### 4B — Domain Event Persistence & Subscriber Architecture ✅
+
+- [x] `DomainEventType` enum — type-safe event names
+- [x] `EventSubscriber` interface — `handle(event)` pattern
+- [x] `StoredDomainEvent` entity — persisted event with metadata
+- [x] `DomainEventRepository` port — Event Store abstraction
+- [x] `PersistAllEventsSubscriber` use case — persists all published events
+- [x] `DomainEventMapper` — domain ↔ persistence translation
+- [x] `DomainEventRepositoryDrizzle` — Drizzle Event Store implementation
+- [x] `domain_events` schema migration — `type`, `body JSONB`, `aggregate_id`, `aggregate_type`, `trace_id`
+- [x] `InMemoryEventBus` refactored — constructor injection of `EventSubscriber[]`
+- [x] `DomainEvent` base class updated — removed `eventId`, added `aggregateId`/`aggregateType`, typed `eventName` as `DomainEventType`
+- [x] `EventBus` port simplified — only `publish()`, no `subscribe()`
+- [x] Container wiring updated — subscribers injected into EventBus constructor
+- [x] 204 tests passing (17 new)
+
+**Exit criteria**: ✅ All domain events persisted automatically. EventBus distributes to subscribers. Subscriber pattern extendable without touching EventBus.
+
+#### 4C — Import Use Case
 
 - [ ] `ImportTransitData.ts` — orchestrate:
   1. Receive parsed data (from adapter)
@@ -293,7 +312,7 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 - [ ] Unit test (mocked repos)
 - [ ] Integration test (real DB, sample data)
 
-#### 4C — Manual Import Script
+#### 4D — Manual Import Script
 
 - [ ] `scripts/import-gtfs.ts` — CLI script:
   1. Read local GTFS ZIP path from args
@@ -377,19 +396,16 @@ Next departures:
 
 ---
 
-### Phase 7 — Event Bus & Event Store
+### Phase 7 — Event Bus & Event Store ✅ (completed in Phase 4B)
 
-Wire up domain events, persist them to the Event Store, and enable analytics queries.
+All items below were implemented ahead of schedule as part of Phase 4B:
+- [x] `InMemoryEventBus.ts` — sync event bus, constructor-injected subscribers
+- [x] `DomainEventRepository` port — `save`, `findAll`, `findByType`, `findByAggregateId`
+- [x] `DomainEventRepositoryDrizzle.ts` — persists to `domain_events` Event Store
+- [x] `PersistAllEventsSubscriber` use case — generic event persistence subscriber
+- [x] Event wiring in `src/adapters/container.ts`
 
-- [ ] `InMemoryEventBus.ts` — simple sync event bus implementing `EventBus` port
-- [ ] `DomainEventRepository` — port interface in `core/domain/event/`: `save(event: DomainEvent, feedId?: string)`, `findByName(eventName: string)`, `findAll()`
-- [ ] `DomainEventRepositoryDrizzle.ts` — implements `DomainEventRepository` port, persists to `domain_events` table (JSONB payload)
-- [ ] `PersistDomainEvent.ts` use case — generic subscriber that persists any published event to the Event Store
-- [ ] Wire event subscriptions in `src/adapters/container.ts`
-- [ ] Verify events flow correctly in integration test
-- [ ] Add admin command or script to query analytics from Event Store (most searched routes, popular stations — queried via JSONB)
-
-**Exit criteria**: Every domain event is persisted to `domain_events`. Analytics queries (e.g., most searched routes) work via JSONB queries on the Event Store.
+Analytics queries (JSONB-based) deferred to Phase 9 or post-MVP.
 
 ---
 

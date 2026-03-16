@@ -33,6 +33,7 @@ You are the Delivery and Persistence specialist for Valencia Transit. You handle
 - Implement repository adapters (driven ports)
 - Create domain-to-persistence mappers
 - GTFS import pipeline and ETL
+- Implement event-bus adapters (`src/adapters/out/event-bus/`)
 - Wire dependencies in the composition root (`src/adapters/container.ts`)
 
 ## Skill Routing
@@ -59,3 +60,4 @@ You are the Delivery and Persistence specialist for Valencia Transit. You handle
 - Schema: `src/adapters/out/persistence/drizzle/schema.ts`
 - DB client: `src/adapters/out/persistence/drizzle/db.ts`
 - Composition Root: `src/adapters/container.ts`
+- Event Bus: `src/adapters/out/event-bus/InMemoryEventBus.ts`

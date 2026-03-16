@@ -38,6 +38,7 @@ Rules:
 - Can only import from `core/domain/`
 - No direct I/O — always through ports
 - Return typed results, never throw for expected business outcomes
+- If the use case produces a side effect (analytics, notifications), inject `EventBus` and publish a domain event at the end of `execute()`
 
 ### 2. Test: `src/core/application/<context>/<UseCaseName>.test.ts`
 
