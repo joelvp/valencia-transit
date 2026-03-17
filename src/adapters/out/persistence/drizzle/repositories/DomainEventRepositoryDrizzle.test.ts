@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
 import { createContainer, type Container } from "@/adapters/container";
-import { clearTables } from "tests/helpers/db";
+import { clearDatabase, clearTables } from "tests/helpers/db";
 import { DomainEventRepositoryDrizzle } from "./DomainEventRepositoryDrizzle";
 import { DatasetImported } from "@/core/domain/event/DatasetImported";
 import { DomainEventType } from "@/core/domain/event/DomainEventType";
@@ -19,6 +19,7 @@ describe("DomainEventRepositoryDrizzle", () => {
   });
 
   afterAll(async () => {
+    await clearDatabase(container.db);
     await container.dispose();
   });
 

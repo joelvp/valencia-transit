@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
 import { createContainer, type Container } from "@/adapters/container";
-import { clearTables } from "tests/helpers/db";
+import { clearDatabase, clearTables } from "tests/helpers/db";
 import { LineRepositoryDrizzle } from "./LineRepositoryDrizzle";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
@@ -45,6 +45,7 @@ describe("LineRepositoryDrizzle", () => {
   });
 
   afterAll(async () => {
+    await clearDatabase(container.db);
     await container.dispose();
   });
 
