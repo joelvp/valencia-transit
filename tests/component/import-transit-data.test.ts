@@ -16,7 +16,7 @@ import {
 
 const TEST_FEED_ID = "test-feed";
 
-const { db, cleanDatabase, closeDatabase } = createTestSetup();
+const { cleanDatabase, closeDatabase } = createTestSetup();
 
 /**
  * Creates a minimal valid GTFS ZIP buffer in memory.
@@ -71,7 +71,7 @@ function createMinimalGtfsZip(): Buffer {
   return zip.toBuffer();
 }
 
-describe("GTFS Import Technical Test", () => {
+describe("ImportTransitData Component Test", () => {
   let zipBuffer: Buffer;
 
   beforeEach(async () => {

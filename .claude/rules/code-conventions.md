@@ -63,10 +63,21 @@
 
 ## Testing Conventions
 
-- **Co-located tests**: Tests live next to the code they test (`<ClassName>.test.ts`).
 - **Runner**: `bun test` — use `import { describe, it, expect } from "bun:test";`
 - **Naming**: `describe("ClassName")` → `it("should <behavior>")`
 - **Test behavior**, not implementation. Assert outputs and side effects.
-- **Domain tests**: Mock nothing — pure logic.
+
+### Test Types
+
+| Type | Location | What it tests | Mocking |
+|------|----------|---------------|---------|
+| **Unit** | Co-located (`*.test.ts`) | Domain logic, use case orchestration, mappers | Ports (for use cases), nothing (for domain) |
+| **Integration** | Co-located (`*.test.ts`) | One adapter against its real infra | Nothing — real DB/filesystem |
+| **Component** | `tests/component/` | Use case + real adapters + real DB, no entry point | Nothing — real everything except entry point |
+| **E2E** | `tests/e2e/` | Full flow from entry point to response | Nothing — real everything |
+
+- **Domain tests**: Pure logic, no mocks.
 - **Application tests**: Mock all ports (repos, event bus).
-- **Integration tests**: Use real database, clean up in `beforeEach`/`afterEach`.
+- **Integration tests**: Real infra, clean up in `beforeEach`/`afterEach`.
+- **Component tests**: Use case with all real adapters wired together.
+- **E2E tests**: Full user flow from entry point to response.

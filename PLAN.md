@@ -24,22 +24,29 @@ Build a transit information system for Valencia's metro. Given an origin and des
 
 ## Testing Strategy
 
-| Type            | Location                                                | What it tests                                        | Mocking                                  |
-| --------------- | ------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------- |
-| **Unit**        | Co-located in `src/core/domain/**`                      | Domain logic, entities, VOs, validation              | Nothing — pure logic                     |
-| **Integration** | `tests/integration/` or co-located in `adapters/out/**` | Adapter ↔ infra (repo ↔ DB, event bus ↔ event store) | Nothing — real infra                     |
-| **Component**   | `tests/component/`                                      | Use cases — full paths a user can take               | Mock repos/eventBus to control scenarios |
-| **Technical**   | `tests/technical/`                                      | ETL scripts, background jobs, technical processes    | Nothing — real execution                 |
-| **E2E**         | `tests/e2e/`                                            | Full application flow (Telegram bot end-to-end)      | Nothing — real everything                |
+```
+Entry point    Use case    Adapters    Infra
+(Telegram)  →  (Search)  →  (Repos)  →  (DB)
+    │              │            │          │
+    │              │            └──────────┘  ← Integration
+    │              └──────────────────────┘  ← Component
+    └─────────────────────────────────────┘  ← E2E
+```
+
+| Type            | Location                 | What it tests                                           | Mocking                                      |
+| --------------- | ------------------------ | ------------------------------------------------------- | -------------------------------------------- |
+| **Unit**        | Co-located (`*.test.ts`) | Domain logic, use case orchestration, mappers, adapters | Ports (for use cases), nothing (for domain)  |
+| **Integration** | Co-located (`*.test.ts`) | One adapter against its real infra                      | Nothing — real DB/filesystem                 |
+| **Component**   | `tests/component/`       | Use case + real adapters + real DB, no entry point      | Nothing — real everything except entry point |
+| **E2E**         | `tests/e2e/`             | Full flow from entry point to response                  | Nothing — real everything                    |
 
 ### Testing Patterns
 
-- **Unit tests**: Domain layer — no mocks, pure business logic
-- **Integration tests**: Adapters — test with real database, real HTTP, etc.
-- **Component tests**: Use cases — mock repositories to test orchestration and edge cases
+- **Unit tests**: Domain (pure logic, no mocks) + application (mock all ports) + mappers
+- **Integration tests**: One adapter against real infra (repo ↔ DB, parser ↔ fixture files)
+- **Component tests**: Use case with all real adapters, no entry point
   - Happy path + unhappy paths (validation errors, domain rule violations, not found)
-- **Technical tests**: Scripts — run real ETL, verify data loaded correctly
-- **E2E tests**: Full flow — e.g., Telegram command → use case → database → response
+- **E2E tests**: Full flow — e.g., Telegram command → handler → use case → DB → response
 
 ---
 
@@ -87,11 +94,8 @@ Set up the project from scratch with all tooling, configuration, and folder stru
   src/config/
   src/main.ts
   tests/
-    unit/           # domain - co-located with source
-    integration/    # adapters with real infra
-    component/      # use cases - full paths
-    technical/      # ETL scripts, background jobs
-    e2e/            # smoke tests, bot full flow
+    component/      # use case + real adapters + real DB
+    e2e/            # full flow from entry point to response
   ```
 
 - [x] Docker Compose for local Postgres 17
@@ -339,7 +343,7 @@ Download GTFS data from the NAP portal and import it into the database. This is 
   6. Publish `DatasetImported` event
   7. Return import summary
 - [x] **Unit test** — mock repos, test orchestration
-- [x] **Component test** — mock repos, test happy + unhappy paths (empty data, partial insert, etc.)
+- [x] **Component test** — real adapters + real DB, test happy + unhappy paths (empty data, re-import idempotency, etc.)
 
 #### 4E — Manual Import Script ✅
 
@@ -348,7 +352,7 @@ Download GTFS data from the NAP portal and import it into the database. This is 
   2. Parse with `GtfsParser`
   3. Run `ImportTransitData` use case
   4. Log summary
-- [x] **Technical test** (`tests/technical/import-gtfs.test.ts`) — run script with sample data, verify execution
+- [x] **Component test** (`tests/component/import-transit-data.test.ts`) — parser → use case → real repos → real DB
 - [x] Add `import:gtfs` script to `package.json`
 
 #### 4F — Full Import Pipeline Test

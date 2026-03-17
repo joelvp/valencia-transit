@@ -28,14 +28,23 @@ Determine test type based on the source file location:
 - Test orchestration: correct calls, correct order, correct results
 - Use real domain entities, only mock infrastructure ports
 
-### `adapters/out/**` → Integration Test
-- **Mock nothing** — use real database
+### `adapters/out/**` (repositories, persistence) → Integration Test
+- **Mock nothing** — use real database/filesystem
 - Test SQL queries, mappers, data integrity
 - Set up database cleanup in `beforeEach`/`afterEach`
 
-### `adapters/in/**` → Integration Test
+### `adapters/in/**` (handlers, controllers) → Unit Test
 - **Mock use cases** (the application layer)
 - Test input parsing, response formatting, error handling
+
+### `tests/component/` → Component Test
+- **Use case + real adapters + real DB**, no entry point
+- Test the use case with all its real dependencies wired together
+- Happy path + unhappy paths (not found, validation errors, domain violations)
+
+### `tests/e2e/` → E2E Test
+- **Full flow from entry point to response** — nothing mocked
+- Entry point (Telegram/HTTP/CLI) → handler → use case → DB → response
 
 ## File Creation
 
