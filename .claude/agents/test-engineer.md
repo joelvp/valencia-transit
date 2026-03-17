@@ -38,7 +38,19 @@ You are the testing specialist for Valencia Transit. You write and maintain test
 | Full verification (format, types, lint, tests) | `verify` |
 
 ## Key Rules
-- Use `createTestSetup()` factory — NOT a module-level singleton (prevents CONNECTION_ENDED errors)
+- Use `createContainer()` from `@/adapters/container` — NOT a module-level singleton (prevents CONNECTION_ENDED errors)
+- Use `clearTables(container.db, ...tableNames)` from `tests/helpers/db` in `beforeEach`
+- Call `container.dispose()` in `afterAll`
+
+### Table ownership per repository
+
+| Repository | Tables to clear in beforeEach |
+|-----------|-------------------------------|
+| `StationRepository` | `stations` |
+| `LineRepository` | `line_stations`, `lines`, `stations` |
+| `ScheduleRepository` | `schedule_exceptions`, `schedules` |
+| `TripRepository` | `passing_times`, `trips`, `schedule_exceptions`, `schedules`, `line_stations`, `lines`, `stations` |
+| `DomainEventRepository` | `domain_events` |
 
 ## Test Location Convention
 

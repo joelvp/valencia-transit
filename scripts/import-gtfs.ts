@@ -1,11 +1,4 @@
-import {
-  stationRepository,
-  lineRepository,
-  scheduleRepository,
-  tripRepository,
-  eventBus,
-} from "@/adapters/container";
-import { sql } from "@/config/database";
+import { createContainer } from "@/adapters/container";
 import { GtfsParser } from "@/adapters/out/transit-data/GtfsParser";
 import { ImportTransitData } from "@/core/application/import/ImportTransitData";
 
@@ -35,6 +28,8 @@ async function main() {
   console.log(`Feed ID: ${feedId}`);
   console.log("");
 
+  const container = createContainer();
+
   try {
     // Parse GTFS ZIP
     console.log("Parsing GTFS file...");
@@ -49,11 +44,11 @@ async function main() {
     // Execute import
     console.log("Importing data into database...");
     const importUseCase = new ImportTransitData(
-      stationRepository,
-      lineRepository,
-      scheduleRepository,
-      tripRepository,
-      eventBus,
+      container.stationRepository,
+      container.lineRepository,
+      container.scheduleRepository,
+      container.tripRepository,
+      container.eventBus,
     );
 
     const summary = await importUseCase.execute(gtfsData, feedId);
@@ -91,7 +86,7 @@ async function main() {
 
     process.exit(1);
   } finally {
-    await sql.end();
+    await container.dispose();
   }
 }
 

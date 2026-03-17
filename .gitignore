@@ -39,6 +39,8 @@ agent.log
 
 # Claude Code - track config, ignore local/user-specific files
 .claude/settings.local.json
+.claude/agent-memory/
+.claude/plans/
 
 # OpenCode - track config, ignore local/user-specific files
 .opencode/settings.local.json

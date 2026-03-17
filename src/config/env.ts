@@ -1,5 +1,30 @@
-const APP_ENV_VALUES = ["local", "staging", "production"] as const;
-type AppEnv = (typeof APP_ENV_VALUES)[number];
+const APP_ENV_VALUES = ["local", "dev", "prod"] as const;
+export type AppEnv = (typeof APP_ENV_VALUES)[number];
+
+export interface LocalSecrets {
+  APP_ENV: "local";
+  DATABASE_URL: string;
+}
+
+export interface DevSecrets {
+  APP_ENV: "dev";
+  DATABASE_URL: string;
+  BOT_TOKEN: string;
+  ADMIN_CHAT_ID: string;
+  NAP_USERNAME: string;
+  NAP_PASSWORD: string;
+}
+
+export interface ProdSecrets {
+  APP_ENV: "prod";
+  DATABASE_URL: string;
+  BOT_TOKEN: string;
+  ADMIN_CHAT_ID: string;
+  NAP_USERNAME: string;
+  NAP_PASSWORD: string;
+}
+
+export type Secrets = LocalSecrets | DevSecrets | ProdSecrets;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -7,10 +32,6 @@ function requireEnv(name: string): string {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
-}
-
-function optionalEnv(name: string, defaultValue?: string): string | undefined {
-  return process.env[name] ?? defaultValue;
 }
 
 function parseAppEnv(raw: string | undefined): AppEnv {
@@ -23,11 +44,32 @@ function parseAppEnv(raw: string | undefined): AppEnv {
   return value as AppEnv;
 }
 
-export const env = {
-  DATABASE_URL: requireEnv("DATABASE_URL"),
-  APP_ENV: parseAppEnv(process.env["APP_ENV"]),
-  BOT_TOKEN: requireEnv("BOT_TOKEN"),
-  ADMIN_CHAT_ID: requireEnv("ADMIN_CHAT_ID"),
-  NAP_USERNAME: optionalEnv("NAP_USERNAME"),
-  NAP_PASSWORD: optionalEnv("NAP_PASSWORD"),
-} as const;
+export function loadSecrets(): Secrets {
+  const APP_ENV = parseAppEnv(process.env["APP_ENV"]);
+
+  switch (APP_ENV) {
+    case "local":
+      return {
+        APP_ENV: "local",
+        DATABASE_URL: requireEnv("DATABASE_URL"),
+      };
+    case "dev":
+      return {
+        APP_ENV: "dev",
+        DATABASE_URL: requireEnv("DATABASE_URL"),
+        BOT_TOKEN: requireEnv("BOT_TOKEN"),
+        ADMIN_CHAT_ID: requireEnv("ADMIN_CHAT_ID"),
+        NAP_USERNAME: requireEnv("NAP_USERNAME"),
+        NAP_PASSWORD: requireEnv("NAP_PASSWORD"),
+      };
+    case "prod":
+      return {
+        APP_ENV: "prod",
+        DATABASE_URL: requireEnv("DATABASE_URL"),
+        BOT_TOKEN: requireEnv("BOT_TOKEN"),
+        ADMIN_CHAT_ID: requireEnv("ADMIN_CHAT_ID"),
+        NAP_USERNAME: requireEnv("NAP_USERNAME"),
+        NAP_PASSWORD: requireEnv("NAP_PASSWORD"),
+      };
+  }
+}

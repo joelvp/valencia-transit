@@ -1,22 +1,14 @@
-import { describe, it, expect, beforeEach, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
 import AdmZip from "adm-zip";
 import { writeFileSync, unlinkSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { GtfsParser } from "@/adapters/out/transit-data/GtfsParser";
 import { ImportTransitData } from "@/core/application/import/ImportTransitData";
-import { createTestSetup } from "@/adapters/out/persistence/drizzle/repositories/test-db-helper";
-import {
-  stationRepository,
-  lineRepository,
-  scheduleRepository,
-  tripRepository,
-  eventBus,
-} from "@/adapters/container";
+import { createContainer, type Container } from "@/adapters/container";
+import { clearDatabase } from "../helpers/db";
 
 const TEST_FEED_ID = "test-feed";
-
-const { cleanDatabase, closeDatabase } = createTestSetup();
 
 /**
  * Creates a minimal valid GTFS ZIP buffer in memory.
@@ -72,16 +64,21 @@ function createMinimalGtfsZip(): Buffer {
 }
 
 describe("ImportTransitData Component Test", () => {
+  let container: Container;
   let zipBuffer: Buffer;
 
+  beforeAll(() => {
+    container = createContainer();
+  });
+
   beforeEach(async () => {
-    await cleanDatabase();
+    await clearDatabase(container.db);
     zipBuffer = createMinimalGtfsZip();
   });
 
   afterAll(async () => {
-    await cleanDatabase();
-    await closeDatabase();
+    await clearDatabase(container.db);
+    await container.dispose();
   });
 
   it("should parse GTFS ZIP and return valid data structure", () => {
@@ -114,11 +111,11 @@ describe("ImportTransitData Component Test", () => {
 
     // Import using real use case (no mocks)
     const importUseCase = new ImportTransitData(
-      stationRepository,
-      lineRepository,
-      scheduleRepository,
-      tripRepository,
-      eventBus,
+      container.stationRepository,
+      container.lineRepository,
+      container.scheduleRepository,
+      container.tripRepository,
+      container.eventBus,
     );
 
     const summary = await importUseCase.execute(gtfsData, TEST_FEED_ID);
@@ -154,11 +151,11 @@ describe("ImportTransitData Component Test", () => {
 
     const gtfsData = parser.parse(tempPath);
     const importUseCase = new ImportTransitData(
-      stationRepository,
-      lineRepository,
-      scheduleRepository,
-      tripRepository,
-      eventBus,
+      container.stationRepository,
+      container.lineRepository,
+      container.scheduleRepository,
+      container.tripRepository,
+      container.eventBus,
     );
 
     // First import
@@ -170,7 +167,7 @@ describe("ImportTransitData Component Test", () => {
     expect(summary2.stationsImported).toBe(2);
 
     // Should not duplicate - count should remain the same
-    const stations = await stationRepository.findAll();
+    const stations = await container.stationRepository.findAll();
     expect(stations.length).toBe(2);
 
     unlinkSync(tempPath);

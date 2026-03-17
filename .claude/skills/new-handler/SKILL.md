@@ -100,11 +100,14 @@ Pass the use case from the container to the handler factory.
 
 ### 4. Wire in `src/adapters/container.ts`
 
-The container uses module-level exports (not a factory function). Add the use case as a new export:
+The container uses a `createContainer()` factory function. Instantiate the use case inside it and add it to the `Container` interface:
 
 ```typescript
-// In container.ts — add after existing driven adapters and event bus:
-export const <useCase> = new <UseCaseName>(/* repos, eventBus, etc. */);
+// In createContainer() — add after existing driven adapters and event bus:
+const <useCase> = new <UseCaseName>(/* repos, eventBus, etc. */);
+
+// Add to the return object:
+return { ..., <useCase> };
 ```
 
 ## Checklist

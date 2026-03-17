@@ -1,30 +1,34 @@
-import { describe, it, expect, beforeEach, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { createContainer, type Container } from "@/adapters/container";
+import { clearTables } from "tests/helpers/db";
 import { StationRepositoryDrizzle } from "./StationRepositoryDrizzle";
 import { StationId } from "@/core/domain/station/StationId";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
 import { stations } from "../schema";
-import { createTestSetup } from "./test-db-helper";
 import { StationMother } from "./mothers/StationMother";
 
 const FEED_ID = "metrovalencia";
-const { db, cleanDatabase, closeDatabase } = createTestSetup();
 
 describe("StationRepositoryDrizzle", () => {
+  let container: Container;
   let repo: StationRepositoryDrizzle;
 
+  beforeAll(() => {
+    container = createContainer();
+  });
+
   beforeEach(async () => {
-    await cleanDatabase();
-    repo = new StationRepositoryDrizzle(db);
-    await db.insert(stations).values([
+    await clearTables(container.db, "stations");
+    repo = new StationRepositoryDrizzle(container.db);
+    await container.db.insert(stations).values([
       StationMother.row(),
       StationMother.row({ id: "ST2", name: "Xàtiva", longitude: -0.38 }),
     ]);
   });
 
   afterAll(async () => {
-    await cleanDatabase();
-    await closeDatabase();
+    await container.dispose();
   });
 
   it("should return station when found by id", async () => {
@@ -105,13 +109,13 @@ describe("StationRepositoryDrizzle", () => {
 
   it("should not remove stations belonging to a different feedId", async () => {
     const OTHER_FEED = "other-feed";
-    await db.insert(stations).values([
+    await container.db.insert(stations).values([
       StationMother.row({ id: "ST9", feedId: OTHER_FEED, name: "Patraix", longitude: -0.39 }),
     ]);
 
     await repo.deleteByFeedId(FEED_ID);
 
-    const rows = await db.select().from(stations);
+    const rows = await container.db.select().from(stations);
     expect(rows.length).toBe(1);
     expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });

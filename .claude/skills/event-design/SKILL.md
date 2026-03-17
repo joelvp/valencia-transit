@@ -110,24 +110,27 @@ Pattern: one event -> one subscriber -> one persistence call. Keep subscribers f
 
 ## DI Wiring for Events
 
-Events are wired in `src/adapters/container.ts` after use cases are instantiated:
+Events are wired inside `createContainer()` in `src/adapters/container.ts`:
 
 ```typescript
-// 1. Driven adapters
-const stationRepo = new StationRepositoryDrizzle(db);
-const domainEventRepo = new DomainEventRepositoryDrizzle(db);
+export function createContainer(): Container {
+  const env = loadSecrets();
+  const sql = createSqlConnection(env.DATABASE_URL);
+  const db = createDatabase(sql);
 
-// 2. Subscribers (created BEFORE EventBus)
-const subscribers: EventSubscriber[] = [
-  new PersistAllEventsSubscriber(domainEventRepo),
-  // add domain-specific subscribers here
-];
-const eventBus = new InMemoryEventBus(subscribers);
+  // 1. Driven adapters
+  const stationRepo = new StationRepositoryDrizzle(db);
+  const domainEventRepo = new DomainEventRepositoryDrizzle(db);
 
-// 3. Use cases
-const searchNextDepartures = new SearchNextDepartures(stationRepo, eventBus);
+  // 2. Subscribers (created BEFORE EventBus)
+  const persistAllEvents = new PersistAllEventsSubscriber(domainEventRepo);
+  const eventBus = new InMemoryEventBus([persistAllEvents]);
 
-return { searchNextDepartures };
+  // 3. Use cases
+  const searchNextDepartures = new SearchNextDepartures(stationRepo, eventBus);
+
+  return { stationRepo, eventBus, db, dispose: () => sql.end() };
+}
 ```
 
 > Note: No `.subscribe()` method exists on `EventBus` or `InMemoryEventBus`. `PersistAllEventsSubscriber` (already in container) persists all events automatically.

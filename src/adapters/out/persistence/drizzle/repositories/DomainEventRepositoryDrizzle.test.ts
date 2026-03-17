@@ -1,22 +1,25 @@
-import { describe, it, expect, beforeEach, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { createContainer, type Container } from "@/adapters/container";
+import { clearTables } from "tests/helpers/db";
 import { DomainEventRepositoryDrizzle } from "./DomainEventRepositoryDrizzle";
 import { DatasetImported } from "@/core/domain/event/DatasetImported";
 import { DomainEventType } from "@/core/domain/event/DomainEventType";
-import { createTestSetup } from "./test-db-helper";
-
-const { db, cleanDatabase, closeDatabase } = createTestSetup();
 
 describe("DomainEventRepositoryDrizzle", () => {
+  let container: Container;
   let repo: DomainEventRepositoryDrizzle;
 
+  beforeAll(() => {
+    container = createContainer();
+  });
+
   beforeEach(async () => {
-    await cleanDatabase();
-    repo = new DomainEventRepositoryDrizzle(db);
+    await clearTables(container.db, "domain_events");
+    repo = new DomainEventRepositoryDrizzle(container.db);
   });
 
   afterAll(async () => {
-    await cleanDatabase();
-    await closeDatabase();
+    await container.dispose();
   });
 
   it("should return empty array when no events have been saved", async () => {

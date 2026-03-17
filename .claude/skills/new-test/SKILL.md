@@ -83,24 +83,29 @@ Strategy in order of preference:
 
 **Critical**: Never export a module-level DB singleton shared across test files. When one file's `afterAll` calls `sql.end()`, it terminates the shared connection and all subsequent test files fail with `CONNECTION_ENDED`.
 
-**Correct pattern** — `createTestSetup()` factory, one connection per test file:
+**Correct pattern** — `createContainer()` factory, one connection per test file:
 
 ```typescript
-import { createTestSetup } from "./test-db-helper";
-import { stations } from "../schema";
+import { createContainer, type Container } from "@/adapters/container";
+import { clearTables } from "tests/helpers/db";
 
 describe("StationRepositoryDrizzle", () => {
-  const { db, cleanDatabase, closeDatabase } = createTestSetup();
+  let container: Container;
+
+  beforeAll(() => {
+    container = createContainer();
+  });
 
   beforeEach(async () => {
-    await cleanDatabase(); // truncate relevant tables
+    await clearTables(container.db, "stations"); // only tables owned by this repo
   });
 
   afterAll(async () => {
-    await closeDatabase();
+    await container.dispose();
   });
 
   it("should save and retrieve a station", async () => {
+    const repo = new StationRepositoryDrizzle(container.db);
     // Arrange + Act + Assert inside the test
   });
 });

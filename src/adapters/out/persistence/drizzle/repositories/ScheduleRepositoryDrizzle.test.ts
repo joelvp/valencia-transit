@@ -1,34 +1,38 @@
-import { describe, it, expect, beforeEach, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { createContainer, type Container } from "@/adapters/container";
+import { clearTables } from "tests/helpers/db";
 import { ScheduleRepositoryDrizzle } from "./ScheduleRepositoryDrizzle";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { Schedule } from "@/core/domain/schedule/Schedule";
 import { Weekdays } from "@/core/domain/schedule/Weekdays";
 import { DateRange } from "@/core/domain/schedule/DateRange";
 import { schedules, scheduleExceptions } from "../schema";
-import { createTestSetup } from "./test-db-helper";
 import { ScheduleMother } from "./mothers/ScheduleMother";
 
 const FEED_ID = "metrovalencia";
-const { db, cleanDatabase, closeDatabase } = createTestSetup();
 
 // SC1: active Mon–Fri within 2025, no exceptions
 // SC2: active only on weekends within 2025
 describe("ScheduleRepositoryDrizzle", () => {
+  let container: Container;
   let repo: ScheduleRepositoryDrizzle;
 
+  beforeAll(() => {
+    container = createContainer();
+  });
+
   beforeEach(async () => {
-    await cleanDatabase();
-    repo = new ScheduleRepositoryDrizzle(db);
-    await db.insert(schedules).values([ScheduleMother.row(), ScheduleMother.weekendRow()]);
+    await clearTables(container.db, "schedule_exceptions", "schedules");
+    repo = new ScheduleRepositoryDrizzle(container.db);
+    await container.db.insert(schedules).values([ScheduleMother.row(), ScheduleMother.weekendRow()]);
     // Exception: SC1 is removed on 2025-03-10 (a Monday)
-    await db.insert(scheduleExceptions).values([
+    await container.db.insert(scheduleExceptions).values([
       { scheduleId: "SC1", feedId: FEED_ID, date: "2025-03-10", isActive: false },
     ]);
   });
 
   afterAll(async () => {
-    await cleanDatabase();
-    await closeDatabase();
+    await container.dispose();
   });
 
   it("should return schedule with exceptions when found by id", async () => {
@@ -106,17 +110,17 @@ describe("ScheduleRepositoryDrizzle", () => {
   it("should remove all schedules for the given feedId", async () => {
     await repo.deleteByFeedId(FEED_ID);
 
-    const rows = await db.select().from(schedules);
+    const rows = await container.db.select().from(schedules);
     expect(rows).toEqual([]);
   });
 
   it("should not remove schedules belonging to a different feedId", async () => {
     const OTHER_FEED = "other-feed";
-    await db.insert(schedules).values([ScheduleMother.row({ id: "SCO1", feedId: OTHER_FEED })]);
+    await container.db.insert(schedules).values([ScheduleMother.row({ id: "SCO1", feedId: OTHER_FEED })]);
 
     await repo.deleteByFeedId(FEED_ID);
 
-    const rows = await db.select().from(schedules);
+    const rows = await container.db.select().from(schedules);
     expect(rows.length).toBe(1);
     expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });

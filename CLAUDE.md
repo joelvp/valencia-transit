@@ -74,6 +74,21 @@ bun run import:gtfs    # GTFS import pipeline
 
 ---
 
+## Configuration
+
+Two separate channels — never mixed:
+
+| Concept           | Where it lives                               | Examples                               |
+| ----------------- | -------------------------------------------- | -------------------------------------- |
+| **Secrets**       | env vars (`.env` local, Railway dashboard)   | `DATABASE_URL`, `BOT_TOKEN`, passwords |
+| **Public config** | committed files (`src/config/environments/`) | feature flags, limits, timeouts        |
+
+- Secrets per environment: `src/config/env.ts` → `loadSecrets()`
+- Public config per environment: `src/config/environments/` → `loadPublicConfig()`
+- `APP_ENV` values: `local` (default), `dev`, `prod`
+
+---
+
 ## Dependency Rules (Enforced by ESLint)
 
 ```
