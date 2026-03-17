@@ -88,6 +88,18 @@ describe("Schedule", () => {
     });
   });
 
+  describe("ScheduleException", () => {
+    it("isServiceRemoved() should return true when isActive is false", () => {
+      const exception = new ScheduleException("2026-03-07", false);
+      expect(exception.isServiceRemoved()).toBe(true);
+    });
+
+    it("isServiceRemoved() should return false when isActive is true", () => {
+      const exception = new ScheduleException("2026-03-07", true);
+      expect(exception.isServiceRemoved()).toBe(false);
+    });
+  });
+
   describe("equals", () => {
     it("should be equal to another schedule with the same id", () => {
       const a = createSchedule();
