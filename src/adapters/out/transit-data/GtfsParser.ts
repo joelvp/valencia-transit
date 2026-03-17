@@ -4,7 +4,6 @@ import { StationLocation } from "@/core/domain/station/StationLocation";
 import { Line } from "@/core/domain/line/Line";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { StationId } from "@/core/domain/station/StationId";
 import { Schedule } from "@/core/domain/schedule/Schedule";
@@ -63,10 +62,6 @@ function parseCsv(text: string): CsvRow[] {
 function reformatDate(gtfsDate: string): string {
   // YYYYMMDD → YYYY-MM-DD
   return `${gtfsDate.slice(0, 4)}-${gtfsDate.slice(4, 6)}-${gtfsDate.slice(6, 8)}`;
-}
-
-function parseDirection(directionId: string): LineDirection {
-  return directionId === "1" ? LineDirection.INBOUND : LineDirection.OUTBOUND;
 }
 
 export class GtfsParser {
@@ -158,25 +153,21 @@ export class GtfsParser {
       routeNameMap.set(row["route_id"]!, name);
     }
 
-    // Group trips by (route_id, direction_id)
-    const lineMap = new Map<
-      string,
-      { routeId: string; direction: LineDirection; stopRows: CsvRow[] }
-    >();
+    // Group trips by route_id (direction encoded in route_id for MetroValencia)
+    const lineMap = new Map<string, { routeId: string; stopRows: CsvRow[] }>();
     for (const trip of tripRows) {
-      const key = `${trip["route_id"]!}__${trip["direction_id"]!}`;
-      const direction = parseDirection(trip["direction_id"]!);
-      if (!lineMap.has(key)) {
-        lineMap.set(key, { routeId: trip["route_id"]!, direction, stopRows: [] });
+      const routeId = trip["route_id"]!;
+      if (!lineMap.has(routeId)) {
+        lineMap.set(routeId, { routeId, stopRows: [] });
       }
-      const entry = lineMap.get(key)!;
+      const entry = lineMap.get(routeId)!;
       const tripStops = stopTimesByTrip.get(trip["trip_id"]!) ?? [];
       entry.stopRows.push(...tripStops);
     }
 
     const lines: Line[] = [];
-    for (const [key, { routeId, direction, stopRows }] of lineMap) {
-      const lineId = new LineId(key);
+    for (const [routeId, { stopRows }] of lineMap) {
+      const lineId = new LineId(routeId);
       const name = routeNameMap.get(routeId) ?? routeId;
 
       // Dedupe stops by stationId, keep lowest sequence seen
@@ -194,7 +185,7 @@ export class GtfsParser {
         .sort((a, b) => a[1] - b[1])
         .map(([stationId, sequence]) => new LineStop(new StationId(stationId), sequence));
 
-      lines.push(new Line(lineId, new LineName(name), direction, stops));
+      lines.push(new Line(lineId, new LineName(name), stops));
     }
 
     return lines;
@@ -214,9 +205,7 @@ export class GtfsParser {
     return tripRows.map((row) => {
       const tripId = row["trip_id"]!;
       const routeId = row["route_id"]!;
-      const directionId = row["direction_id"]!;
-      const direction = parseDirection(directionId);
-      const lineId = new LineId(`${routeId}__${directionId}`);
+      const lineId = new LineId(routeId);
 
       const stopRows = (stopTimesByTrip.get(tripId) ?? []).sort(
         (a, b) => parseInt(a["stop_sequence"]!, 10) - parseInt(b["stop_sequence"]!, 10),
@@ -230,12 +219,13 @@ export class GtfsParser {
         return new PassingTime(stationId, arrivalTime, departureTime, sequence);
       });
 
+      const headsign = row["trip_headsign"] ?? null;
       return new Trip(
         new TripId(tripId),
         lineId,
         new ScheduleId(row["service_id"]!),
-        direction,
         passingTimes,
+        headsign,
       );
     });
   }

@@ -84,7 +84,6 @@ export class TripRepositoryDrizzle implements TripRepository {
         set: {
           lineId: tripRow.lineId,
           scheduleId: tripRow.scheduleId,
-          direction: tripRow.direction,
           headsign: tripRow.headsign,
         },
       });

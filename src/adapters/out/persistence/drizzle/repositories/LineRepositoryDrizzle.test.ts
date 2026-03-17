@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { LineRepositoryDrizzle } from "./LineRepositoryDrizzle";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { Line } from "@/core/domain/line/Line";
 import { StationId } from "@/core/domain/station/StationId";
@@ -41,6 +40,7 @@ describe("LineRepositoryDrizzle", () => {
   });
 
   afterAll(async () => {
+    await cleanDatabase();
     await closeDatabase();
   });
 
@@ -86,7 +86,6 @@ describe("LineRepositoryDrizzle", () => {
     const line = new Line(
       new LineId("L3"),
       new LineName("Línia 3"),
-      LineDirection.OUTBOUND,
       [new LineStop(new StationId("ST1"), 1), new LineStop(new StationId("ST3"), 2)],
     );
 
@@ -102,7 +101,6 @@ describe("LineRepositoryDrizzle", () => {
     const line = new Line(
       new LineId("L1"),
       new LineName("Línia 1 Updated"),
-      LineDirection.OUTBOUND,
       [new LineStop(new StationId("ST1"), 1)],
     );
 

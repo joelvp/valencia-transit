@@ -27,6 +27,7 @@ describe("ScheduleRepositoryDrizzle", () => {
   });
 
   afterAll(async () => {
+    await cleanDatabase();
     await closeDatabase();
   });
 

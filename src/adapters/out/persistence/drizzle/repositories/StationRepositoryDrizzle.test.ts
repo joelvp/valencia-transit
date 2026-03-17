@@ -23,6 +23,7 @@ describe("StationRepositoryDrizzle", () => {
   });
 
   afterAll(async () => {
+    await cleanDatabase();
     await closeDatabase();
   });
 

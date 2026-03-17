@@ -15,6 +15,7 @@ describe("DomainEventRepositoryDrizzle", () => {
   });
 
   afterAll(async () => {
+    await cleanDatabase();
     await closeDatabase();
   });
 

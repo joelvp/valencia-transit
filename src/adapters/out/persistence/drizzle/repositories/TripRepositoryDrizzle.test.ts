@@ -3,7 +3,6 @@ import { TripRepositoryDrizzle } from "./TripRepositoryDrizzle";
 import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
 import { LineId } from "@/core/domain/line/LineId";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
@@ -51,6 +50,7 @@ describe("TripRepositoryDrizzle", () => {
   });
 
   afterAll(async () => {
+    await cleanDatabase();
     await closeDatabase();
   });
 
@@ -116,7 +116,6 @@ describe("TripRepositoryDrizzle", () => {
       new TripId("TR99"),
       new LineId("L1"),
       new ScheduleId("SC1"),
-      LineDirection.OUTBOUND,
       [
         new PassingTime(new StationId("ST1"), new TimeOfDay("12:00:00"), new TimeOfDay("12:00:00"), 1),
         new PassingTime(new StationId("ST2"), new TimeOfDay("12:05:00"), new TimeOfDay("12:05:00"), 2),
@@ -136,7 +135,6 @@ describe("TripRepositoryDrizzle", () => {
       new TripId("TR1"),
       new LineId("L1"),
       new ScheduleId("SC1"),
-      LineDirection.INBOUND,
       [],
     );
 
@@ -145,7 +143,6 @@ describe("TripRepositoryDrizzle", () => {
     const result = await repo.findByLineAndSchedule(new LineId("L1"), new ScheduleId("SC1"));
     const updated = result.find((t) => t.id.value === "TR1");
     expect(updated).not.toBeUndefined();
-    expect(updated!.direction).toBe(LineDirection.INBOUND);
   });
 
   it("should remove all trips for the given feedId", async () => {

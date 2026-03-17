@@ -80,6 +80,7 @@ describe("ImportTransitData Component Test", () => {
   });
 
   afterAll(async () => {
+    await cleanDatabase();
     await closeDatabase();
   });
 
@@ -93,7 +94,7 @@ describe("ImportTransitData Component Test", () => {
     const gtfsData = parser.parse(tempPath);
 
     expect(gtfsData.stations).toHaveLength(2);
-    expect(gtfsData.lines).toHaveLength(2); // 1 route × 2 directions
+    expect(gtfsData.lines).toHaveLength(1); // 1 route_id = 1 line
     expect(gtfsData.schedules).toHaveLength(1);
     expect(gtfsData.trips).toHaveLength(2);
 
@@ -138,7 +139,7 @@ describe("ImportTransitData Component Test", () => {
 
     // Verify actual counts match expected
     expect(summary.stationsImported).toBe(2);
-    expect(summary.linesImported).toBe(2);
+    expect(summary.linesImported).toBe(1); // 1 route_id = 1 line
     expect(summary.schedulesImported).toBe(1);
     expect(summary.tripsImported).toBe(2);
 

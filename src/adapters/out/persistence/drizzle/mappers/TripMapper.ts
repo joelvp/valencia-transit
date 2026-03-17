@@ -2,17 +2,15 @@ import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
 import { PassingTime } from "@/core/domain/trip/PassingTime";
 import { LineId } from "@/core/domain/line/LineId";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
-import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 type TripRow = {
   id: string;
   lineId: string;
   scheduleId: string;
-  direction: string;
+  headsign: string | null;
 };
 
 type PassingTimeRow = {
@@ -28,7 +26,6 @@ type TripInsert = {
   feedId: string;
   lineId: string;
   scheduleId: string;
-  direction: string;
   headsign: string | null;
 };
 
@@ -46,16 +43,8 @@ type TripPersistenceResult = {
   passingTimes: PassingTimeInsert[];
 };
 
-function parseDirection(raw: string): LineDirection {
-  if (raw === LineDirection.OUTBOUND) return LineDirection.OUTBOUND;
-  if (raw === LineDirection.INBOUND) return LineDirection.INBOUND;
-  throw new InvalidArgumentError(`Unknown LineDirection: "${raw}"`);
-}
-
 export const TripMapper = {
   toDomain(row: TripRow, passingTimeRows: PassingTimeRow[]): Trip {
-    const direction = parseDirection(row.direction);
-
     const passingTimes = passingTimeRows.map(
       (pt) =>
         new PassingTime(
@@ -70,8 +59,8 @@ export const TripMapper = {
       new TripId(row.id),
       new LineId(row.lineId),
       new ScheduleId(row.scheduleId),
-      direction,
       passingTimes,
+      row.headsign,
     );
   },
 
@@ -81,8 +70,7 @@ export const TripMapper = {
       feedId,
       lineId: trip.lineId.value,
       scheduleId: trip.scheduleId.value,
-      direction: trip.direction,
-      headsign: null,
+      headsign: trip.headsign,
     };
 
     const passingTimes: PassingTimeInsert[] = trip.passingTimes.map((pt) => ({

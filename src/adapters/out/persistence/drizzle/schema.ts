@@ -4,7 +4,6 @@ import {
   real,
   boolean,
   date,
-  time,
   integer,
   primaryKey,
   foreignKey,
@@ -52,10 +51,9 @@ export const lineStations = pgTable(
     stationId: text("station_id").notNull(),
     feedId: text("feed_id").notNull(),
     sequence: integer("sequence").notNull(),
-    direction: text("direction").notNull(), // 'OUTBOUND' | 'INBOUND'
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.lineId, t.stationId, t.sequence, t.direction, t.feedId] }),
+    pk: primaryKey({ columns: [t.lineId, t.stationId, t.feedId] }),
     lineFk: foreignKey({
       columns: [t.lineId, t.feedId],
       foreignColumns: [lines.id, lines.feedId],
@@ -114,7 +112,6 @@ export const trips = pgTable(
     feedId: text("feed_id").notNull(),
     lineId: text("line_id").notNull(),
     scheduleId: text("schedule_id").notNull(),
-    direction: text("direction").notNull(),
     headsign: text("headsign"), // GTFS trip_headsign
   },
   (t) => ({
@@ -137,8 +134,8 @@ export const passingTimes = pgTable(
     tripId: text("trip_id").notNull(),
     stationId: text("station_id").notNull(),
     feedId: text("feed_id").notNull(),
-    arrivalTime: time("arrival_time").notNull(), // GTFS arrival_time
-    departureTime: time("departure_time").notNull(), // GTFS departure_time
+    arrivalTime: text("arrival_time").notNull(), // GTFS arrival_time (HH:MM:SS, hours can exceed 23)
+    departureTime: text("departure_time").notNull(), // GTFS departure_time (HH:MM:SS, hours can exceed 23)
     sequence: integer("sequence").notNull(), // GTFS stop_sequence
   },
   (t) => ({

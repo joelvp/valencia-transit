@@ -2,7 +2,6 @@ import { describe, it, expect } from "bun:test";
 import { Line } from "./Line.ts";
 import { LineId } from "./LineId.ts";
 import { LineName } from "./LineName.ts";
-import { LineDirection } from "./LineDirection.ts";
 import { LineStop } from "./LineStop.ts";
 import { StationId } from "../station/StationId.ts";
 
@@ -10,7 +9,6 @@ function createLine(stops: { id: string; seq: number }[]): Line {
   return new Line(
     new LineId("L1"),
     new LineName("Line 1"),
-    LineDirection.OUTBOUND,
     stops.map((s) => new LineStop(new StationId(s.id), s.seq)),
   );
 }
@@ -75,22 +73,12 @@ describe("Line", () => {
 
   describe("equals", () => {
     it("should be equal to another line with the same id", () => {
-      const other = new Line(
-        new LineId("L1"),
-        new LineName("Different"),
-        LineDirection.INBOUND,
-        [],
-      );
+      const other = new Line(new LineId("L1"), new LineName("Different"), []);
       expect(line.equals(other)).toBe(true);
     });
 
     it("should not be equal to a line with a different id", () => {
-      const other = new Line(
-        new LineId("L2"),
-        new LineName("Line 1"),
-        LineDirection.OUTBOUND,
-        line.stops,
-      );
+      const other = new Line(new LineId("L2"), new LineName("Line 1"), line.stops);
       expect(line.equals(other)).toBe(false);
     });
   });

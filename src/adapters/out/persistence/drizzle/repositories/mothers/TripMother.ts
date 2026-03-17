@@ -1,7 +1,6 @@
 import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
 import { LineId } from "@/core/domain/line/LineId";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import type { PassingTime } from "@/core/domain/trip/PassingTime";
 
@@ -10,8 +9,7 @@ type TripRow = {
   feedId: string;
   lineId: string;
   scheduleId: string;
-  direction: string;
-  headsign: string;
+  headsign: string | null;
 };
 
 type PassingTimeRow = {
@@ -31,7 +29,6 @@ export class TripMother {
       new TripId(overrides.id ?? "TR1"),
       new LineId(overrides.lineId ?? "L1"),
       new ScheduleId(overrides.scheduleId ?? "SC1"),
-      LineDirection.OUTBOUND,
       overrides.passingTimes ?? [],
     );
   }
@@ -42,7 +39,6 @@ export class TripMother {
       feedId: "metrovalencia",
       lineId: "L1",
       scheduleId: "SC1",
-      direction: "OUTBOUND",
       headsign: "Colón",
       ...overrides,
     };

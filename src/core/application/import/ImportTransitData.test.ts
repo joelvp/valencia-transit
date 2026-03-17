@@ -14,7 +14,6 @@ import { StationLocation } from "../../domain/station/StationLocation.ts";
 import { Line } from "../../domain/line/Line.ts";
 import { LineId } from "../../domain/line/LineId.ts";
 import { LineName } from "../../domain/line/LineName.ts";
-import { LineDirection } from "../../domain/line/LineDirection.ts";
 import { Schedule } from "../../domain/schedule/Schedule.ts";
 import { ScheduleId } from "../../domain/schedule/ScheduleId.ts";
 import { Weekdays } from "../../domain/schedule/Weekdays.ts";
@@ -33,20 +32,14 @@ function makeGtfsData(): GtfsData {
     new StationName("Colón"),
     new StationLocation(39.47, -0.36),
   );
-  const line = new Line(new LineId("L1"), new LineName("Metro 1"), LineDirection.OUTBOUND, []);
+  const line = new Line(new LineId("L1"), new LineName("Metro 1"), []);
   const schedule = new Schedule(
     new ScheduleId("SC1"),
     new Weekdays(true, true, true, true, true, false, false),
     new DateRange("2026-01-01", "2026-12-31"),
     [],
   );
-  const trip = new Trip(
-    new TripId("T1"),
-    new LineId("L1"),
-    new ScheduleId("SC1"),
-    LineDirection.OUTBOUND,
-    [],
-  );
+  const trip = new Trip(new TripId("T1"), new LineId("L1"), new ScheduleId("SC1"), []);
 
   return { stations: [s1, s2], lines: [line], schedules: [schedule], trips: [trip] };
 }

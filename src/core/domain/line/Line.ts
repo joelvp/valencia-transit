@@ -1,6 +1,5 @@
 import type { LineId } from "./LineId.ts";
 import type { LineName } from "./LineName.ts";
-import type { LineDirection } from "./LineDirection.ts";
 import type { LineStop } from "./LineStop.ts";
 import type { StationId } from "../station/StationId.ts";
 
@@ -8,7 +7,6 @@ export class Line {
   constructor(
     readonly id: LineId,
     readonly name: LineName,
-    readonly direction: LineDirection,
     readonly stops: LineStop[],
   ) {}
 

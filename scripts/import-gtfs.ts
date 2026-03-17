@@ -5,6 +5,7 @@ import {
   tripRepository,
   eventBus,
 } from "@/adapters/container";
+import { sql } from "@/config/database";
 import { GtfsParser } from "@/adapters/out/transit-data/GtfsParser";
 import { ImportTransitData } from "@/core/application/import/ImportTransitData";
 
@@ -89,6 +90,8 @@ async function main() {
     }
 
     process.exit(1);
+  } finally {
+    await sql.end();
   }
 }
 

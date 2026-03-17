@@ -97,13 +97,7 @@ export class LineRepositoryDrizzle implements LineRepository {
         .insert(lineStations)
         .values(stopRows)
         .onConflictDoUpdate({
-          target: [
-            lineStations.lineId,
-            lineStations.stationId,
-            lineStations.sequence,
-            lineStations.direction,
-            lineStations.feedId,
-          ],
+          target: [lineStations.lineId, lineStations.stationId, lineStations.feedId],
           set: { sequence: lineStations.sequence },
         });
     }

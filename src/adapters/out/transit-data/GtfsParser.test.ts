@@ -4,7 +4,6 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { GtfsParser, GtfsParseError, type GtfsData } from "./GtfsParser";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 
 const FIXTURES_DIR = path.join(import.meta.dir, "fixtures");
 
@@ -53,16 +52,18 @@ describe("GtfsParser", () => {
     expect(s1!.location.longitude).toBeCloseTo(-0.3763);
   });
 
-  it("should parse 4 lines total (2 routes × 2 directions)", () => {
-    expect(result.lines).toHaveLength(4);
+  it("should parse 2 lines total (1 per route_id)", () => {
+    expect(result.lines).toHaveLength(2);
   });
 
-  it("should parse line for R1 OUTBOUND with correct direction", () => {
-    const line = result.lines.find(
-      (l) => l.id.value === "R1__0" && l.direction === LineDirection.OUTBOUND,
-    );
+  it("should parse line R1 with correct id", () => {
+    const line = result.lines.find((l) => l.id.value === "R1");
     expect(line).toBeDefined();
-    expect(line!.direction).toBe(LineDirection.OUTBOUND);
+  });
+
+  it("should parse line R2 with correct id", () => {
+    const line = result.lines.find((l) => l.id.value === "R2");
+    expect(line).toBeDefined();
   });
 
   it("should parse schedule SVC1 with monday=true and saturday=false", () => {
@@ -100,16 +101,16 @@ describe("GtfsParser", () => {
     expect(result.trips).toHaveLength(4);
   });
 
-  it("should parse trip T1 with OUTBOUND direction", () => {
-    const t1 = result.trips.find((t) => t.id.value === "T1");
-    expect(t1).toBeDefined();
-    expect(t1!.direction).toBe(LineDirection.OUTBOUND);
-  });
-
   it("should parse trip T1 with scheduleId SVC1", () => {
     const t1 = result.trips.find((t) => t.id.value === "T1");
     expect(t1).toBeDefined();
     expect(t1!.scheduleId.value).toBe("SVC1");
+  });
+
+  it("should parse trip T1 with lineId R1", () => {
+    const t1 = result.trips.find((t) => t.id.value === "T1");
+    expect(t1).toBeDefined();
+    expect(t1!.lineId.value).toBe("R1");
   });
 
   it("should parse trip T1 with 3 passing times", () => {

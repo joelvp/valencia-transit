@@ -1,7 +1,6 @@
 import { Line } from "@/core/domain/line/Line";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 import type { LineStop } from "@/core/domain/line/LineStop";
 
 type LineRow = {
@@ -17,7 +16,6 @@ type LineStopRow = {
   stationId: string;
   feedId: string;
   sequence: number;
-  direction: string;
 };
 
 export class LineMother {
@@ -25,7 +23,6 @@ export class LineMother {
     return new Line(
       new LineId(overrides.id ?? "L1"),
       new LineName(overrides.name ?? "Línia 1"),
-      LineDirection.OUTBOUND,
       overrides.stops ?? [],
     );
   }
@@ -47,7 +44,6 @@ export class LineMother {
       stationId: "ST1",
       feedId: "metrovalencia",
       sequence: 1,
-      direction: "OUTBOUND",
       ...overrides,
     };
   }
