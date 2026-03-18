@@ -40,3 +40,20 @@ NapClient (HTTP)
 - Same language as the rest of the app
 - Domain entities are reused (no separate data models)
 - Type safety from CSV to DB
+
+---
+
+## Testing the Import Pipeline
+
+### Technical Test — `tests/technical/import.test.ts`
+- Run the import script with sample GTFS data
+- Verify: script executes without errors, logs summary correctly
+- No mocking — real execution
+
+### E2E Test — Full Pipeline
+- Run `bun run import:gtfs data/gtfs/metrovalencia.zip` with real MetroValencia GTFS
+- Verify record counts:
+  - ~144 stations
+  - ~200 lines
+  - ~21K trips
+- Verify imported data is queryable (departures search works)

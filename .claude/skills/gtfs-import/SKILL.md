@@ -30,7 +30,7 @@ NapClient (HTTP)
 
 ## Key Components
 - `src/adapters/out/http/NapClient.ts` — HTTP client for GTFS ZIP download
-- `src/adapters/out/persistence/gtfs/GtfsParser.ts` — CSV parsing to domain entities
+- `src/adapters/out/transit-data/GtfsParser.ts` — CSV parsing to domain entities
 - `src/core/application/import/ImportTransitData.ts` — Orchestrator use case
 - Repository `saveMany()` methods — Bulk persistence
 
@@ -38,9 +38,10 @@ NapClient (HTTP)
 1. Download ZIP from NAP endpoint
 2. Extract CSV files (stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt)
 3. Parse each CSV into domain entities using GtfsParser
-4. Truncate existing data (within transaction)
+4. Truncate existing data (delete in FK-safe order: trips → lines/schedules → stations)
 5. Bulk insert new data via repositories
-6. Commit transaction
+6. Publish `DatasetImported` event with record counts
+7. Return import summary
 
 ## Why TypeScript for ETL
 - Same language as the rest of the app

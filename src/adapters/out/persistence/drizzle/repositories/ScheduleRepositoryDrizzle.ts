@@ -41,4 +41,41 @@ export class ScheduleRepositoryDrizzle implements ScheduleRepository {
 
     return allSchedules.filter((schedule) => schedule.isActiveOn(date));
   }
+
+  async save(schedule: Schedule, feedId: string): Promise<void> {
+    const { schedule: scheduleRow, scheduleExceptions: exceptionRows } =
+      ScheduleMapper.toPersistence(schedule, feedId);
+
+    await this.db
+      .insert(schedules)
+      .values(scheduleRow)
+      .onConflictDoUpdate({
+        target: [schedules.id, schedules.feedId],
+        set: {
+          monday: scheduleRow.monday,
+          tuesday: scheduleRow.tuesday,
+          wednesday: scheduleRow.wednesday,
+          thursday: scheduleRow.thursday,
+          friday: scheduleRow.friday,
+          saturday: scheduleRow.saturday,
+          sunday: scheduleRow.sunday,
+          startDate: scheduleRow.startDate,
+          endDate: scheduleRow.endDate,
+        },
+      });
+
+    if (exceptionRows.length > 0) {
+      await this.db
+        .insert(scheduleExceptions)
+        .values(exceptionRows)
+        .onConflictDoUpdate({
+          target: [scheduleExceptions.scheduleId, scheduleExceptions.date, scheduleExceptions.feedId],
+          set: { isActive: scheduleExceptions.isActive },
+        });
+    }
+  }
+
+  async deleteByFeedId(feedId: string): Promise<void> {
+    await this.db.delete(schedules).where(eq(schedules.feedId, feedId));
+  }
 }

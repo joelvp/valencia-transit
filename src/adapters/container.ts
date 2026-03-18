@@ -1,0 +1,51 @@
+import { loadSecrets } from "@/config/env";
+import { createSqlConnection } from "@/config/database";
+import { createDatabase } from "@/adapters/out/persistence/drizzle/db";
+import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
+import { StationRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/StationRepositoryDrizzle";
+import { LineRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/LineRepositoryDrizzle";
+import { ScheduleRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/ScheduleRepositoryDrizzle";
+import { TripRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/TripRepositoryDrizzle";
+import { DomainEventRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/DomainEventRepositoryDrizzle";
+import { PersistAllEventsSubscriber } from "@/core/application/event/PersistAllEventsSubscriber";
+import { InMemoryEventBus } from "@/adapters/out/event-bus/InMemoryEventBus";
+import type { StationRepository } from "@/core/domain/station/StationRepository";
+import type { LineRepository } from "@/core/domain/line/LineRepository";
+import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
+import type { TripRepository } from "@/core/domain/trip/TripRepository";
+import type { EventBus } from "@/core/domain/event/EventBus";
+
+export interface Container {
+  stationRepository: StationRepository;
+  lineRepository: LineRepository;
+  scheduleRepository: ScheduleRepository;
+  tripRepository: TripRepository;
+  eventBus: EventBus;
+  db: AppDatabase;
+  dispose(): Promise<void>;
+}
+
+export function createContainer(): Container {
+  const env = loadSecrets();
+  const sql = createSqlConnection(env.DATABASE_URL);
+  const db = createDatabase(sql);
+
+  const stationRepository = new StationRepositoryDrizzle(db);
+  const lineRepository = new LineRepositoryDrizzle(db);
+  const scheduleRepository = new ScheduleRepositoryDrizzle(db);
+  const tripRepository = new TripRepositoryDrizzle(db);
+  const domainEventRepository = new DomainEventRepositoryDrizzle(db);
+
+  const persistAllEvents = new PersistAllEventsSubscriber(domainEventRepository);
+  const eventBus = new InMemoryEventBus([persistAllEvents]);
+
+  return {
+    stationRepository,
+    lineRepository,
+    scheduleRepository,
+    tripRepository,
+    eventBus,
+    db,
+    dispose: () => sql.end(),
+  };
+}

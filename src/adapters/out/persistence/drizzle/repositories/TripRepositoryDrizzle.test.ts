@@ -1,78 +1,62 @@
-import { describe, it, expect, beforeEach, afterAll } from "bun:test";
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { createContainer, type Container } from "@/adapters/container";
+import { clearDatabase, clearTables } from "tests/helpers/db";
 import { TripRepositoryDrizzle } from "./TripRepositoryDrizzle";
+import { Trip } from "@/core/domain/trip/Trip";
+import { TripId } from "@/core/domain/trip/TripId";
 import { LineId } from "@/core/domain/line/LineId";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
+import { PassingTime } from "@/core/domain/trip/PassingTime";
 import { stations, lines, schedules, trips, passingTimes } from "../schema";
-import { createTestSetup } from "./test-db-helper";
+import { StationMother } from "./mothers/StationMother";
+import { LineMother } from "./mothers/LineMother";
+import { ScheduleMother } from "./mothers/ScheduleMother";
+import { TripMother } from "./mothers/TripMother";
 
 const FEED_ID = "metrovalencia";
-const { db, cleanDatabase, closeDatabase } = createTestSetup();
 
 describe("TripRepositoryDrizzle", () => {
+  let container: Container;
   let repo: TripRepositoryDrizzle;
 
+  beforeAll(() => {
+    container = createContainer();
+  });
+
   beforeEach(async () => {
-    await cleanDatabase();
-    repo = new TripRepositoryDrizzle(db);
+    await clearTables(container.db, "passing_times", "trips", "schedule_exceptions", "schedules", "line_stations", "lines", "stations");
+    repo = new TripRepositoryDrizzle(container.db);
 
     // FK dependencies: stations, lines, schedules must exist first
-    await db.insert(stations).values([
-      { id: "ST1", feedId: FEED_ID, name: "Colón", latitude: 39.47, longitude: -0.37, transportType: "metro" },
-      { id: "ST2", feedId: FEED_ID, name: "Xàtiva", latitude: 39.46, longitude: -0.38, transportType: "metro" },
+    await container.db.insert(stations).values([
+      StationMother.row(),
+      StationMother.row({ id: "ST2", name: "Xàtiva", longitude: -0.38 }),
     ]);
 
-    await db.insert(lines).values([
-      { id: "L1", feedId: FEED_ID, name: "Línia 1", shortName: "1", transportType: "metro" },
+    await container.db.insert(lines).values([LineMother.row()]);
+
+    await container.db.insert(schedules).values([ScheduleMother.row(), ScheduleMother.weekendRow()]);
+
+    await container.db.insert(trips).values([
+      TripMother.row({ id: "TR1", scheduleId: "SC1" }),
+      TripMother.row({ id: "TR2", scheduleId: "SC1" }),
+      TripMother.row({ id: "TR3", scheduleId: "SC2" }),
     ]);
 
-    await db.insert(schedules).values([
-      {
-        id: "SC1",
-        feedId: FEED_ID,
-        monday: true,
-        tuesday: true,
-        wednesday: true,
-        thursday: true,
-        friday: true,
-        saturday: false,
-        sunday: false,
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-      },
-      {
-        id: "SC2",
-        feedId: FEED_ID,
-        monday: false,
-        tuesday: false,
-        wednesday: false,
-        thursday: false,
-        friday: false,
-        saturday: true,
-        sunday: true,
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-      },
-    ]);
-
-    await db.insert(trips).values([
-      { id: "TR1", feedId: FEED_ID, lineId: "L1", scheduleId: "SC1", direction: "OUTBOUND", headsign: "Colón" },
-      { id: "TR2", feedId: FEED_ID, lineId: "L1", scheduleId: "SC1", direction: "OUTBOUND", headsign: "Colón" },
-      { id: "TR3", feedId: FEED_ID, lineId: "L1", scheduleId: "SC2", direction: "OUTBOUND", headsign: "Colón" },
-    ]);
-
-    await db.insert(passingTimes).values([
-      { tripId: "TR1", stationId: "ST1", feedId: FEED_ID, arrivalTime: "08:00:00", departureTime: "08:00:00", sequence: 1 },
-      { tripId: "TR1", stationId: "ST2", feedId: FEED_ID, arrivalTime: "08:05:00", departureTime: "08:05:00", sequence: 2 },
-      { tripId: "TR2", stationId: "ST1", feedId: FEED_ID, arrivalTime: "09:00:00", departureTime: "09:00:00", sequence: 1 },
-      { tripId: "TR2", stationId: "ST2", feedId: FEED_ID, arrivalTime: "09:05:00", departureTime: "09:05:00", sequence: 2 },
-      { tripId: "TR3", stationId: "ST1", feedId: FEED_ID, arrivalTime: "10:00:00", departureTime: "10:00:00", sequence: 1 },
+    await container.db.insert(passingTimes).values([
+      TripMother.passingTimeRow({ tripId: "TR1", stationId: "ST1", arrivalTime: "08:00:00", departureTime: "08:00:00", sequence: 1 }),
+      TripMother.passingTimeRow({ tripId: "TR1", stationId: "ST2", arrivalTime: "08:05:00", departureTime: "08:05:00", sequence: 2 }),
+      TripMother.passingTimeRow({ tripId: "TR2", stationId: "ST1", arrivalTime: "09:00:00", departureTime: "09:00:00", sequence: 1 }),
+      TripMother.passingTimeRow({ tripId: "TR2", stationId: "ST2", arrivalTime: "09:05:00", departureTime: "09:05:00", sequence: 2 }),
+      TripMother.passingTimeRow({ tripId: "TR3", stationId: "ST1", arrivalTime: "10:00:00", departureTime: "10:00:00", sequence: 1 }),
     ]);
   });
 
   afterAll(async () => {
-    await closeDatabase();
+    await clearDatabase(container.db);
+    await container.dispose();
   });
 
   it("should return trips for given line and schedule", async () => {
@@ -130,5 +114,66 @@ describe("TripRepositoryDrizzle", () => {
     );
 
     expect(result).toEqual([]);
+  });
+
+  it("should insert trip with passing times and allow retrieval after save", async () => {
+    const trip = new Trip(
+      new TripId("TR99"),
+      new LineId("L1"),
+      new ScheduleId("SC1"),
+      [
+        new PassingTime(new StationId("ST1"), new TimeOfDay("12:00:00"), new TimeOfDay("12:00:00"), 1),
+        new PassingTime(new StationId("ST2"), new TimeOfDay("12:05:00"), new TimeOfDay("12:05:00"), 2),
+      ],
+    );
+
+    await repo.save(trip, FEED_ID);
+
+    const result = await repo.findByLineAndSchedule(new LineId("L1"), new ScheduleId("SC1"));
+    const saved = result.find((t) => t.id.value === "TR99");
+    expect(saved).not.toBeUndefined();
+    expect(saved!.passingTimes.length).toBe(2);
+  });
+
+  it("should upsert without error when saving an already-existing trip", async () => {
+    const trip = new Trip(
+      new TripId("TR1"),
+      new LineId("L1"),
+      new ScheduleId("SC1"),
+      [],
+    );
+
+    await repo.save(trip, FEED_ID);
+
+    const result = await repo.findByLineAndSchedule(new LineId("L1"), new ScheduleId("SC1"));
+    const updated = result.find((t) => t.id.value === "TR1");
+    expect(updated).not.toBeUndefined();
+  });
+
+  it("should remove all trips for the given feedId", async () => {
+    await repo.deleteByFeedId(FEED_ID);
+
+    const rows = await container.db.select().from(trips);
+    expect(rows).toEqual([]);
+  });
+
+  it("should not remove trips belonging to a different feedId", async () => {
+    const OTHER_FEED = "other-feed";
+    await container.db.insert(stations).values([
+      StationMother.row({ id: "STO1", feedId: OTHER_FEED, name: "Other Station", latitude: 39.5, longitude: -0.4 }),
+    ]);
+    await container.db.insert(lines).values([
+      LineMother.row({ id: "LO1", feedId: OTHER_FEED, name: "Other Line", shortName: "O" }),
+    ]);
+    await container.db.insert(schedules).values([ScheduleMother.row({ id: "SCO1", feedId: OTHER_FEED })]);
+    await container.db.insert(trips).values([
+      TripMother.row({ id: "TRO1", feedId: OTHER_FEED, lineId: "LO1", scheduleId: "SCO1", headsign: "Other" }),
+    ]);
+
+    await repo.deleteByFeedId(FEED_ID);
+
+    const rows = await container.db.select().from(trips);
+    expect(rows.length).toBe(1);
+    expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
 });

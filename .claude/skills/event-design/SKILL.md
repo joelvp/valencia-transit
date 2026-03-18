@@ -18,15 +18,18 @@ Design and wire a domain event with its subscriber. This skill is used by the do
 ### 1. Create event class: `src/core/domain/event/<EventName>.ts`
 
 ```typescript
+import { DomainEventType } from "@/core/domain/event/DomainEventType";
 import { DomainEvent } from "@/core/domain/event/DomainEvent";
 
 export class <EventName> extends DomainEvent {
-  readonly eventName = "<aggregate>.<past-tense-verb>";
+  override readonly eventName = DomainEventType.<ENUM_VALUE>;
 
   constructor(
     readonly relevantField1: string,
     readonly relevantField2: number,
-    // ... only primitive types in events (serializable)
+    // ... only primitive types (events must be serializable)
+    override readonly aggregateId?: string,
+    override readonly aggregateType?: string,
   ) {
     super();
   }
@@ -34,30 +37,30 @@ export class <EventName> extends DomainEvent {
 ```
 
 Rules:
-- Event name format: `<aggregate>.<past-tense-verb>` (e.g., `departure.searched`, `dataset.imported`)
-- Extend `DomainEvent` base class (provides `occurredOn`, `eventId`)
-- Use only primitive types in constructor (events must be serializable)
-- Events are immutable — all `readonly` properties
+- `eventName` must be a `DomainEventType` enum value (e.g., `DomainEventType.DATASET_IMPORTED`)
+- Extend `DomainEvent` base class — provides `occurredOn` timestamp only (no `eventId`)
+- Optionally set `aggregateId` / `aggregateType` for traceability
+- All properties `readonly`; only primitives (serializable)
 
 ### 2. Create subscriber: `src/core/application/<context>/<SubscriberName>.ts`
 
 The subscriber is a use case that reacts to the event:
 ```typescript
-export class <SubscriberName> {
+import type { EventSubscriber } from "@/core/domain/event/EventSubscriber";
+import type { DomainEvent } from "@/core/domain/event/DomainEvent";
+import type { <EventName> } from "@/core/domain/event/<EventName>";
+
+export class <SubscriberName> implements EventSubscriber {
   constructor(private readonly repo: SomeRepository) {}
 
-  async execute(event: <EventName>): Promise<void> {
+  async handle(event: DomainEvent): Promise<void> {
+    const typedEvent = event as <EventName>;
     // React to the event (e.g., persist analytics, send notification)
   }
 }
 ```
 
 ### 3. Wire in `src/adapters/container.ts`
-
-```typescript
-// In the event wiring section (step 3):
-eventBus.subscribe("<aggregate>.<past-tense-verb>", new <SubscriberName>(repo));
-```
 
 ### 4. Emit from aggregate root
 
@@ -107,22 +110,29 @@ Pattern: one event -> one subscriber -> one persistence call. Keep subscribers f
 
 ## DI Wiring for Events
 
-Events are wired in `src/adapters/container.ts` after use cases are instantiated:
+Events are wired inside `createContainer()` in `src/adapters/container.ts`:
 
 ```typescript
-export function createContainer(db: DrizzleInstance) {
+export function createContainer(): Container {
+  const env = loadSecrets();
+  const sql = createSqlConnection(env.DATABASE_URL);
+  const db = createDatabase(sql);
+
   // 1. Driven adapters
   const stationRepo = new StationRepositoryDrizzle(db);
-  const eventBus = new InMemoryEventBus();
+  const domainEventRepo = new DomainEventRepositoryDrizzle(db);
 
-  // 2. Use cases
+  // 2. Subscribers (created BEFORE EventBus)
+  const persistAllEvents = new PersistAllEventsSubscriber(domainEventRepo);
+  const eventBus = new InMemoryEventBus([persistAllEvents]);
+
+  // 3. Use cases
   const searchNextDepartures = new SearchNextDepartures(stationRepo, eventBus);
 
-  // 3. Event subscribers (always last)
-  eventBus.subscribe("departure.searched", new RecordDepartureSearch(/* analyticsRepo */));
-
-  return { searchNextDepartures };
+  return { stationRepo, eventBus, db, dispose: () => sql.end() };
 }
 ```
+
+> Note: No `.subscribe()` method exists on `EventBus` or `InMemoryEventBus`. `PersistAllEventsSubscriber` (already in container) persists all events automatically.
 
 The `EventBus` port is defined in `core/domain/` and implemented in `adapters/out/`. Use cases receive it via constructor injection.

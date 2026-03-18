@@ -100,15 +100,14 @@ Pass the use case from the container to the handler factory.
 
 ### 4. Wire in `src/adapters/container.ts`
 
-```typescript
-// Ensure the use case is instantiated and exported from the container
-export function createContainer(db: DrizzleInstance) {
-  // Driven adapters
-  // Use cases
-  const <useCase> = new <UseCaseName>(/* dependencies */);
+The container uses a `createContainer()` factory function. Instantiate the use case inside it and add it to the `Container` interface:
 
-  return { <useCase> };
-}
+```typescript
+// In createContainer() — add after existing driven adapters and event bus:
+const <useCase> = new <UseCaseName>(/* repos, eventBus, etc. */);
+
+// Add to the return object:
+return { ..., <useCase> };
 ```
 
 ## Checklist

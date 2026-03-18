@@ -1,7 +1,6 @@
 import type { TripId } from "./TripId.ts";
 import type { LineId } from "../line/LineId.ts";
 import type { ScheduleId } from "../schedule/ScheduleId.ts";
-import type { LineDirection } from "../line/LineDirection.ts";
 import type { PassingTime } from "./PassingTime.ts";
 import type { StationId } from "../station/StationId.ts";
 import type { TimeOfDay } from "../shared/TimeOfDay.ts";
@@ -11,8 +10,8 @@ export class Trip {
     readonly id: TripId,
     readonly lineId: LineId,
     readonly scheduleId: ScheduleId,
-    readonly direction: LineDirection,
     readonly passingTimes: PassingTime[],
+    readonly headsign: string | null = null,
   ) {}
 
   getDepartureTimeAt(stationId: StationId): TimeOfDay | undefined {

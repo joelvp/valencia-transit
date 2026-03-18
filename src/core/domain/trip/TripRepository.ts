@@ -11,4 +11,6 @@ export interface TripRepository {
     after: TimeOfDay,
     activeScheduleIds: ScheduleId[],
   ): Promise<Trip[]>;
+  save(trip: Trip, feedId: string): Promise<void>;
+  deleteByFeedId(feedId: string): Promise<void>;
 }

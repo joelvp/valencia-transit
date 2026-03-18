@@ -1,0 +1,23 @@
+[test]
+coveragePathIgnorePatterns = [
+  # Test files and helpers
+  "**/*.test.ts",
+  "**/mothers/**",
+  # Trivial VOs — constructor-only, covered by StringValueObject base class test
+  "src/core/domain/line/LineId.ts",
+  "src/core/domain/line/LineName.ts",
+  "src/core/domain/station/StationId.ts",
+  "src/core/domain/station/StationName.ts",
+  "src/core/domain/schedule/ScheduleId.ts",
+  "src/core/domain/trip/TripId.ts",
+  # Config/startup — error paths require env manipulation, not worth the fragility
+  "src/config/env.ts",
+  "src/config/database.ts",
+  # Infrastructure plumbing — no logic, just type definitions and client setup
+  "src/adapters/out/persistence/drizzle/schema.ts",
+  "src/adapters/out/persistence/drizzle/db.ts",
+]
+
+[test.coverageThreshold]
+line = 0.97
+function = 0.90

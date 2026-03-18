@@ -1,10 +1,8 @@
 import { Line } from "@/core/domain/line/Line";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
-import { LineDirection } from "@/core/domain/line/LineDirection";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { StationId } from "@/core/domain/station/StationId";
-import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 type LineRow = {
   id: string;
@@ -14,7 +12,6 @@ type LineRow = {
 type LineStationRow = {
   stationId: string;
   sequence: number;
-  direction: string;
 };
 
 type LineInsert = {
@@ -30,7 +27,6 @@ type LineStationInsert = {
   stationId: string;
   feedId: string;
   sequence: number;
-  direction: string;
 };
 
 type LinePersistenceResult = {
@@ -38,21 +34,13 @@ type LinePersistenceResult = {
   lineStations: LineStationInsert[];
 };
 
-function parseDirection(raw: string): LineDirection {
-  if (raw === LineDirection.OUTBOUND) return LineDirection.OUTBOUND;
-  if (raw === LineDirection.INBOUND) return LineDirection.INBOUND;
-  throw new InvalidArgumentError(`Unknown LineDirection: "${raw}"`);
-}
-
 export const LineMapper = {
   toDomain(row: LineRow, lineStationRows: LineStationRow[]): Line {
-    const direction = lineStationRows.length > 0 ? parseDirection(lineStationRows[0]!.direction) : LineDirection.OUTBOUND;
-
     const stops = lineStationRows.map(
       (ls) => new LineStop(new StationId(ls.stationId), ls.sequence),
     );
 
-    return new Line(new LineId(row.id), new LineName(row.name), direction, stops);
+    return new Line(new LineId(row.id), new LineName(row.name), stops);
   },
 
   toPersistence(line: Line, feedId: string): LinePersistenceResult {
@@ -69,7 +57,6 @@ export const LineMapper = {
       stationId: stop.stationId.value,
       feedId,
       sequence: stop.sequence,
-      direction: line.direction,
     }));
 
     return { line: lineInsert, lineStations };

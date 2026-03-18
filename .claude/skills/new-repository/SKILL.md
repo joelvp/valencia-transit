@@ -61,5 +61,5 @@ export class <Aggregate>RepositoryDrizzle implements <Aggregate>Repository {
 - [ ] Constructor injection of db instance
 - [ ] Uses mapper for all translations
 - [ ] Handles composite PK correctly
-- [ ] Registered in `src/adapters/container.ts`
+- [ ] Registered in `src/adapters/container.ts` (instantiate inside `createContainer()` and add to `Container` interface)
 - [ ] Integration test created (see `new-test` skill)

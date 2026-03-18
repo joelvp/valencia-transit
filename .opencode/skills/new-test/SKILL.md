@@ -131,3 +131,51 @@ Not all VOs need their own test file. Test a VO only if it has meaningful logic 
 | Enums | No | No logic to test |
 | Pure composite VOs (just group other VOs) | No | Only hold data |
 | VOs with trivial boolean getters | No | Test via entity that uses them |
+
+---
+
+## Test Types (Architecture Pattern)
+
+Based on the project's testing strategy:
+
+### Unit Tests — `src/core/domain/**/*.test.ts` (co-located)
+- **What**: Domain logic, entities, value objects
+- **Mocking**: None — pure business logic
+- **Examples**: Entity behavior, VO validation, domain rules
+
+### Integration Tests — `src/adapters/out/**/*.test.ts` (co-located)
+- **What**: Adapter ↔ infrastructure (repo ↔ DB, event bus ↔ event store)
+- **Mocking**: None — real database, real HTTP, etc.
+- **Examples**: SQL queries, mappers, data integrity
+
+### Component Tests — `tests/component/` or `src/core/application/**/*.test.ts`
+- **What**: Use cases — full paths a user can take through the application
+- **Mocking**: Mock repositories, event bus, external services
+- **Patterns**:
+  - Happy path (success case)
+  - Unhappy paths: validation errors, domain rule violations, not found, no service
+- **Examples**: `SearchNextDepartures` with mocked repos, covering all error scenarios
+
+### Technical Tests — `tests/technical/`
+- **What**: ETL scripts, background jobs, technical processes
+- **Mocking**: None — real execution
+- **Examples**: Import GTFS script, run with sample data, verify data loaded
+
+### E2E Tests — `tests/e2e/`
+- **What**: Full application flow (Telegram bot end-to-end)
+- **Mocking**: Nothing — real everything
+- **Examples**: Bot command → use case → database → response
+
+---
+
+## Test Type by Layer
+
+| Layer | Test Type | Location | Mocking |
+|-------|-----------|----------|---------|
+| `core/domain/**` | Unit | Co-located | Nothing |
+| `core/application/**` | Component | Co-located or `tests/component/` | Mock repos/eventBus |
+| `adapters/out/**` (repos) | Integration | Co-located | Nothing |
+| `adapters/out/**` (HTTP clients) | Integration | `tests/integration/` | Mock server or real |
+| `adapters/in/**` (handlers) | Component | `tests/component/` | Mock use cases |
+| `scripts/**` | Technical | `tests/technical/` | Nothing |
+| Telegram bot | E2E | `tests/e2e/` | Nothing |

@@ -22,6 +22,34 @@ Build a transit information system for Valencia's metro. Given an origin and des
 
 ---
 
+## Testing Strategy
+
+```
+Entry point    Use case    Adapters    Infra
+(Telegram)  →  (Search)  →  (Repos)  →  (DB)
+    │              │            │          │
+    │              │            └──────────┘  ← Integration
+    │              └──────────────────────┘  ← Component
+    └─────────────────────────────────────┘  ← E2E
+```
+
+| Type            | Location                 | What it tests                                           | Mocking                                      |
+| --------------- | ------------------------ | ------------------------------------------------------- | -------------------------------------------- |
+| **Unit**        | Co-located (`*.test.ts`) | Domain logic, use case orchestration, mappers, adapters | Ports (for use cases), nothing (for domain)  |
+| **Integration** | Co-located (`*.test.ts`) | One adapter against its real infra                      | Nothing — real DB/filesystem                 |
+| **Component**   | `tests/component/`       | Use case + real adapters + real DB, no entry point      | Nothing — real everything except entry point |
+| **E2E**         | `tests/e2e/`             | Full flow from entry point to response                  | Nothing — real everything                    |
+
+### Testing Patterns
+
+- **Unit tests**: Domain (pure logic, no mocks) + application (mock all ports) + mappers
+- **Integration tests**: One adapter against real infra (repo ↔ DB, parser ↔ fixture files)
+- **Component tests**: Use case with all real adapters, no entry point
+  - Happy path + unhappy paths (validation errors, domain rule violations, not found)
+- **E2E tests**: Full flow — e.g., Telegram command → handler → use case → DB → response
+
+---
+
 ## GTFS Data Source
 
 - **Portal**: NAP (National Access Point) — Spanish Ministry of Transport
@@ -65,7 +93,9 @@ Set up the project from scratch with all tooling, configuration, and folder stru
   src/adapters/out/notification/
   src/config/
   src/main.ts
-  tests/e2e/
+  tests/
+    component/      # use case + real adapters + real DB
+    e2e/            # full flow from entry point to response
   ```
 
 - [x] Docker Compose for local Postgres 17
@@ -151,11 +181,12 @@ Build the core domain layer: entities, value objects, and domain errors. Pure bu
 - [x] `LineRepository` — `findById(id: LineId)`, `findByStations(origin: StationId, destination: StationId)`, `findAll()`
 - [x] `ScheduleRepository` — `findById(id: ScheduleId)`, `findActiveOn(date: Date)`
 - [x] `TripRepository` — `findByLineAndSchedule(lineId: LineId, scheduleId: ScheduleId)`, `findDeparturesFromStation(stationId: StationId, after: TimeOfDay, activeScheduleIds: ScheduleId[])`
-- [x] `EventBus` — `publish(event: DomainEvent)`, `subscribe(eventName: string, handler: EventHandler)`
+- [x] `EventBus` — `publish(event: DomainEvent): Promise<void>` (subscribe wired via constructor injection — see Phase 4B)
 
 #### 1D — Domain Events ✅
 
-- [x] `DomainEvent` — abstract base: `eventId`, `occurredOn`, `eventName`
+- [x] `DomainEvent` — abstract base: `occurredOn`, `eventName: DomainEventType`, optional `aggregateId`/`aggregateType` (no `eventId` — relies on DB serial)
+- [x] `DomainEventType` — enum: `DATASET_IMPORTED`, `DEPARTURE_SEARCHED`
 - [x] `DepartureSearched` — origin, destination, resultsCount, searchedAt
 - [x] `DatasetImported` — stationsCount, linesCount, tripsCount, importedAt
 
@@ -227,7 +258,7 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
   - `trips` (id, feed_id, line_id, schedule_id, direction, headsign) — FKs
   - `passing_times` (trip_id, station_id, feed_id, arrival_time, departure_time, sequence) — composite PK
   - `dataset_versions` (id serial, feed_id, detected_at, validity_start, validity_end, status, error_message)
-  - `domain_events` (id serial, event_id unique, event_name, occurred_on, feed_id nullable, payload JSONB) — Event Store
+  - `domain_events` (id serial PK, type text, occurred_on timestamp, body JSONB, aggregate_id text, aggregate_type text, trace_id text) — Event Store (migrated in Phase 4B)
 - [x] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
 - [x] `drizzle.config.ts` pointing to schema
 - [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_normal_swarm.sql`
@@ -258,9 +289,9 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 
 #### 3E — Railway Database Setup
 
-- [ ] Add Postgres addon in Railway environments (`staging`, `production`)
-- [ ] Verify `DATABASE_URL` is automatically added to Railway variables
-- [ ] Run remote migrations against Railway Postgres
+- [x] Add Postgres addon in Railway environments (`staging`, `production`)
+- [x] Verify `DATABASE_URL` is automatically added to Railway variables
+- [x] Run remote migrations against Railway Postgres
 
 **Exit criteria**: All tables created in Postgres. Repositories pass integration tests with real data. Mappers correctly translate between domain and persistence. CI includes database tests. App deploys successfully to Railway with working database connection.
 
@@ -270,19 +301,40 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 
 Download GTFS data from the NAP portal and import it into the database. This is the data ingestion layer.
 
-#### 4A — GTFS Parser (Adapter)
+#### 4A — GTFS Parser (Adapter) ✅
 
-- [ ] `GtfsParser.ts` — Extract ZIP, validate required CSVs exist, validate headers
-- [ ] Parse `stops.txt` → `Station` creation args
-- [ ] Parse `routes.txt` → `Line` creation args
-- [ ] Parse `trips.txt` + `stop_times.txt` → `Trip` creation args with `PassingTime[]`
-- [ ] Parse `calendar.txt` + `calendar_dates.txt` → `Schedule` creation args with `ScheduleException[]`
-- [ ] Handle GTFS edge cases: times > 24:00:00 (next-day trips), missing optional fields
-- [ ] Unit tests with sample GTFS data (small fixture files)
+- [x] `GtfsParser.ts` — Extract ZIP, validate required CSVs exist, validate headers
+- [x] Parse `stops.txt` → `Station` creation args
+- [x] Parse `routes.txt` → `Line` creation args
+- [x] Parse `trips.txt` + `stop_times.txt` → `Trip` creation args with `PassingTime[]`
+- [x] Parse `calendar.txt` + `calendar_dates.txt` → `Schedule` creation args with `ScheduleException[]`
+- [x] Handle GTFS edge cases: times > 24:00:00 (next-day trips), missing optional fields
+- [x] Unit tests with sample GTFS data (small fixture files)
 
-#### 4B — Import Use Case
+#### 4B — Domain Event Restructure ✅
 
-- [ ] `ImportTransitData.ts` — orchestrate:
+- [x] `DomainEventType` enum — type-safe event names
+- [x] `EventSubscriber` interface — `handle(event)` pattern
+- [x] `DomainEvent` base class — remove `eventId`, add `aggregateId`/`aggregateType`, typed `eventName`
+- [x] `DatasetImported` / `DepartureSearched` — use `DomainEventType` enum
+- [x] `EventBus` port simplified — only `publish()`, no `subscribe()`
+- [x] `StoredDomainEvent` entity — persisted event with metadata
+- [x] `DomainEventRepository` port — Event Store abstraction
+
+#### 4C — Event Persistence & Subscribers ✅
+
+- [x] `DomainEventMapper` — domain ↔ persistence translation
+- [x] `DomainEventRepositoryDrizzle` — Drizzle Event Store implementation
+- [x] `domain_events` schema migration — `type`, `body JSONB`, `aggregate_id`, `aggregate_type`, `trace_id`
+- [x] `InMemoryEventBus` refactored — constructor injection of `EventSubscriber[]`
+- [x] `PersistAllEventsSubscriber` use case — persists all published events
+- [x] Container wiring updated — subscribers injected into EventBus constructor
+
+**Exit criteria**: ✅ All domain events persisted automatically. EventBus distributes to subscribers. Subscriber pattern extendable without touching EventBus.
+
+#### 4D — ImportTransitData Use Case ✅
+
+- [x] `ImportTransitData.ts` — orchestrate:
   1. Receive parsed data (from adapter)
   2. Validate business rules
   3. Truncate existing data (within transaction)
@@ -290,20 +342,28 @@ Download GTFS data from the NAP portal and import it into the database. This is 
   5. Verify record counts
   6. Publish `DatasetImported` event
   7. Return import summary
-- [ ] Unit test (mocked repos)
-- [ ] Integration test (real DB, sample data)
+- [x] **Unit test** — mock repos, test orchestration
+- [x] **Component test** — real adapters + real DB, test happy + unhappy paths (empty data, re-import idempotency, etc.)
 
-#### 4C — Manual Import Script
+#### 4E — Manual Import Script ✅
 
-- [ ] `scripts/import-gtfs.ts` — CLI script:
+- [x] `scripts/import-gtfs.ts` — CLI script:
   1. Read local GTFS ZIP path from args
   2. Parse with `GtfsParser`
   3. Run `ImportTransitData` use case
   4. Log summary
-- [ ] Test with real MetroValencia GTFS file (manually downloaded)
-- [ ] Add `import:gtfs` script to `package.json`
+- [x] **Component test** (`tests/component/import-transit-data.test.ts`) — parser → use case → real repos → real DB
+- [x] Add `import:gtfs` script to `package.json`
 
-**Exit criteria**: Can run `bun run import:gtfs data/gtfs/metrovalencia.zip` and see all data correctly loaded into Postgres. Record counts match expectations (~144 stations, ~200 lines, ~21K trips).
+#### 4F — Full Import Pipeline Validation ✅
+
+- [x] Run `bun run import:gtfs data/gtfs/metrovalencia.zip` with real MetroValencia GTFS file — passes
+- [x] Structural validation already covered: parser throws on missing CSVs, VOs throw on malformed data
+- [x] No automated E2E test needed — departures query will be validated in Phase 5 with real imported data
+
+> Anomaly detection (dataset shrinks suspiciously, lines disappear, schedules don't cover today) is **Phase 8** responsibility — `CheckDatasetVersion` will compare incoming dataset against existing DB before committing the import.
+
+**Exit criteria**: ✅ Manual run succeeds. Structural errors already caught by parser + VOs. Anomaly detection deferred to Phase 8.
 
 ---
 
@@ -323,12 +383,12 @@ Implement the main business logic: given origin and destination, find the next d
   9. Return top N (default: 5)
   10. Publish `DepartureSearched` event
 - [ ] Handle domain errors: `StationNotFoundError`, `NoActiveServiceError`, `NoConnectionError`
-- [ ] Unit test with mocked repos (various scenarios: normal, no service, no connection, fuzzy match)
-- [ ] Integration test (real DB with imported GTFS data, real departure query)
+- [ ] **Component test** with mocked repos (various scenarios: normal, no service, no connection, fuzzy match)
+- [ ] **E2E test** with real DB and imported GTFS data (real departure query)
 - [ ] `SearchStations.ts` use case — fuzzy search by name, returns matching stations (for autocomplete and typo tolerance)
-  - Unit test with mocked `StationRepository`
+  - Component test with mocked `StationRepository`
 - [ ] `ListAllStations.ts` use case — returns all stations, optionally grouped by line
-  - Unit test with mocked `StationRepository`
+  - Component test with mocked `StationRepository`
 
 **Exit criteria**: `SearchNextDepartures.execute("Xàtiva", "Colón")` returns correct departures matching the real MetroValencia schedule. All tests pass.
 
@@ -356,7 +416,8 @@ Wire the Telegram bot to the use cases. Users can search departures and list sta
   - List all stations (grouped by line if possible)
 - [ ] `helpHandler.ts` — `/help` command:
   - Usage instructions
-- [ ] Tests for handlers (mocked use cases)
+- [ ] **Component test** for handlers (mocked use cases, happy + unhappy paths)
+- [ ] **E2E test** for bot commands (real bot flow, real use cases)
 
 #### 6C — Response Format
 
@@ -377,19 +438,17 @@ Next departures:
 
 ---
 
-### Phase 7 — Event Bus & Event Store
+### Phase 7 — Event Bus & Event Store ✅ (completed in Phases 4B-4C)
 
-Wire up domain events, persist them to the Event Store, and enable analytics queries.
+All items below were implemented as part of Phase 4B and 4C:
 
-- [ ] `InMemoryEventBus.ts` — simple sync event bus implementing `EventBus` port
-- [ ] `DomainEventRepository` — port interface in `core/domain/event/`: `save(event: DomainEvent, feedId?: string)`, `findByName(eventName: string)`, `findAll()`
-- [ ] `DomainEventRepositoryDrizzle.ts` — implements `DomainEventRepository` port, persists to `domain_events` table (JSONB payload)
-- [ ] `PersistDomainEvent.ts` use case — generic subscriber that persists any published event to the Event Store
-- [ ] Wire event subscriptions in `src/adapters/container.ts`
-- [ ] Verify events flow correctly in integration test
-- [ ] Add admin command or script to query analytics from Event Store (most searched routes, popular stations — queried via JSONB)
+- [x] `InMemoryEventBus.ts` — sync event bus, constructor-injected subscribers (4C)
+- [x] `DomainEventRepository` port — `save`, `findAll`, `findByType`, `findByAggregateId` (4B)
+- [x] `DomainEventRepositoryDrizzle.ts` — persists to `domain_events` Event Store (4C)
+- [x] `PersistAllEventsSubscriber` use case — generic event persistence subscriber (4C)
+- [x] Event wiring in `src/adapters/container.ts` (4C)
 
-**Exit criteria**: Every domain event is persisted to `domain_events`. Analytics queries (e.g., most searched routes) work via JSONB queries on the Event Store.
+Analytics queries (JSONB-based) deferred to Phase 9 or post-MVP.
 
 ---
 
@@ -410,6 +469,7 @@ Automate the full data pipeline: detect new GTFS versions, download, import, not
 - [ ] `DatasetVersionRepository` — port interface in `core/domain/shared/`: `findLatest()`, `save(version)`
 - [ ] `DatasetVersionRepositoryDrizzle.ts` — implements `DatasetVersionRepository` port, persists to `dataset_versions`
 - [ ] `CheckDatasetVersion.ts` use case — compare metadata with `DatasetVersionRepository`, trigger import if new
+- [ ] **Anomaly detection** — before committing import, compare incoming counts against current DB (stations, lines, schedules). If any drops below a threshold (e.g. <50% of current), abort and notify admin instead of replacing good data with a truncated dataset.
 
 #### 8C — Cron Job
 
