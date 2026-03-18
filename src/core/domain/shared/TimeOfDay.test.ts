@@ -109,6 +109,20 @@ describe("TimeOfDay", () => {
     });
   });
 
+  describe("fromDate", () => {
+    it("should convert a Date at 09:05:03 to TimeOfDay", () => {
+      const date = new Date(2026, 2, 18, 9, 5, 3);
+      const time = TimeOfDay.fromDate(date);
+      expect(time.value).toBe("09:05:03");
+    });
+
+    it("should convert a Date at 00:00:00 to TimeOfDay", () => {
+      const date = new Date(2026, 2, 18, 0, 0, 0);
+      const time = TimeOfDay.fromDate(date);
+      expect(time.value).toBe("00:00:00");
+    });
+  });
+
   describe("equals", () => {
     it("should be equal when values match", () => {
       const a = new TimeOfDay("14:30:00");

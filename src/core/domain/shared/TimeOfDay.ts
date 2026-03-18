@@ -50,6 +50,13 @@ export class TimeOfDay {
     return this.value === other.value;
   }
 
+  static fromDate(date: Date): TimeOfDay {
+    const h = String(date.getHours()).padStart(2, "0");
+    const m = String(date.getMinutes()).padStart(2, "0");
+    const s = String(date.getSeconds()).padStart(2, "0");
+    return new TimeOfDay(`${h}:${m}:${s}`);
+  }
+
   toString(): string {
     return this.value;
   }
