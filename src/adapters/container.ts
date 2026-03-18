@@ -1,4 +1,5 @@
 import { loadSecrets } from "@/config/env";
+import type { Secrets } from "@/config/env";
 import { createSqlConnection } from "@/config/database";
 import { createDatabase } from "@/adapters/out/persistence/drizzle/db";
 import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
@@ -16,6 +17,7 @@ import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 
 export interface Container {
+  secrets: Secrets;
   stationRepository: StationRepository;
   lineRepository: LineRepository;
   scheduleRepository: ScheduleRepository;
@@ -26,8 +28,8 @@ export interface Container {
 }
 
 export function createContainer(): Container {
-  const env = loadSecrets();
-  const sql = createSqlConnection(env.DATABASE_URL);
+  const secrets = loadSecrets();
+  const sql = createSqlConnection(secrets.DATABASE_URL);
   const db = createDatabase(sql);
 
   const stationRepository = new StationRepositoryDrizzle(db);
@@ -40,6 +42,7 @@ export function createContainer(): Container {
   const eventBus = new InMemoryEventBus([persistAllEvents]);
 
   return {
+    secrets,
     stationRepository,
     lineRepository,
     scheduleRepository,

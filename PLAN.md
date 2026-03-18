@@ -398,11 +398,11 @@ Implement the main business logic: given origin and destination, find the next d
 
 Wire the Telegram bot to the use cases. Users can search departures and list stations.
 
-#### 6A — Bot Setup
+#### 6A — Bot Setup ✅
 
-- [ ] `TelegramBot.ts` — grammY bot initialization, middleware (error handling, logging)
-- [ ] `src/adapters/container.ts` — dependency injection wiring (manual factory function)
-- [ ] `main.ts` — entry point: load env, create DB, create container, start bot
+- [x] `TelegramBot.ts` — grammY bot wrapper: receives token + use cases via constructor, registers handlers and error middleware in `start()`, validates `BOT_TOKEN` at start time (not construction)
+- [x] `main.ts` — entry point: `createContainer()` → instantiate use cases with repos → create `TelegramBot` → `bot.start()`
+- [x] Container unchanged — only exposes infra (repos, db, eventBus, secrets). Use cases instantiated in entry points (`main.ts`, scripts), not in the container.
 - [ ] Configure Telegram env vars in Railway: `BOT_TOKEN`, `ADMIN_CHAT_ID`
 
 #### 6B — Handlers

@@ -1,9 +1,20 @@
-// Application entry point
-// TODO: Bootstrap the application
-// - Load environment variables
-// - Create database connection
-// - Wire dependency injection container
-// - Start Telegram bot
-// - Start cron jobs
+import { createContainer } from "@/adapters/container";
+import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
+import { ListAllStations } from "@/core/application/query/ListAllStations";
+import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 
-console.log("MetroValenciaBot - Starting...");
+const container = createContainer();
+
+const searchNextDepartures = new SearchNextDepartures(
+  container.stationRepository,
+  container.lineRepository,
+  container.scheduleRepository,
+  container.tripRepository,
+  container.eventBus,
+);
+const listAllStations = new ListAllStations(container.stationRepository);
+
+const botToken = "BOT_TOKEN" in container.secrets ? container.secrets.BOT_TOKEN : undefined;
+const bot = new TelegramBot(botToken, searchNextDepartures, listAllStations);
+
+await bot.start();
