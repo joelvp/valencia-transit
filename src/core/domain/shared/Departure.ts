@@ -6,12 +6,17 @@ export class Departure {
   constructor(
     readonly departureTime: TimeOfDay,
     readonly lineName: string,
+    readonly headsign: string | null,
     readonly currentTime: TimeOfDay,
   ) {
     this.minutesRemaining = departureTime.minutesUntilFrom(currentTime);
   }
 
   equals(other: Departure): boolean {
-    return this.departureTime.equals(other.departureTime) && this.lineName === other.lineName;
+    return (
+      this.departureTime.equals(other.departureTime) &&
+      this.lineName === other.lineName &&
+      this.headsign === other.headsign
+    );
   }
 }

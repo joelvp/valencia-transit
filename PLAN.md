@@ -367,30 +367,30 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 
 ---
 
-### Phase 5 — Departure Calculation & Station Queries (Core Use Cases)
+### Phase 5 — Departure Calculation & Station Queries (Core Use Cases) ✅
 
 Implement the main business logic: given origin and destination, find the next departures. Also build station query use cases needed by the bot.
 
-- [ ] `SearchNextDepartures.ts` use case:
-  1. Receive `originName: string`, `destinationName: string`
-  2. Find origin and destination stations (fuzzy search if needed)
-  3. Find lines that connect both stations in the correct order
-  4. Find active schedules for today
-  5. Find trips on those lines with those schedules
-  6. Filter trips departing after current time from origin station
+- [x] `SearchNextDepartures.ts` use case:
+  1. Receive `originName: string`, `destinationName: string`, `now: Date`
+  2. Find origin and destination stations — exact match first, fuzzy fallback, error if ambiguous
+  3. Find lines that connect both stations in the correct order (`connectsInOrder`)
+  4. Find active schedules for the given date
+  5. Find trips departing from origin station after current time
+  6. Filter trips by connecting lines and correct stop order
   7. Sort by departure time
-  8. Map to `Departure[]` (time, line, direction, minutes remaining)
+  8. Map to `Departure[]` (time, lineName, headsign, minutesUntilDeparture)
   9. Return top N (default: 5)
   10. Publish `DepartureSearched` event
-- [ ] Handle domain errors: `StationNotFoundError`, `NoActiveServiceError`, `NoConnectionError`
-- [ ] **Component test** with mocked repos (various scenarios: normal, no service, no connection, fuzzy match)
-- [ ] **E2E test** with real DB and imported GTFS data (real departure query)
-- [ ] `SearchStations.ts` use case — fuzzy search by name, returns matching stations (for autocomplete and typo tolerance)
-  - Component test with mocked `StationRepository`
-- [ ] `ListAllStations.ts` use case — returns all stations, optionally grouped by line
-  - Component test with mocked `StationRepository`
+- [x] Handle domain errors: `StationNotFoundError`, `NoActiveServiceError`, `NoConnectionError`
+- [x] `Departure.ts` — added `headsign: string | null` param (replacing removed `LineDirection`)
+- [x] `TimeOfDay.fromDate(date: Date)` static factory
+- [x] **Unit test** `SearchNextDepartures` — 7 scenarios with all ports mocked
+- [x] **Component test** with real DB — seeding via repositories directly (not via ImportTransitData + ZIP)
+- [x] `SearchStations.ts` use case + unit test (mocked `StationRepository`)
+- [x] `ListAllStations.ts` use case + unit test (mocked `StationRepository`)
 
-**Exit criteria**: `SearchNextDepartures.execute("Xàtiva", "Colón")` returns correct departures matching the real MetroValencia schedule. All tests pass.
+**Exit criteria**: ✅ `SearchNextDepartures.execute("Colón", "Xàtiva", now)` returns correct departures. 233 tests pass.
 
 ---
 

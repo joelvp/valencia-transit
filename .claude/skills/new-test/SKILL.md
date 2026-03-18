@@ -41,10 +41,15 @@ Determine test type based on the source file location:
 - **Use case + real adapters + real DB**, no entry point
 - Test the use case with all its real dependencies wired together
 - Happy path + unhappy paths (not found, validation errors, domain violations)
+- **Seed data via repositories directly** — call `repository.save(entity, feedId)` in `beforeEach`. Never use another use case (e.g. `ImportTransitData` + ZIP) to seed data unless the use case under test is specifically about importing. Using a use case to seed data creates a hidden dependency: if the importer breaks, the unrelated test breaks too.
+- Use `clearDatabase(container.db)` (not `clearTables`) — component tests touch multiple aggregates
+- Clean in **both** `beforeEach` (clean slate before each test) **and** `afterAll` (avoid leaving dirty DB after the last test)
 
 ### `tests/e2e/` → E2E Test
 - **Full flow from entry point to response** — nothing mocked
 - Entry point (Telegram/HTTP/CLI) → handler → use case → DB → response
+- Use `clearDatabase(container.db)` (not `clearTables`) — e2e tests touch multiple aggregates
+- Clean in **both** `beforeEach` (clean slate before each test) **and** `afterAll` (avoid leaving dirty DB after the last test)
 
 ## File Creation
 

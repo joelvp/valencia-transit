@@ -39,8 +39,19 @@ You are the testing specialist for Valencia Transit. You write and maintain test
 
 ## Key Rules
 - Use `createContainer()` from `@/adapters/container` — NOT a module-level singleton (prevents CONNECTION_ENDED errors)
-- Use `clearTables(container.db, ...tableNames)` from `tests/helpers/db` in `beforeEach`
 - Call `container.dispose()` in `afterAll`
+- **Component test seeding**: always seed data via `repository.save(entity, feedId)` directly. Never use another use case (e.g. `ImportTransitData` + ZIP) to seed data — it creates a hidden cross-use-case dependency that causes unrelated test failures when the importer changes.
+
+### DB cleanup helpers (`tests/helpers/db`)
+
+| Function | When to use |
+|----------|-------------|
+| `clearTables(db, ...tableNames)` | Integration tests — only clear tables owned by the repo under test |
+| `clearDatabase(db)` | Component and e2e tests — clear all tables (test touches multiple aggregates) |
+
+**Always clean in both `beforeEach` AND `afterAll`**:
+- `beforeEach`: ensures a clean slate before each test
+- `afterAll`: prevents leaving dirty state in the DB after the last test in the file
 
 ### Table ownership per repository
 
