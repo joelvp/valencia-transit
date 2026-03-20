@@ -120,4 +120,27 @@ describe("StationRepositoryDrizzle", () => {
     expect(rows.length).toBe(1);
     expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
+
+  describe("saveAll", () => {
+    it("should save all stations and make them retrievable", async () => {
+      await clearTables(container.db, "stations");
+
+      const stationA = Station.create("SA1", "Àngel Guimerà", new StationLocation(39.47, -0.38));
+      const stationB = Station.create("SA2", "Trànsit", new StationLocation(39.46, -0.37));
+
+      await repo.saveAll([stationA, stationB], FEED_ID);
+
+      const result = await repo.findAll();
+      expect(result.length).toBe(2);
+      const ids = result.map((s) => s.id.value).sort();
+      expect(ids).toEqual(["SA1", "SA2"]);
+    });
+
+    it("should handle empty array without error", async () => {
+      await expect(repo.saveAll([], FEED_ID)).resolves.toBeUndefined();
+
+      const result = await repo.findAll();
+      expect(result.length).toBe(2); // pre-seeded rows still present
+    });
+  });
 });

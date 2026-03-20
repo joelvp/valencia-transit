@@ -176,4 +176,58 @@ describe("TripRepositoryDrizzle", () => {
     expect(rows.length).toBe(1);
     expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
+
+  describe("saveAll", () => {
+    it("should save all trips with passing times and make them retrievable", async () => {
+      await clearTables(container.db, "passing_times", "trips", "schedule_exceptions", "schedules", "line_stations", "lines", "stations");
+
+      await container.db.insert(stations).values([
+        StationMother.row({ id: "SA1", name: "Facultats", longitude: -0.39 }),
+        StationMother.row({ id: "SA2", name: "Patraix", longitude: -0.40 }),
+      ]);
+      await container.db.insert(lines).values([LineMother.row({ id: "LA1" })]);
+      await container.db.insert(schedules).values([ScheduleMother.row({ id: "SCA1" })]);
+
+      const tripA = new Trip(
+        new TripId("TA1"),
+        new LineId("LA1"),
+        new ScheduleId("SCA1"),
+        [
+          new PassingTime(new StationId("SA1"), new TimeOfDay("07:00:00"), new TimeOfDay("07:00:00"), 1),
+          new PassingTime(new StationId("SA2"), new TimeOfDay("07:05:00"), new TimeOfDay("07:05:00"), 2),
+        ],
+      );
+      const tripB = new Trip(
+        new TripId("TA2"),
+        new LineId("LA1"),
+        new ScheduleId("SCA1"),
+        [
+          new PassingTime(new StationId("SA1"), new TimeOfDay("08:00:00"), new TimeOfDay("08:00:00"), 1),
+        ],
+      );
+
+      await repo.saveAll([tripA, tripB], FEED_ID);
+
+      const result = await repo.findByLineAndSchedule(new LineId("LA1"), new ScheduleId("SCA1"));
+      expect(result.length).toBe(2);
+
+      const savedA = result.find((t) => t.id.value === "TA1");
+      expect(savedA).not.toBeUndefined();
+      expect(savedA!.passingTimes.length).toBe(2);
+
+      const savedB = result.find((t) => t.id.value === "TA2");
+      expect(savedB).not.toBeUndefined();
+      expect(savedB!.passingTimes.length).toBe(1);
+
+      const ptRows = await container.db.select().from(passingTimes);
+      expect(ptRows.length).toBe(3);
+    });
+
+    it("should handle empty array without error", async () => {
+      await expect(repo.saveAll([], FEED_ID)).resolves.toBeUndefined();
+
+      const rows = await container.db.select().from(trips);
+      expect(rows.length).toBe(3); // pre-seeded rows still present
+    });
+  });
 });
