@@ -7,6 +7,7 @@ import type { StationId } from "@/core/domain/station/StationId";
 import { LineMapper } from "@/adapters/out/persistence/drizzle/mappers/LineMapper";
 import { lines, lineStations } from "@/adapters/out/persistence/drizzle/schema";
 import type * as schema from "@/adapters/out/persistence/drizzle/schema";
+import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
 
 export class LineRepositoryDrizzle implements LineRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
@@ -101,6 +102,18 @@ export class LineRepositoryDrizzle implements LineRepository {
           set: { sequence: lineStations.sequence },
         });
     }
+  }
+
+  async saveAll(lineList: Line[], feedId: string): Promise<void> {
+    const allLineRows = [];
+    const allStopRows = [];
+    for (const line of lineList) {
+      const { line: lineRow, lineStations: stopRows } = LineMapper.toPersistence(line, feedId);
+      allLineRows.push(lineRow);
+      allStopRows.push(...stopRows);
+    }
+    await bulkInsert(this.db, lines, allLineRows);
+    await bulkInsert(this.db, lineStations, allStopRows);
   }
 
   async deleteByFeedId(feedId: string): Promise<void> {

@@ -51,6 +51,7 @@ function makeMocks() {
     searchByName: mock(() => Promise.resolve([])),
     findAll: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const lineRepository: LineRepository = {
@@ -58,18 +59,21 @@ function makeMocks() {
     findByStations: mock(() => Promise.resolve([])),
     findAll: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const scheduleRepository: ScheduleRepository = {
     findById: mock(() => Promise.resolve(null)),
     findActiveOn: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const tripRepository: TripRepository = {
     findByLineAndSchedule: mock(() => Promise.resolve([])),
     findDeparturesFromStation: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
 
@@ -131,11 +135,11 @@ describe("ImportTransitData", () => {
     expect(mocks.scheduleRepository.deleteByFeedId).toHaveBeenCalledWith("feed-2026");
     expect(mocks.tripRepository.deleteByFeedId).toHaveBeenCalledWith("feed-2026");
 
-    // Each save must come after deleteByFeedId — verify save was called
-    expect(mocks.stationRepository.save).toHaveBeenCalledTimes(2);
-    expect(mocks.lineRepository.save).toHaveBeenCalledTimes(1);
-    expect(mocks.scheduleRepository.save).toHaveBeenCalledTimes(1);
-    expect(mocks.tripRepository.save).toHaveBeenCalledTimes(1);
+    // Each saveAll must come after deleteByFeedId — verify bulk save was called
+    expect(mocks.stationRepository.saveAll).toHaveBeenCalledTimes(1);
+    expect(mocks.lineRepository.saveAll).toHaveBeenCalledTimes(1);
+    expect(mocks.scheduleRepository.saveAll).toHaveBeenCalledTimes(1);
+    expect(mocks.tripRepository.saveAll).toHaveBeenCalledTimes(1);
   });
 
   it("should publish a DatasetImported event after saving", async () => {

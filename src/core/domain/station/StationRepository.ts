@@ -7,5 +7,6 @@ export interface StationRepository {
   searchByName(query: string): Promise<Station[]>;
   findAll(): Promise<Station[]>;
   save(station: Station, feedId: string): Promise<void>;
+  saveAll(stations: Station[], feedId: string): Promise<void>;
   deleteByFeedId(feedId: string): Promise<void>;
 }

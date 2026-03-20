@@ -7,5 +7,6 @@ export interface LineRepository {
   findByStations(origin: StationId, destination: StationId): Promise<Line[]>;
   findAll(): Promise<Line[]>;
   save(line: Line, feedId: string): Promise<void>;
+  saveAll(lines: Line[], feedId: string): Promise<void>;
   deleteByFeedId(feedId: string): Promise<void>;
 }

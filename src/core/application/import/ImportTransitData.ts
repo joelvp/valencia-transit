@@ -34,27 +34,19 @@ export class ImportTransitData {
     await this.stationRepository.deleteByFeedId(feedId);
 
     console.log(`[import] Importing ${data.stations.length} stations...`);
-    for (const station of data.stations) {
-      await this.stationRepository.save(station, feedId);
-    }
+    await this.stationRepository.saveAll(data.stations, feedId);
     console.log(`[import] ✅ Stations done.`);
 
     console.log(`[import] Importing ${data.lines.length} lines...`);
-    for (const line of data.lines) {
-      await this.lineRepository.save(line, feedId);
-    }
+    await this.lineRepository.saveAll(data.lines, feedId);
     console.log(`[import] ✅ Lines done.`);
 
     console.log(`[import] Importing ${data.schedules.length} schedules...`);
-    for (const schedule of data.schedules) {
-      await this.scheduleRepository.save(schedule, feedId);
-    }
+    await this.scheduleRepository.saveAll(data.schedules, feedId);
     console.log(`[import] ✅ Schedules done.`);
 
     console.log(`[import] Importing ${data.trips.length} trips...`);
-    for (const trip of data.trips) {
-      await this.tripRepository.save(trip, feedId);
-    }
+    await this.tripRepository.saveAll(data.trips, feedId);
     console.log(`[import] ✅ Trips done.`);
 
     await this.eventBus.publish(

@@ -85,6 +85,7 @@ function makeRepos(
     findAll: mock(() => Promise.resolve([])),
     findById: mock(() => Promise.resolve(null)),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const lineRepo: LineRepository = {
@@ -92,12 +93,14 @@ function makeRepos(
     findById: mock(() => Promise.resolve(null)),
     findAll: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const scheduleRepo: ScheduleRepository = {
     findActiveOn: mock(overrides.findActiveOn ?? (() => Promise.resolve([makeSchedule()]))),
     findById: mock(() => Promise.resolve(null)),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const tripRepo: TripRepository = {
@@ -106,6 +109,7 @@ function makeRepos(
     ),
     findByLineAndSchedule: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
+    saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const eventBus: EventBus = {

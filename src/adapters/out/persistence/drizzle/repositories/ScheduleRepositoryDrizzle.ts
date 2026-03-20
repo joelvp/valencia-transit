@@ -6,6 +6,7 @@ import type { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { ScheduleMapper } from "@/adapters/out/persistence/drizzle/mappers/ScheduleMapper";
 import { schedules, scheduleExceptions } from "@/adapters/out/persistence/drizzle/schema";
 import type * as schema from "@/adapters/out/persistence/drizzle/schema";
+import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
 
 export class ScheduleRepositoryDrizzle implements ScheduleRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
@@ -73,6 +74,19 @@ export class ScheduleRepositoryDrizzle implements ScheduleRepository {
           set: { isActive: scheduleExceptions.isActive },
         });
     }
+  }
+
+  async saveAll(scheduleList: Schedule[], feedId: string): Promise<void> {
+    const allScheduleRows = [];
+    const allExceptionRows = [];
+    for (const schedule of scheduleList) {
+      const { schedule: scheduleRow, scheduleExceptions: exceptionRows } =
+        ScheduleMapper.toPersistence(schedule, feedId);
+      allScheduleRows.push(scheduleRow);
+      allExceptionRows.push(...exceptionRows);
+    }
+    await bulkInsert(this.db, schedules, allScheduleRows);
+    await bulkInsert(this.db, scheduleExceptions, allExceptionRows);
   }
 
   async deleteByFeedId(feedId: string): Promise<void> {

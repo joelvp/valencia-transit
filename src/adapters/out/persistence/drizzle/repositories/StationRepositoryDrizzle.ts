@@ -6,6 +6,7 @@ import type { StationId } from "@/core/domain/station/StationId";
 import { StationMapper } from "@/adapters/out/persistence/drizzle/mappers/StationMapper";
 import { stations } from "@/adapters/out/persistence/drizzle/schema";
 import type * as schema from "@/adapters/out/persistence/drizzle/schema";
+import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
 
 export class StationRepositoryDrizzle implements StationRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
@@ -47,6 +48,11 @@ export class StationRepositoryDrizzle implements StationRepository {
           transportType: row.transportType,
         },
       });
+  }
+
+  async saveAll(stationList: Station[], feedId: string): Promise<void> {
+    const rows = stationList.map((s) => StationMapper.toPersistence(s, feedId));
+    await bulkInsert(this.db, stations, rows);
   }
 
   async deleteByFeedId(feedId: string): Promise<void> {
