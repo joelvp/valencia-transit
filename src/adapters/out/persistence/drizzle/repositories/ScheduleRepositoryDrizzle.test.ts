@@ -25,8 +25,8 @@ describe("ScheduleRepositoryDrizzle", () => {
     await clearTables(container.db, "schedule_exceptions", "schedules");
     repo = new ScheduleRepositoryDrizzle(container.db);
     await container.db.insert(schedules).values([ScheduleMother.row(), ScheduleMother.weekendRow()]);
-    // Exception: SC1 is removed on 2025-03-10 (a Monday)
     await container.db.insert(scheduleExceptions).values([
+      { scheduleId: "SC1", feedId: FEED_ID, date: "2025-03-03", isActive: true },
       { scheduleId: "SC1", feedId: FEED_ID, date: "2025-03-10", isActive: false },
     ]);
   });
@@ -41,7 +41,7 @@ describe("ScheduleRepositoryDrizzle", () => {
 
     expect(result).not.toBeNull();
     expect(result!.id.value).toBe("SC1");
-    expect(result!.exceptions.length).toBe(1);
+    expect(result!.exceptions.length).toBe(2);
   });
 
   it("should return null when schedule id does not exist", async () => {

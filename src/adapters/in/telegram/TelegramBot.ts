@@ -7,6 +7,7 @@ import { stationHandler } from "@/adapters/in/telegram/handlers/stationHandler";
 import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
+import { translations, type Lang } from "@/adapters/in/telegram/i18n";
 
 export interface TelegramBotOptions {
   /** Pre-set bot info to skip the `getMe` network call. Useful in tests. */
@@ -33,7 +34,7 @@ export class TelegramBot {
     this.bot.command("paradas", stationHandler(this.listStationsWithLines));
     this.bot.command("help", helpHandler());
     this.bot.command("start", helpHandler());
-    this.bot.command("idioma", languageHandler());
+    this.bot.command("idioma", languageHandler(this.setCommandsForChat.bind(this)));
     this.bot.on("callback_query:data", callbackHandler(this.searchNextDepartures));
   }
 
@@ -47,13 +48,22 @@ export class TelegramBot {
     }
 
     console.log("[TelegramBot] Starting bot...");
-    await this.bot.api.setMyCommands([
-      { command: "salida", description: "Próximas salidas: /salida <origen> - <destino>" },
-      { command: "s", description: "Atajo para /salida" },
-      { command: "paradas", description: "Listar estaciones" },
-      { command: "idioma", description: "Cambiar idioma: /idioma es | val" },
-      { command: "help", description: "Ayuda" },
-    ]);
+    await this.bot.api.setMyCommands(this.buildCommands("es"));
     await this.bot.start();
+  }
+
+  async setCommandsForChat(chatId: number, lang: Lang): Promise<void> {
+    await this.bot.api.setMyCommands(this.buildCommands(lang), {
+      scope: { type: "chat", chat_id: chatId },
+    });
+  }
+
+  private buildCommands(lang: Lang) {
+    const t = translations[lang];
+    return [
+      { command: "paradas", description: t.cmdParadas },
+      { command: "idioma", description: t.cmdIdioma },
+      { command: "help", description: t.cmdHelp },
+    ];
   }
 }

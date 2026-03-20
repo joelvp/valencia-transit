@@ -25,6 +25,10 @@ export interface Translations {
   // Callback errors
   errInvalidData: string;
   errStillAmbiguous: string;
+  // Command menu descriptions
+  cmdParadas: string;
+  cmdIdioma: string;
+  cmdHelp: string;
 }
 
 const es: Translations = {
@@ -57,6 +61,9 @@ const es: Translations = {
   langUnknown: "Idioma no reconocido. Usa /idioma es o /idioma val",
   errInvalidData: "Datos inválidos",
   errStillAmbiguous: "Aún hay ambigüedad",
+  cmdParadas: "Listar estaciones",
+  cmdIdioma: "Cambiar idioma: /idioma es | val",
+  cmdHelp: "Ayuda",
 };
 
 const val: Translations = {
@@ -89,6 +96,9 @@ const val: Translations = {
   langUnknown: "Idioma no reconegut. Usa /idioma es o /idioma val",
   errInvalidData: "Dades invàlides",
   errStillAmbiguous: "Encara hi ha ambigüitat",
+  cmdParadas: "Llistar estacions",
+  cmdIdioma: "Canviar idioma: /idioma es | val",
+  cmdHelp: "Ajuda",
 };
 
 export const translations: Record<Lang, Translations> = { es, val };

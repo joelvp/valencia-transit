@@ -9,6 +9,7 @@ import {
   lines,
   lineStations,
   schedules,
+  scheduleExceptions,
   trips,
   passingTimes,
 } from "@/adapters/out/persistence/drizzle/schema";
@@ -80,6 +81,11 @@ describe("SearchNextDepartures Component Test", () => {
         endDate: "2024-12-31",
       },
     ]);
+
+    // schedule_exceptions: WD active on 2024-06-03 (Monday used in tests)
+    await container.db
+      .insert(scheduleExceptions)
+      .values([{ scheduleId: "WD", feedId: FEED_ID, date: "2024-06-03", isActive: true }]);
 
     // Trips: T1 on L1/WD headsign "Xàtiva", T2 on L2/WD headsign "Colón"
     await container.db.insert(trips).values([

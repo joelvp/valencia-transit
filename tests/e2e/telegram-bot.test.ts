@@ -10,6 +10,7 @@ import {
   lines,
   lineStations,
   schedules,
+  scheduleExceptions,
   trips,
   passingTimes,
 } from "@/adapters/out/persistence/drizzle/schema";
@@ -140,6 +141,12 @@ describe("TelegramBot E2E", () => {
         endDate: "2099-12-31",
       },
     ]);
+
+    // schedule_exceptions: WD active today (dynamic — departureHandler uses new Date())
+    const today = new Date().toISOString().split("T")[0]!;
+    await container.db
+      .insert(scheduleExceptions)
+      .values([{ scheduleId: "WD", feedId: FEED_ID, date: today, isActive: true }]);
 
     // Trips: T1 on L1 (Xàtiva→Colón), T2 on L2 (Colón→Xàtiva)
     await container.db.insert(trips).values([
