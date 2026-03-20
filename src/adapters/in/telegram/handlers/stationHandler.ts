@@ -1,16 +1,31 @@
 import type { Context } from "grammy";
-import type {
-  ListStationsWithLines,
-  StationWithLines,
-} from "@/core/application/query/ListStationsWithLines";
-import type { Translations } from "@/adapters/in/telegram/i18n";
+import type { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
 import { getT } from "@/adapters/in/telegram/languageStore";
+
+const CHUNK_SIZE = 50;
 
 export function stationHandler(useCase: ListStationsWithLines) {
   return async (ctx: Context): Promise<void> => {
     const t = getT(ctx.chat?.id ?? 0);
     const result = await useCase.execute();
-    await ctx.reply(formatStations(t, result), { parse_mode: "HTML" });
+
+    if (result.length === 0) {
+      await ctx.reply(t.noStations, { parse_mode: "HTML" });
+      return;
+    }
+
+    const lines = result.map(({ station, lines }) => {
+      const lineLabels = lines
+        .map((l) => `${hexToLineEmoji(l.color?.value ?? null)}${l.name.value}`)
+        .join(" ");
+      return lineLabels ? `${station.name.value} — ${lineLabels}` : station.name.value;
+    });
+
+    for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
+      const chunk = lines.slice(i, i + CHUNK_SIZE);
+      const header = i === 0 ? [t.stationsHeader, ""] : [];
+      await ctx.reply([...header, ...chunk].join("\n"), { parse_mode: "HTML" });
+    }
   };
 }
 
@@ -29,17 +44,3 @@ function hexToLineEmoji(hex: string | null): string {
   return map[hex] ?? "⚪";
 }
 
-function formatStations(t: Translations, stationsWithLines: StationWithLines[]): string {
-  if (stationsWithLines.length === 0) {
-    return t.noStations;
-  }
-
-  const lines = stationsWithLines.map(({ station, lines }) => {
-    const lineLabels = lines
-      .map((l) => `${hexToLineEmoji(l.color?.value ?? null)}${l.name.value}`)
-      .join(" ");
-    return lineLabels ? `${station.name.value} — ${lineLabels}` : station.name.value;
-  });
-
-  return [t.stationsHeader, "", ...lines].join("\n");
-}
