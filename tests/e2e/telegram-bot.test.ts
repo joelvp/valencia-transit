@@ -1,0 +1,232 @@
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import type { Update, UserFromGetMe } from "grammy/types";
+import { createContainer, type Container } from "@/adapters/container";
+import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
+import { ListAllStations } from "@/core/application/query/ListAllStations";
+import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
+import { clearDatabase } from "../helpers/db";
+import {
+  stations,
+  lines,
+  lineStations,
+  schedules,
+  trips,
+  passingTimes,
+} from "@/adapters/out/persistence/drizzle/schema";
+
+const FEED_ID = "FV1";
+
+function makeCommandUpdate(text: string, chatId = 1): Update {
+  return {
+    update_id: 1,
+    message: {
+      message_id: 1,
+      date: Math.floor(Date.now() / 1000),
+      chat: { id: chatId, type: "private", first_name: "Test" },
+      from: { id: chatId, is_bot: false, first_name: "Test" },
+      text,
+      entities: [{ type: "bot_command", offset: 0, length: text.split(" ")[0]!.length }],
+    },
+  };
+}
+
+describe("TelegramBot E2E", () => {
+  let container: Container;
+  let bot: TelegramBot;
+  let replies: string[];
+
+  beforeAll(() => {
+    container = createContainer();
+
+    const searchNextDepartures = new SearchNextDepartures(
+      container.stationRepository,
+      container.lineRepository,
+      container.scheduleRepository,
+      container.tripRepository,
+      container.eventBus,
+    );
+    const listAllStations = new ListAllStations(container.stationRepository);
+
+    const fakeBotInfo = {
+      id: 123456789,
+      is_bot: true,
+      first_name: "TestBot",
+      username: "testbot",
+      can_join_groups: true,
+      can_read_all_group_messages: false,
+      supports_inline_queries: false,
+    } as UserFromGetMe;
+
+    bot = new TelegramBot("fake-token-for-testing", searchNextDepartures, listAllStations, {
+      botInfo: fakeBotInfo,
+    });
+
+    replies = [];
+    bot["bot"].api.config.use((prev, method, payload) => {
+      if (method === "sendMessage") {
+        replies.push((payload as { text: string }).text);
+      }
+      return Promise.resolve({ ok: true, result: true } as never);
+    });
+  });
+
+  beforeEach(async () => {
+    await clearDatabase(container.db);
+    replies = [];
+
+    // Stations: ST1 "Colón", ST2 "Xàtiva", ST3 "Àngel Guimerà"
+    await container.db.insert(stations).values([
+      {
+        id: "ST1",
+        feedId: FEED_ID,
+        name: "Colón",
+        latitude: 39.4682,
+        longitude: -0.3765,
+        transportType: "metro",
+      },
+      {
+        id: "ST2",
+        feedId: FEED_ID,
+        name: "Xàtiva",
+        latitude: 39.4676,
+        longitude: -0.3789,
+        transportType: "metro",
+      },
+      {
+        id: "ST3",
+        feedId: FEED_ID,
+        name: "Àngel Guimerà",
+        latitude: 39.4661,
+        longitude: -0.381,
+        transportType: "metro",
+      },
+    ]);
+
+    // Lines: L1 (ST2→ST1), L2 (ST1→ST2)
+    await container.db.insert(lines).values([
+      { id: "L1", feedId: FEED_ID, name: "Línea 1 Anada", shortName: "1", transportType: "metro" },
+      {
+        id: "L2",
+        feedId: FEED_ID,
+        name: "Línea 1 Tornada",
+        shortName: "1",
+        transportType: "metro",
+      },
+    ]);
+
+    await container.db.insert(lineStations).values([
+      { lineId: "L1", stationId: "ST2", feedId: FEED_ID, sequence: 1 },
+      { lineId: "L1", stationId: "ST1", feedId: FEED_ID, sequence: 2 },
+      { lineId: "L2", stationId: "ST1", feedId: FEED_ID, sequence: 1 },
+      { lineId: "L2", stationId: "ST2", feedId: FEED_ID, sequence: 2 },
+    ]);
+
+    // Schedule: active every day, wide date range
+    await container.db.insert(schedules).values([
+      {
+        id: "WD",
+        feedId: FEED_ID,
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: true,
+        sunday: true,
+        startDate: "2024-01-01",
+        endDate: "2099-12-31",
+      },
+    ]);
+
+    // Trips: T1 on L1 (Xàtiva→Colón), T2 on L2 (Colón→Xàtiva)
+    await container.db.insert(trips).values([
+      { id: "T1", feedId: FEED_ID, lineId: "L1", scheduleId: "WD", headsign: "Colón" },
+      { id: "T2", feedId: FEED_ID, lineId: "L2", scheduleId: "WD", headsign: "Xàtiva" },
+    ]);
+
+    // Passing times far in the future so they are always "next"
+    await container.db.insert(passingTimes).values([
+      {
+        tripId: "T1",
+        stationId: "ST2",
+        feedId: FEED_ID,
+        arrivalTime: "23:00:00",
+        departureTime: "23:00:00",
+        sequence: 1,
+      },
+      {
+        tripId: "T1",
+        stationId: "ST1",
+        feedId: FEED_ID,
+        arrivalTime: "23:05:00",
+        departureTime: "23:05:00",
+        sequence: 2,
+      },
+      {
+        tripId: "T2",
+        stationId: "ST1",
+        feedId: FEED_ID,
+        arrivalTime: "23:10:00",
+        departureTime: "23:10:00",
+        sequence: 1,
+      },
+      {
+        tripId: "T2",
+        stationId: "ST2",
+        feedId: FEED_ID,
+        arrivalTime: "23:15:00",
+        departureTime: "23:15:00",
+        sequence: 2,
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await clearDatabase(container.db);
+    await container.dispose();
+  });
+
+  it("should reply with formatted departures for /salida Xàtiva Colón", async () => {
+    await bot.handleUpdate(makeCommandUpdate("/salida Xàtiva Colón"));
+
+    expect(replies).toHaveLength(1);
+    const reply = replies[0]!;
+    expect(reply).toContain("Xàtiva");
+    expect(reply).toContain("Colón");
+    expect(reply).toContain("Next departures:");
+    expect(reply).toContain("23:00");
+  });
+
+  it("should reply with station not found for /salida Desconocida Colón", async () => {
+    await bot.handleUpdate(makeCommandUpdate("/salida Desconocida Colón"));
+
+    expect(replies).toHaveLength(1);
+    expect(replies[0]!).toContain("❌ Station not found");
+  });
+
+  it("should reply with usage hint for /salida with no args", async () => {
+    await bot.handleUpdate(makeCommandUpdate("/salida"));
+
+    expect(replies).toHaveLength(1);
+    expect(replies[0]!).toContain("⚠️ Usage:");
+  });
+
+  it("should reply with station list for /paradas", async () => {
+    await bot.handleUpdate(makeCommandUpdate("/paradas"));
+
+    expect(replies).toHaveLength(1);
+    const reply = replies[0]!;
+    expect(reply).toContain("Colón");
+    expect(reply).toContain("Xàtiva");
+    expect(reply).toContain("Àngel Guimerà");
+  });
+
+  it("should reply with help text for /help", async () => {
+    await bot.handleUpdate(makeCommandUpdate("/help"));
+
+    expect(replies).toHaveLength(1);
+    const reply = replies[0]!;
+    expect(reply).toContain("/salida");
+    expect(reply).toContain("/paradas");
+  });
+});

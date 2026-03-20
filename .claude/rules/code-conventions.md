@@ -61,6 +61,33 @@
 - **Mappers** handle domain <-> persistence translation. One mapper per aggregate.
 - **One file per adapter class**.
 
+## Container & Composition
+
+The container (`src/adapters/container.ts`) is a **manual factory function** that only exposes **infrastructure**:
+
+- Repositories, database, event bus, secrets, `dispose()`
+- **No use cases**. No primary adapters (bot, CLI).
+
+**Entry points** (`main.ts`, scripts) are the composition root for application logic:
+
+1. Call `createContainer()` to get infrastructure
+2. Instantiate use cases by injecting repos from the container
+3. Create primary adapters (bot, CLI) passing the use cases
+4. Start the adapter
+
+```ts
+// main.ts
+const container = createContainer();
+const searchDepartures = new SearchNextDepartures(container.stationRepository, ...);
+const bot = new TelegramBot(token, searchDepartures, listStations);
+await bot.start();
+
+// scripts/import-gtfs.ts
+const container = createContainer();
+const importData = new ImportTransitData(container.stationRepository, ...);
+await importData.execute(parsedData);
+```
+
 ## Testing Conventions
 
 - **Runner**: `bun test` — use `import { describe, it, expect } from "bun:test";`
