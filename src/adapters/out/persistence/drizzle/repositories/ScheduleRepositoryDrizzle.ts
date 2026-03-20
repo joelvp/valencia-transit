@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { Schedule } from "@/core/domain/schedule/Schedule";
@@ -28,19 +28,23 @@ export class ScheduleRepositoryDrizzle implements ScheduleRepository {
   }
 
   async findActiveOn(date: Date): Promise<Schedule[]> {
-    const scheduleRows = await this.db.select().from(schedules);
+    const dateStr = date.toISOString().split("T")[0]!;
 
-    const allSchedules = await Promise.all(
-      scheduleRows.map(async (scheduleRow) => {
-        const exceptionRows = await this.db
-          .select()
-          .from(scheduleExceptions)
-          .where(eq(scheduleExceptions.scheduleId, scheduleRow.id));
-        return ScheduleMapper.toDomain(scheduleRow, exceptionRows);
-      }),
-    );
+    const activeExceptions = await this.db
+      .select()
+      .from(scheduleExceptions)
+      .where(and(eq(scheduleExceptions.date, dateStr), eq(scheduleExceptions.isActive, true)));
 
-    return allSchedules.filter((schedule) => schedule.isActiveOn(date));
+    if (activeExceptions.length === 0) return [];
+
+    const activeScheduleIds = activeExceptions.map((e) => e.scheduleId);
+
+    const scheduleRows = await this.db
+      .select()
+      .from(schedules)
+      .where(inArray(schedules.id, activeScheduleIds));
+
+    return scheduleRows.map((row) => ScheduleMapper.toDomain(row, []));
   }
 
   async save(schedule: Schedule, feedId: string): Promise<void> {
