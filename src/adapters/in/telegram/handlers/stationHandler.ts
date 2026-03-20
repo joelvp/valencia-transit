@@ -43,4 +43,3 @@ function hexToLineEmoji(hex: string | null): string {
   };
   return map[hex] ?? "⚪";
 }
-
