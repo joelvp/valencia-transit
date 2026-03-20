@@ -167,4 +167,54 @@ describe("departureHandler", () => {
     expect(opts.parse_mode).toBe("HTML");
     expect(opts.reply_markup).toBeDefined();
   });
+
+  it("should show no more trains today message", async () => {
+    const noMoreResult: SearchResult = {
+      type: "no_more_today",
+      origin: makeStation("Xàtiva"),
+      destination: makeStation("Colón"),
+      firstTomorrow: {
+        departureTime: { hours: 5, minutes: 42 },
+        lineName: "L3",
+        headsign: "Colón",
+        minutesRemaining: 0,
+      },
+    } as unknown as SearchResult;
+
+    const mockUseCase = {
+      execute: mock(() => Promise.resolve(noMoreResult)),
+    };
+
+    const ctx = makeCtx("/salida Xàtiva Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    const callArgs = ctx.reply.mock.calls[0] as unknown[];
+    const response = callArgs[0] as string;
+    expect(response).toContain("No hay más salidas hoy");
+    expect(response).toContain("05:42");
+    expect(response).toContain("Primera salida mañana");
+  });
+
+  it("should show no more trains message without tomorrow when no service", async () => {
+    const noMoreResult: SearchResult = {
+      type: "no_more_today",
+      origin: makeStation("Xàtiva"),
+      destination: makeStation("Colón"),
+      firstTomorrow: null,
+    } as unknown as SearchResult;
+
+    const mockUseCase = {
+      execute: mock(() => Promise.resolve(noMoreResult)),
+    };
+
+    const ctx = makeCtx("/salida Xàtiva Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    const callArgs = ctx.reply.mock.calls[0] as unknown[];
+    const response = callArgs[0] as string;
+    expect(response).toContain("No hay más salidas hoy");
+    expect(response).not.toContain("Primera salida mañana");
+  });
 });

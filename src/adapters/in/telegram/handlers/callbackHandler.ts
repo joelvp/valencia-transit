@@ -23,6 +23,20 @@ export function callbackHandler(useCase: SearchNextDepartures) {
         return;
       }
 
+      if (result.type === "no_more_today") {
+        const o = result.origin.name.value;
+        const d = result.destination.name.value;
+        let msg = `🚇 <b>${o} → ${d}</b>\nNo hay más salidas hoy de ${o} a ${d}.`;
+        if (result.firstTomorrow) {
+          const h = String(result.firstTomorrow.departureTime.hours).padStart(2, "0");
+          const m = String(result.firstTomorrow.departureTime.minutes).padStart(2, "0");
+          msg += `\n\n🌅 Primera salida mañana: <b>${h}:${m}</b> — ${result.firstTomorrow.lineName}`;
+        }
+        await ctx.answerCallbackQuery();
+        await ctx.editMessageText(msg, { parse_mode: "HTML" });
+        return;
+      }
+
       await ctx.answerCallbackQuery();
       await ctx.editMessageText(
         formatDepartures(

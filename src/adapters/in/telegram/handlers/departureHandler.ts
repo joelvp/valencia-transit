@@ -40,6 +40,18 @@ export function departureHandler(useCase: SearchNextDepartures) {
         return;
       }
 
+      if (result.type === "no_more_today") {
+        await ctx.reply(
+          formatNoMoreToday(
+            result.origin.name.value,
+            result.destination.name.value,
+            result.firstTomorrow,
+          ),
+          { parse_mode: "HTML" },
+        );
+        return;
+      }
+
       await ctx.reply(
         formatDepartures(
           result.data.origin.name.value,
@@ -97,6 +109,23 @@ function formatDepartures(origin: string, destination: string, departures: Depar
     "",
     "ℹ️ Horarios planificados. Los tiempos reales pueden variar.",
   ].join("\n");
+}
+
+function formatNoMoreToday(
+  origin: string,
+  destination: string,
+  firstTomorrow: Departure | null,
+): string {
+  const header = `🚇 <b>${origin} → ${destination}</b>`;
+  const noMore = `\nNo hay más salidas hoy de ${origin} a ${destination}.`;
+
+  if (firstTomorrow) {
+    const h = String(firstTomorrow.departureTime.hours).padStart(2, "0");
+    const m = String(firstTomorrow.departureTime.minutes).padStart(2, "0");
+    return `${header}${noMore}\n\n🌅 Primera salida mañana: <b>${h}:${m}</b> — ${firstTomorrow.lineName}`;
+  }
+
+  return `${header}${noMore}`;
 }
 
 function formatDisambiguation(field: "origin" | "destination", candidates: Station[]): string {
