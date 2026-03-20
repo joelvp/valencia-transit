@@ -138,4 +138,47 @@ describe("LineRepositoryDrizzle", () => {
     expect(rows.length).toBe(1);
     expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
+
+  describe("saveAll", () => {
+    it("should save all lines with their stops and make them retrievable", async () => {
+      await clearTables(container.db, "line_stations", "lines", "stations");
+
+      await container.db.insert(stations).values([
+        StationMother.row({ id: "SA1", name: "Nou d'Octubre", longitude: -0.39 }),
+        StationMother.row({ id: "SA2", name: "Mislata", longitude: -0.40 }),
+        StationMother.row({ id: "SA3", name: "Mislata-Almassil", longitude: -0.41 }),
+      ]);
+
+      const lineA = new Line(
+        new LineId("LA1"),
+        new LineName("Línia A"),
+        [new LineStop(new StationId("SA1"), 1), new LineStop(new StationId("SA2"), 2)],
+      );
+      const lineB = new Line(
+        new LineId("LA2"),
+        new LineName("Línia B"),
+        [new LineStop(new StationId("SA2"), 1), new LineStop(new StationId("SA3"), 2)],
+      );
+
+      await repo.saveAll([lineA, lineB], FEED_ID);
+
+      const resultA = await repo.findById(new LineId("LA1"));
+      expect(resultA).not.toBeNull();
+      expect(resultA!.stops.length).toBe(2);
+
+      const resultB = await repo.findById(new LineId("LA2"));
+      expect(resultB).not.toBeNull();
+      expect(resultB!.stops.length).toBe(2);
+
+      const allStopRows = await container.db.select().from(lineStations);
+      expect(allStopRows.length).toBe(4);
+    });
+
+    it("should handle empty array without error", async () => {
+      await expect(repo.saveAll([], FEED_ID)).resolves.toBeUndefined();
+
+      const result = await repo.findAll();
+      expect(result.length).toBe(2); // pre-seeded rows still present
+    });
+  });
 });

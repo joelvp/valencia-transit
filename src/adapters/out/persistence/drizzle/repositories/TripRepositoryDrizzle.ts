@@ -9,6 +9,7 @@ import type { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 import { TripMapper } from "@/adapters/out/persistence/drizzle/mappers/TripMapper";
 import { trips, passingTimes } from "@/adapters/out/persistence/drizzle/schema";
 import type * as schema from "@/adapters/out/persistence/drizzle/schema";
+import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
 
 export class TripRepositoryDrizzle implements TripRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
@@ -105,6 +106,18 @@ export class TripRepositoryDrizzle implements TripRepository {
           },
         });
     }
+  }
+
+  async saveAll(tripList: Trip[], feedId: string): Promise<void> {
+    const allTripRows = [];
+    const allPtRows = [];
+    for (const trip of tripList) {
+      const { trip: tripRow, passingTimes: ptRows } = TripMapper.toPersistence(trip, feedId);
+      allTripRows.push(tripRow);
+      allPtRows.push(...ptRows);
+    }
+    await bulkInsert(this.db, trips, allTripRows);
+    await bulkInsert(this.db, passingTimes, allPtRows);
   }
 
   async deleteByFeedId(feedId: string): Promise<void> {

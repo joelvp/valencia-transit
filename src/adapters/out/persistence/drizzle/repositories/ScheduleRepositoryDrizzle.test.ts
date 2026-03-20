@@ -125,4 +125,42 @@ describe("ScheduleRepositoryDrizzle", () => {
     expect(rows.length).toBe(1);
     expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
+
+  describe("saveAll", () => {
+    it("should save all schedules and make them retrievable", async () => {
+      await clearTables(container.db, "schedule_exceptions", "schedules");
+
+      const scheduleA = new Schedule(
+        new ScheduleId("SA1"),
+        new Weekdays(true, true, true, true, true, false, false),
+        new DateRange("2026-01-01", "2026-12-31"),
+        [],
+      );
+      const scheduleB = new Schedule(
+        new ScheduleId("SA2"),
+        new Weekdays(false, false, false, false, false, true, true),
+        new DateRange("2026-01-01", "2026-12-31"),
+        [],
+      );
+
+      await repo.saveAll([scheduleA, scheduleB], FEED_ID);
+
+      const resultA = await repo.findById(new ScheduleId("SA1"));
+      expect(resultA).not.toBeNull();
+      expect(resultA!.weekdays.monday).toBe(true);
+      expect(resultA!.weekdays.saturday).toBe(false);
+
+      const resultB = await repo.findById(new ScheduleId("SA2"));
+      expect(resultB).not.toBeNull();
+      expect(resultB!.weekdays.saturday).toBe(true);
+      expect(resultB!.weekdays.monday).toBe(false);
+    });
+
+    it("should handle empty array without error", async () => {
+      await expect(repo.saveAll([], FEED_ID)).resolves.toBeUndefined();
+
+      const rows = await container.db.select().from(schedules);
+      expect(rows.length).toBe(2); // pre-seeded rows still present
+    });
+  });
 });

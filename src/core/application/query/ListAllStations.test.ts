@@ -19,6 +19,7 @@ describe("ListAllStations", () => {
       findByName: mock(() => Promise.resolve(null)),
       searchByName: mock(() => Promise.resolve([])),
       save: mock(() => Promise.resolve()),
+      saveAll: mock(() => Promise.resolve()),
       deleteByFeedId: mock(() => Promise.resolve()),
     };
 
@@ -36,6 +37,7 @@ describe("ListAllStations", () => {
       findByName: mock(() => Promise.resolve(null)),
       searchByName: mock(() => Promise.resolve([])),
       save: mock(() => Promise.resolve()),
+      saveAll: mock(() => Promise.resolve()),
       deleteByFeedId: mock(() => Promise.resolve()),
     };
 
