@@ -405,34 +405,17 @@ Wire the Telegram bot to the use cases. Users can search departures and list sta
 - [x] Container unchanged — only exposes infra (repos, db, eventBus, secrets). Use cases instantiated in entry points (`main.ts`, scripts), not in the container.
 - [ ] Configure Telegram env vars in Railway: `BOT_TOKEN`, `ADMIN_CHAT_ID`
 
-#### 6B — Handlers
+#### 6B — Handlers & Response Format ✅
 
-- [ ] `departureHandler.ts` — `/salida <origin> <destination>` command:
-  - Parse origin and destination from message
-  - Call `SearchNextDepartures` use case
-  - Format response (see format below)
-  - Handle errors with user-friendly messages
-- [ ] `stationHandler.ts` — `/paradas` command:
-  - List all stations (grouped by line if possible)
-- [ ] `helpHandler.ts` — `/help` command:
-  - Usage instructions
-- [ ] **Component test** for handlers (mocked use cases, happy + unhappy paths)
+- [x] `departureHandler.ts` — `/salida <origin> - <destination>` command:
+  - Parses station names via `-` separator, `a` separator, or fallback (first word / rest)
+  - Calls `SearchNextDepartures` use case
+  - Formats response with emoji header, numbered departures (HH:MM, minutes remaining, line)
+  - Handles `StationNotFoundError`, `NoConnectionError`, `NoActiveServiceError` with friendly messages
+- [x] `stationHandler.ts` — `/paradas` command: lists all station names
+- [x] `helpHandler.ts` — `/help` and `/start` commands: fixed help text
+- [x] Unit tests for all handlers (12 tests): happy path, separators, missing args, all error types
 - [ ] **E2E test** for bot commands (real bot flow, real use cases)
-
-#### 6C — Response Format
-
-```text
-🚇 Xàtiva → Colón
-
-Next departures:
-1. 14:23 (in 4 min) — L3
-2. 14:31 (in 12 min) — L5
-3. 14:38 (in 19 min) — L3
-4. 14:45 (in 26 min) — L5
-5. 14:52 (in 33 min) — L3
-
-ℹ️ Planned schedules. Real times may vary.
-```
 
 **Exit criteria**: Bot responds to `/salida Xàtiva Colón` with correct, formatted departure information. `/paradas` and `/help` work. Error messages are clear and friendly.
 
