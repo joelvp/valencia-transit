@@ -24,27 +24,38 @@ export class ImportTransitData {
   ) {}
 
   async execute(data: GtfsData, feedId: string): Promise<ImportSummary> {
+    console.log(`[import] Starting import for feed "${feedId}"...`);
+
     // Delete in dependency order: trips first (FK to lines/schedules), then lines/schedules, then stations
+    console.log(`[import] Clearing existing data...`);
     await this.tripRepository.deleteByFeedId(feedId);
     await this.lineRepository.deleteByFeedId(feedId);
     await this.scheduleRepository.deleteByFeedId(feedId);
     await this.stationRepository.deleteByFeedId(feedId);
 
+    console.log(`[import] Importing ${data.stations.length} stations...`);
     for (const station of data.stations) {
       await this.stationRepository.save(station, feedId);
     }
+    console.log(`[import] ✅ Stations done.`);
 
+    console.log(`[import] Importing ${data.lines.length} lines...`);
     for (const line of data.lines) {
       await this.lineRepository.save(line, feedId);
     }
+    console.log(`[import] ✅ Lines done.`);
 
+    console.log(`[import] Importing ${data.schedules.length} schedules...`);
     for (const schedule of data.schedules) {
       await this.scheduleRepository.save(schedule, feedId);
     }
+    console.log(`[import] ✅ Schedules done.`);
 
+    console.log(`[import] Importing ${data.trips.length} trips...`);
     for (const trip of data.trips) {
       await this.tripRepository.save(trip, feedId);
     }
+    console.log(`[import] ✅ Trips done.`);
 
     await this.eventBus.publish(
       new DatasetImported(
