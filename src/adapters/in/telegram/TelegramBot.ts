@@ -6,6 +6,7 @@ import { departureHandler } from "@/adapters/in/telegram/handlers/departureHandl
 import { stationHandler } from "@/adapters/in/telegram/handlers/stationHandler";
 import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
+import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 
 export interface TelegramBotOptions {
   /** Pre-set bot info to skip the `getMe` network call. Useful in tests. */
@@ -32,6 +33,7 @@ export class TelegramBot {
     this.bot.command("paradas", stationHandler(this.listStationsWithLines));
     this.bot.command("help", helpHandler());
     this.bot.command("start", helpHandler());
+    this.bot.command("idioma", languageHandler());
     this.bot.on("callback_query:data", callbackHandler(this.searchNextDepartures));
   }
 
@@ -49,6 +51,7 @@ export class TelegramBot {
       { command: "salida", description: "Próximas salidas: /salida <origen> - <destino>" },
       { command: "s", description: "Atajo para /salida" },
       { command: "paradas", description: "Listar estaciones" },
+      { command: "idioma", description: "Cambiar idioma: /idioma es | val" },
       { command: "help", description: "Ayuda" },
     ]);
     await this.bot.start();

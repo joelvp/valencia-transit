@@ -3,11 +3,14 @@ import type {
   ListStationsWithLines,
   StationWithLines,
 } from "@/core/application/query/ListStationsWithLines";
+import type { Translations } from "@/adapters/in/telegram/i18n";
+import { getT } from "@/adapters/in/telegram/languageStore";
 
 export function stationHandler(useCase: ListStationsWithLines) {
   return async (ctx: Context): Promise<void> => {
+    const t = getT(ctx.chat?.id ?? 0);
     const result = await useCase.execute();
-    await ctx.reply(formatStations(result), { parse_mode: "HTML" });
+    await ctx.reply(formatStations(t, result), { parse_mode: "HTML" });
   };
 }
 
@@ -26,9 +29,9 @@ function hexToLineEmoji(hex: string | null): string {
   return map[hex] ?? "⚪";
 }
 
-function formatStations(stationsWithLines: StationWithLines[]): string {
+function formatStations(t: Translations, stationsWithLines: StationWithLines[]): string {
   if (stationsWithLines.length === 0) {
-    return "ℹ️ No hay estaciones disponibles.";
+    return t.noStations;
   }
 
   const lines = stationsWithLines.map(({ station, lines }) => {
@@ -38,5 +41,5 @@ function formatStations(stationsWithLines: StationWithLines[]): string {
     return lineLabels ? `${station.name.value} — ${lineLabels}` : station.name.value;
   });
 
-  return ["🚉 <b>Estaciones disponibles:</b>", "", ...lines].join("\n");
+  return [t.stationsHeader, "", ...lines].join("\n");
 }

@@ -1,15 +1,19 @@
 import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { Departure } from "@/core/domain/shared/Departure";
+import type { Translations } from "@/adapters/in/telegram/i18n";
+import { getT } from "@/adapters/in/telegram/languageStore";
 
 export function callbackHandler(useCase: SearchNextDepartures) {
   return async (ctx: Context): Promise<void> => {
+    const chatId = ctx.chat?.id ?? 0;
+    const t = getT(chatId);
     const data = ctx.callbackQuery?.data;
     if (!data) return;
 
     const parsed = parseCallbackData(data);
     if (!parsed) {
-      await ctx.answerCallbackQuery({ text: "Datos inválidos" });
+      await ctx.answerCallbackQuery({ text: t.errInvalidData });
       return;
     }
 
@@ -19,18 +23,18 @@ export function callbackHandler(useCase: SearchNextDepartures) {
       const result = await useCase.execute(originName, destinationName, new Date());
 
       if (result.type === "disambiguation") {
-        await ctx.answerCallbackQuery({ text: "Aún hay ambigüedad" });
+        await ctx.answerCallbackQuery({ text: t.errStillAmbiguous });
         return;
       }
 
       if (result.type === "no_more_today") {
         const o = result.origin.name.value;
         const d = result.destination.name.value;
-        let msg = `🚇 <b>${o} → ${d}</b>\nNo hay más salidas hoy de ${o} a ${d}.`;
+        let msg = `🚇 <b>${o} → ${d}</b>\n${t.noMoreToday(o, d)}`;
         if (result.firstTomorrow) {
           const h = String(result.firstTomorrow.departureTime.hours).padStart(2, "0");
           const m = String(result.firstTomorrow.departureTime.minutes).padStart(2, "0");
-          msg += `\n\n🌅 Primera salida mañana: <b>${h}:${m}</b> — ${result.firstTomorrow.lineName}`;
+          msg += `\n\n${t.firstTomorrow(`${h}:${m}`, result.firstTomorrow.lineName)}`;
         }
         await ctx.answerCallbackQuery();
         await ctx.editMessageText(msg, { parse_mode: "HTML" });
@@ -40,6 +44,7 @@ export function callbackHandler(useCase: SearchNextDepartures) {
       await ctx.answerCallbackQuery();
       await ctx.editMessageText(
         formatDepartures(
+          t,
           result.data.origin.name.value,
           result.data.destination.name.value,
           result.data.departures,
@@ -47,7 +52,7 @@ export function callbackHandler(useCase: SearchNextDepartures) {
         { parse_mode: "HTML" },
       );
     } catch {
-      await ctx.answerCallbackQuery({ text: "Error al buscar salidas" });
+      await ctx.answerCallbackQuery({ text: t.errUnknown });
     }
   };
 }
@@ -67,7 +72,12 @@ function parseCallbackData(data: string): { originName: string; destinationName:
   return null;
 }
 
-function formatDepartures(origin: string, destination: string, departures: Departure[]): string {
+function formatDepartures(
+  t: Translations,
+  origin: string,
+  destination: string,
+  departures: Departure[],
+): string {
   const header = `🚇 <b>${origin} → ${destination}</b>`;
   const lines = departures.map((d, i) => {
     const h = String(d.departureTime.hours).padStart(2, "0");
@@ -77,12 +87,5 @@ function formatDepartures(origin: string, destination: string, departures: Depar
     return `${i + 1}. ${time} (${d.minutesRemaining} min) — <b>${d.lineName}</b>${headsign}`;
   });
 
-  return [
-    header,
-    "",
-    "Próximas salidas:",
-    ...lines,
-    "",
-    "ℹ️ Horarios planificados. Los tiempos reales pueden variar.",
-  ].join("\n");
+  return [header, "", t.nextDepartures, ...lines, "", t.disclaimer].join("\n");
 }

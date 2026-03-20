@@ -1,17 +1,9 @@
 import type { Context } from "grammy";
-
-const HELP_TEXT = [
-  "🤖 <b>Valencia Transit Bot</b>",
-  "",
-  "Comandos disponibles:",
-  "/salida &lt;origen&gt; - &lt;destino&gt; — Próximas salidas entre dos estaciones",
-  "/s &lt;origen&gt; - &lt;destino&gt; — Atajo para /salida",
-  "/paradas — Listar estaciones",
-  "/help — Mostrar esta ayuda",
-].join("\n");
+import { getT } from "@/adapters/in/telegram/languageStore";
 
 export function helpHandler() {
   return async (ctx: Context): Promise<void> => {
-    await ctx.reply(HELP_TEXT, { parse_mode: "HTML" });
+    const t = getT(ctx.chat?.id ?? 0);
+    await ctx.reply(t.helpText, { parse_mode: "HTML" });
   };
 }

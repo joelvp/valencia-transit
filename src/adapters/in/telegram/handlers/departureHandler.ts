@@ -3,23 +3,27 @@ import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { Departure } from "@/core/domain/shared/Departure";
 import type { Station } from "@/core/domain/station/Station";
+import type { Translations } from "@/adapters/in/telegram/i18n";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
+import { getT } from "@/adapters/in/telegram/languageStore";
 
 export function departureHandler(useCase: SearchNextDepartures) {
   return async (ctx: Context): Promise<void> => {
+    const chatId = ctx.chat?.id ?? 0;
+    const t = getT(chatId);
     const text = ctx.message?.text ?? "";
     const args = text.trim().replace(/^\/\S+\s*/, "");
 
     if (!args) {
-      await ctx.reply("⚠️ Uso: /salida &lt;origen&gt; - &lt;destino&gt;", { parse_mode: "HTML" });
+      await ctx.reply(t.usage, { parse_mode: "HTML" });
       return;
     }
 
     const parsed = parseStations(args);
     if (!parsed) {
-      await ctx.reply("⚠️ Uso: /salida &lt;origen&gt; - &lt;destino&gt;", { parse_mode: "HTML" });
+      await ctx.reply(t.usage, { parse_mode: "HTML" });
       return;
     }
 
@@ -29,7 +33,7 @@ export function departureHandler(useCase: SearchNextDepartures) {
       const result = await useCase.execute(originName, destinationName, new Date());
 
       if (result.type === "disambiguation") {
-        await ctx.reply(formatDisambiguation(result.field, result.candidates), {
+        await ctx.reply(formatDisambiguation(t, result.field, result.candidates), {
           parse_mode: "HTML",
           reply_markup: buildDisambiguationKeyboard(
             result.field,
@@ -43,6 +47,7 @@ export function departureHandler(useCase: SearchNextDepartures) {
       if (result.type === "no_more_today") {
         await ctx.reply(
           formatNoMoreToday(
+            t,
             result.origin.name.value,
             result.destination.name.value,
             result.firstTomorrow,
@@ -54,6 +59,7 @@ export function departureHandler(useCase: SearchNextDepartures) {
 
       await ctx.reply(
         formatDepartures(
+          t,
           result.data.origin.name.value,
           result.data.destination.name.value,
           result.data.departures,
@@ -63,14 +69,14 @@ export function departureHandler(useCase: SearchNextDepartures) {
     } catch (err) {
       if (err instanceof StationNotFoundError) {
         const match = /^Station not found: "(.+)"$/.exec(err.message);
-        const stationName = match ? match[1] : "unknown";
-        await ctx.reply(`❌ Estación no encontrada: ${stationName}`);
+        const stationName = match ? match[1]! : "unknown";
+        await ctx.reply(t.errNotFound(stationName));
       } else if (err instanceof NoConnectionError) {
-        await ctx.reply(`❌ No hay conexión entre ${originName} y ${destinationName}`);
+        await ctx.reply(t.errNoConn(originName, destinationName));
       } else if (err instanceof NoActiveServiceError) {
-        await ctx.reply("❌ No hay servicio activo en este momento");
+        await ctx.reply(t.errNoService);
       } else {
-        await ctx.reply("❌ Error inesperado. Inténtalo de nuevo más tarde.");
+        await ctx.reply(t.errUnknown);
       }
     }
   };
@@ -91,7 +97,12 @@ function parseStations(args: string): { originName: string; destinationName: str
   return { originName: args.slice(0, spaceIdx), destinationName: args.slice(spaceIdx + 1) };
 }
 
-function formatDepartures(origin: string, destination: string, departures: Departure[]): string {
+function formatDepartures(
+  t: Translations,
+  origin: string,
+  destination: string,
+  departures: Departure[],
+): string {
   const header = `🚇 <b>${origin} → ${destination}</b>`;
   const lines = departures.map((d, i) => {
     const h = String(d.departureTime.hours).padStart(2, "0");
@@ -101,37 +112,34 @@ function formatDepartures(origin: string, destination: string, departures: Depar
     return `${i + 1}. ${time} (${d.minutesRemaining} min) — <b>${d.lineName}</b>${headsign}`;
   });
 
-  return [
-    header,
-    "",
-    "Próximas salidas:",
-    ...lines,
-    "",
-    "ℹ️ Horarios planificados. Los tiempos reales pueden variar.",
-  ].join("\n");
+  return [header, "", t.nextDepartures, ...lines, "", t.disclaimer].join("\n");
 }
 
 function formatNoMoreToday(
+  t: Translations,
   origin: string,
   destination: string,
   firstTomorrow: Departure | null,
 ): string {
   const header = `🚇 <b>${origin} → ${destination}</b>`;
-  const noMore = `\nNo hay más salidas hoy de ${origin} a ${destination}.`;
+  const noMore = `\n${t.noMoreToday(origin, destination)}`;
 
   if (firstTomorrow) {
     const h = String(firstTomorrow.departureTime.hours).padStart(2, "0");
     const m = String(firstTomorrow.departureTime.minutes).padStart(2, "0");
-    return `${header}${noMore}\n\n🌅 Primera salida mañana: <b>${h}:${m}</b> — ${firstTomorrow.lineName}`;
+    return `${header}${noMore}\n\n${t.firstTomorrow(`${h}:${m}`, firstTomorrow.lineName)}`;
   }
 
   return `${header}${noMore}`;
 }
 
-function formatDisambiguation(field: "origin" | "destination", candidates: Station[]): string {
-  const fieldLabel = field === "origin" ? "origen" : "destino";
+function formatDisambiguation(
+  t: Translations,
+  field: "origin" | "destination",
+  candidates: Station[],
+): string {
   const names = candidates.map((c) => c.name.value).join(", ");
-  return `🔍 Varias estaciones encontradas como ${fieldLabel}: ${names}\n\n¿Cuál querías decir?`;
+  return t.disambiguation(field, names);
 }
 
 function buildDisambiguationKeyboard(
@@ -141,7 +149,6 @@ function buildDisambiguationKeyboard(
 ): InlineKeyboard {
   const keyboard = new InlineKeyboard();
   for (const candidate of candidates) {
-    // Callback data format: d|o|StationName|OtherName or d|d|OtherName|StationName
     const f = field === "origin" ? "o" : "d";
     const data = `d|${f}|${candidate.name.value}|${otherName}`;
     keyboard.text(candidate.name.value, data.slice(0, 64)).row();
