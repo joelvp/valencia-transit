@@ -3,6 +3,7 @@ import { departureHandler } from "./departureHandler";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
+import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 
 function makeCtx(text: string) {
   return {
@@ -12,26 +13,45 @@ function makeCtx(text: string) {
 }
 
 function makeStation(name: string) {
-  return { name: { value: name } };
+  return { name: { value: name }, id: { value: name.toLowerCase() } };
 }
 
-function makeDeparture(hours: number, minutes: number, lineName: string, minutesRemaining: number) {
+function makeDeparture(
+  hours: number,
+  minutes: number,
+  lineName: string,
+  minutesRemaining: number,
+  headsign: string | null = null,
+) {
+  return { departureTime: { hours, minutes }, lineName, minutesRemaining, headsign };
+}
+
+function makeDepartureResult(
+  originName: string,
+  destName: string,
+  departures: ReturnType<typeof makeDeparture>[] = [],
+): SearchResult {
   return {
-    departureTime: { hours, minutes },
-    lineName,
-    minutesRemaining,
-  };
+    type: "departures",
+    data: {
+      origin: makeStation(originName),
+      destination: makeStation(destName),
+      departures,
+      searchedAt: new Date(),
+    },
+  } as unknown as SearchResult;
 }
 
 describe("departureHandler", () => {
   it("should reply with formatted departures on happy path", async () => {
     const mockUseCase = {
       execute: mock(() =>
-        Promise.resolve({
-          origin: makeStation("Xàtiva"),
-          destination: makeStation("Colón"),
-          departures: [makeDeparture(14, 23, "L3", 4), makeDeparture(14, 31, "L5", 12)],
-        }),
+        Promise.resolve(
+          makeDepartureResult("Xàtiva", "Colón", [
+            makeDeparture(14, 23, "L3", 4),
+            makeDeparture(14, 31, "L5", 12),
+          ]),
+        ),
       ),
     };
 
@@ -40,20 +60,15 @@ describe("departureHandler", () => {
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith("Xàtiva", "Colón", expect.any(Date));
-    expect(ctx.reply).toHaveBeenCalledWith(
-      "🚇 Xàtiva → Colón\n\nNext departures:\n1. 14:23 (in 4 min) — L3\n2. 14:31 (in 12 min) — L5\n\nℹ️ Planned schedules. Real times may vary.",
-    );
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("<b>Xàtiva → Colón</b>");
+    expect(response).toContain("<b>14:23</b>");
+    expect(response).toContain("<b>L3</b>");
   });
 
   it("should parse stations separated by ' - '", async () => {
     const mockUseCase = {
-      execute: mock(() =>
-        Promise.resolve({
-          origin: makeStation("Àngel Guimerà"),
-          destination: makeStation("Colón"),
-          departures: [],
-        }),
-      ),
+      execute: mock(() => Promise.resolve(makeDepartureResult("Àngel Guimerà", "Colón"))),
     };
 
     const ctx = makeCtx("/salida Àngel Guimerà - Colón");
@@ -65,13 +80,7 @@ describe("departureHandler", () => {
 
   it("should parse stations separated by ' a '", async () => {
     const mockUseCase = {
-      execute: mock(() =>
-        Promise.resolve({
-          origin: makeStation("Àngel Guimerà"),
-          destination: makeStation("Colón"),
-          departures: [],
-        }),
-      ),
+      execute: mock(() => Promise.resolve(makeDepartureResult("Àngel Guimerà", "Colón"))),
     };
 
     const ctx = makeCtx("/salida Àngel Guimerà a Colón");
@@ -88,7 +97,8 @@ describe("departureHandler", () => {
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
-    expect(ctx.reply).toHaveBeenCalledWith("⚠️ Usage: /salida <origin> - <destination>");
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("Uso:");
   });
 
   it("should reply with usage hint when only one word provided", async () => {
@@ -97,7 +107,8 @@ describe("departureHandler", () => {
     const handler = departureHandler(mockUseCase as never);
     await handler(ctx as never);
 
-    expect(ctx.reply).toHaveBeenCalledWith("⚠️ Usage: /salida <origin> - <destination>");
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("Uso:");
   });
 
   it("should handle StationNotFoundError", async () => {
@@ -108,7 +119,7 @@ describe("departureHandler", () => {
     const handler = departureHandler(mockUseCase as never);
     await handler(ctx as never);
 
-    expect(ctx.reply).toHaveBeenCalledWith("❌ Station not found: Unknwon");
+    expect(ctx.reply).toHaveBeenCalledWith("❌ Estación no encontrada: Unknwon");
   });
 
   it("should handle NoConnectionError", async () => {
@@ -119,7 +130,7 @@ describe("departureHandler", () => {
     const handler = departureHandler(mockUseCase as never);
     await handler(ctx as never);
 
-    expect(ctx.reply).toHaveBeenCalledWith("❌ No connection found between Xàtiva and Colón");
+    expect(ctx.reply).toHaveBeenCalledWith("❌ No hay conexión entre Xàtiva y Colón");
   });
 
   it("should handle NoActiveServiceError", async () => {
@@ -130,6 +141,30 @@ describe("departureHandler", () => {
     const handler = departureHandler(mockUseCase as never);
     await handler(ctx as never);
 
-    expect(ctx.reply).toHaveBeenCalledWith("❌ No active service at this time");
+    expect(ctx.reply).toHaveBeenCalledWith("❌ No hay servicio activo en este momento");
+  });
+
+  it("should show disambiguation keyboard when multiple matches", async () => {
+    const disambigResult: SearchResult = {
+      type: "disambiguation",
+      field: "origin",
+      candidates: [makeStation("Xàtiva"), makeStation("Xúquer")],
+      otherName: "Colón",
+    } as unknown as SearchResult;
+
+    const mockUseCase = {
+      execute: mock(() => Promise.resolve(disambigResult)),
+    };
+
+    const ctx = makeCtx("/salida X Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    const callArgs = ctx.reply.mock.calls[0] as unknown[];
+    const response = callArgs[0] as string;
+    const opts = callArgs[1] as { parse_mode: string; reply_markup: unknown };
+    expect(response).toContain("Varias estaciones encontradas");
+    expect(opts.parse_mode).toBe("HTML");
+    expect(opts.reply_markup).toBeDefined();
   });
 });

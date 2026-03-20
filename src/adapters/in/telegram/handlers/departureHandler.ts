@@ -1,6 +1,8 @@
 import type { Context } from "grammy";
+import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { Departure } from "@/core/domain/shared/Departure";
+import type { Station } from "@/core/domain/station/Station";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
@@ -11,13 +13,13 @@ export function departureHandler(useCase: SearchNextDepartures) {
     const args = text.trim().replace(/^\/\S+\s*/, "");
 
     if (!args) {
-      await ctx.reply("⚠️ Usage: /salida <origin> - <destination>");
+      await ctx.reply("⚠️ Uso: /salida &lt;origen&gt; - &lt;destino&gt;", { parse_mode: "HTML" });
       return;
     }
 
     const parsed = parseStations(args);
     if (!parsed) {
-      await ctx.reply("⚠️ Usage: /salida <origin> - <destination>");
+      await ctx.reply("⚠️ Uso: /salida &lt;origen&gt; - &lt;destino&gt;", { parse_mode: "HTML" });
       return;
     }
 
@@ -25,24 +27,38 @@ export function departureHandler(useCase: SearchNextDepartures) {
 
     try {
       const result = await useCase.execute(originName, destinationName, new Date());
+
+      if (result.type === "disambiguation") {
+        await ctx.reply(formatDisambiguation(result.field, result.candidates), {
+          parse_mode: "HTML",
+          reply_markup: buildDisambiguationKeyboard(
+            result.field,
+            result.candidates,
+            result.otherName,
+          ),
+        });
+        return;
+      }
+
       await ctx.reply(
         formatDepartures(
-          result.origin.name.value,
-          result.destination.name.value,
-          result.departures,
+          result.data.origin.name.value,
+          result.data.destination.name.value,
+          result.data.departures,
         ),
+        { parse_mode: "HTML" },
       );
     } catch (err) {
       if (err instanceof StationNotFoundError) {
         const match = /^Station not found: "(.+)"$/.exec(err.message);
         const stationName = match ? match[1] : "unknown";
-        await ctx.reply(`❌ Station not found: ${stationName}`);
+        await ctx.reply(`❌ Estación no encontrada: ${stationName}`);
       } else if (err instanceof NoConnectionError) {
-        await ctx.reply(`❌ No connection found between ${originName} and ${destinationName}`);
+        await ctx.reply(`❌ No hay conexión entre ${originName} y ${destinationName}`);
       } else if (err instanceof NoActiveServiceError) {
-        await ctx.reply("❌ No active service at this time");
+        await ctx.reply("❌ No hay servicio activo en este momento");
       } else {
-        await ctx.reply("❌ An unexpected error occurred. Please try again later.");
+        await ctx.reply("❌ Error inesperado. Inténtalo de nuevo más tarde.");
       }
     }
   };
@@ -64,20 +80,42 @@ function parseStations(args: string): { originName: string; destinationName: str
 }
 
 function formatDepartures(origin: string, destination: string, departures: Departure[]): string {
-  const header = `🚇 ${origin} → ${destination}`;
+  const header = `🚇 <b>${origin} → ${destination}</b>`;
   const lines = departures.map((d, i) => {
     const h = String(d.departureTime.hours).padStart(2, "0");
     const m = String(d.departureTime.minutes).padStart(2, "0");
-    const time = `${h}:${m}`;
-    return `${i + 1}. ${time} (in ${d.minutesRemaining} min) — ${d.lineName}`;
+    const time = `<b>${h}:${m}</b>`;
+    const headsign = d.headsign ? ` → ${d.headsign}` : "";
+    return `${i + 1}. ${time} (${d.minutesRemaining} min) — <b>${d.lineName}</b>${headsign}`;
   });
 
   return [
     header,
     "",
-    "Next departures:",
+    "Próximas salidas:",
     ...lines,
     "",
-    "ℹ️ Planned schedules. Real times may vary.",
+    "ℹ️ Horarios planificados. Los tiempos reales pueden variar.",
   ].join("\n");
+}
+
+function formatDisambiguation(field: "origin" | "destination", candidates: Station[]): string {
+  const fieldLabel = field === "origin" ? "origen" : "destino";
+  const names = candidates.map((c) => c.name.value).join(", ");
+  return `🔍 Varias estaciones encontradas como ${fieldLabel}: ${names}\n\n¿Cuál querías decir?`;
+}
+
+function buildDisambiguationKeyboard(
+  field: "origin" | "destination",
+  candidates: Station[],
+  otherName: string,
+): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  for (const candidate of candidates) {
+    // Callback data format: d|o|StationName|OtherName or d|d|OtherName|StationName
+    const f = field === "origin" ? "o" : "d";
+    const data = `d|${f}|${candidate.name.value}|${otherName}`;
+    keyboard.text(candidate.name.value, data.slice(0, 64)).row();
+  }
+  return keyboard;
 }

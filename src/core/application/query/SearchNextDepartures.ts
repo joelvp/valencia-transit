@@ -18,6 +18,15 @@ export interface DepartureResult {
   searchedAt: Date;
 }
 
+export type SearchResult =
+  | { type: "departures"; data: DepartureResult }
+  | {
+      type: "disambiguation";
+      field: "origin" | "destination";
+      candidates: Station[];
+      otherName: string;
+    };
+
 export class SearchNextDepartures {
   constructor(
     private readonly stationRepository: StationRepository,
@@ -28,9 +37,29 @@ export class SearchNextDepartures {
     private readonly maxDepartures: number = 5,
   ) {}
 
-  async execute(originName: string, destinationName: string, now: Date): Promise<DepartureResult> {
-    const origin = await this.resolveStation(originName);
-    const destination = await this.resolveStation(destinationName);
+  async execute(originName: string, destinationName: string, now: Date): Promise<SearchResult> {
+    const originResult = await this.resolveStation(originName);
+    if (Array.isArray(originResult)) {
+      return {
+        type: "disambiguation",
+        field: "origin",
+        candidates: originResult,
+        otherName: destinationName,
+      };
+    }
+
+    const destResult = await this.resolveStation(destinationName);
+    if (Array.isArray(destResult)) {
+      return {
+        type: "disambiguation",
+        field: "destination",
+        candidates: destResult,
+        otherName: originName,
+      };
+    }
+
+    const origin = originResult;
+    const destination = destResult;
 
     const allLines = await this.lineRepository.findByStations(origin.id, destination.id);
     const connectingLines = allLines.filter((line) =>
@@ -79,19 +108,18 @@ export class SearchNextDepartures {
     );
 
     return {
-      origin,
-      destination,
-      departures: topDepartures,
-      searchedAt: now,
+      type: "departures",
+      data: { origin, destination, departures: topDepartures, searchedAt: now },
     };
   }
 
-  private async resolveStation(name: string): Promise<Station> {
+  private async resolveStation(name: string): Promise<Station | Station[]> {
     const exact = await this.stationRepository.findByName(name);
     if (exact) return exact;
 
     const results = await this.stationRepository.searchByName(name);
     if (results.length === 1) return results[0]!;
+    if (results.length > 1) return results.slice(0, 5);
 
     throw new StationNotFoundError(name);
   }

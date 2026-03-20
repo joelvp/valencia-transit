@@ -1,17 +1,17 @@
 import type { Context } from "grammy";
 
 const HELP_TEXT = [
-  "🤖 Valencia Transit Bot",
+  "🤖 <b>Valencia Transit Bot</b>",
   "",
-  "Available commands:",
-  "/salida <origin> - <destination> — Next departures between two stations",
-  "/s <origin> - <destination> — Shortcut for /salida",
-  "/paradas — List all stations",
-  "/help — Show this help",
+  "Comandos disponibles:",
+  "/salida &lt;origen&gt; - &lt;destino&gt; — Próximas salidas entre dos estaciones",
+  "/s &lt;origen&gt; - &lt;destino&gt; — Atajo para /salida",
+  "/paradas — Listar estaciones",
+  "/help — Mostrar esta ayuda",
 ].join("\n");
 
 export function helpHandler() {
   return async (ctx: Context): Promise<void> => {
-    await ctx.reply(HELP_TEXT);
+    await ctx.reply(HELP_TEXT, { parse_mode: "HTML" });
   };
 }

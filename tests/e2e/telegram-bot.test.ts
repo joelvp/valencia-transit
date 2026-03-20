@@ -196,7 +196,7 @@ describe("TelegramBot E2E", () => {
     const reply = replies[0]!;
     expect(reply).toContain("Xàtiva");
     expect(reply).toContain("Colón");
-    expect(reply).toContain("Next departures:");
+    expect(reply).toContain("Próximas salidas:");
     expect(reply).toContain("23:00");
   });
 
@@ -204,14 +204,14 @@ describe("TelegramBot E2E", () => {
     await bot.handleUpdate(makeCommandUpdate("/salida Desconocida Colón"));
 
     expect(replies).toHaveLength(1);
-    expect(replies[0]!).toContain("❌ Station not found");
+    expect(replies[0]!).toContain("❌ Estación no encontrada");
   });
 
   it("should reply with usage hint for /salida with no args", async () => {
     await bot.handleUpdate(makeCommandUpdate("/salida"));
 
     expect(replies).toHaveLength(1);
-    expect(replies[0]!).toContain("⚠️ Usage:");
+    expect(replies[0]!).toContain("Uso:");
   });
 
   it("should reply with station list with lines for /paradas", async () => {

@@ -7,7 +7,7 @@ import type {
 export function stationHandler(useCase: ListStationsWithLines) {
   return async (ctx: Context): Promise<void> => {
     const result = await useCase.execute();
-    await ctx.reply(formatStations(result));
+    await ctx.reply(formatStations(result), { parse_mode: "HTML" });
   };
 }
 
@@ -28,7 +28,7 @@ function hexToLineEmoji(hex: string | null): string {
 
 function formatStations(stationsWithLines: StationWithLines[]): string {
   if (stationsWithLines.length === 0) {
-    return "ℹ️ No stations available.";
+    return "ℹ️ No hay estaciones disponibles.";
   }
 
   const lines = stationsWithLines.map(({ station, lines }) => {
@@ -38,5 +38,5 @@ function formatStations(stationsWithLines: StationWithLines[]): string {
     return lineLabels ? `${station.name.value} — ${lineLabels}` : station.name.value;
   });
 
-  return ["🚉 Available stations:", "", ...lines].join("\n");
+  return ["🚉 <b>Estaciones disponibles:</b>", "", ...lines].join("\n");
 }

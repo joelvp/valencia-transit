@@ -131,12 +131,14 @@ describe("SearchNextDepartures", () => {
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
-    expect(result.origin).toEqual(origin);
-    expect(result.destination).toEqual(destination);
-    expect(result.departures).toHaveLength(1);
-    expect(result.departures[0]!.lineName).toBe("L3");
-    expect(result.departures[0]!.headsign).toBe("Direction A");
-    expect(result.searchedAt).toEqual(now);
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.origin).toEqual(origin);
+    expect(result.data.destination).toEqual(destination);
+    expect(result.data.departures).toHaveLength(1);
+    expect(result.data.departures[0]!.lineName).toBe("L3");
+    expect(result.data.departures[0]!.headsign).toBe("Direction A");
+    expect(result.data.searchedAt).toEqual(now);
   });
 
   it("should publish a DepartureSearched event", async () => {
@@ -173,8 +175,10 @@ describe("SearchNextDepartures", () => {
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
-    expect(result.origin).toEqual(origin);
-    expect(result.destination).toEqual(destination);
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.origin).toEqual(origin);
+    expect(result.data.destination).toEqual(destination);
   });
 
   it("should throw StationNotFoundError when station cannot be resolved", async () => {
@@ -193,10 +197,16 @@ describe("SearchNextDepartures", () => {
     expect(useCase.execute("Unknown", "Colón", now)).rejects.toBeInstanceOf(StationNotFoundError);
   });
 
-  it("should throw StationNotFoundError when searchByName returns multiple results", async () => {
+  it("should return disambiguation when origin has multiple matches", async () => {
+    const station3 = new Station(
+      new StationId("S3"),
+      new StationName("Àngel Guimerà"),
+      new StationLocation(39.46, -0.38),
+    );
+
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: () => Promise.resolve(null),
-      searchByName: () => Promise.resolve([origin, destination]),
+      searchByName: () => Promise.resolve([origin, destination, station3]),
     });
 
     const useCase = new SearchNextDepartures(
@@ -206,7 +216,41 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       eventBus,
     );
-    expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(StationNotFoundError);
+    const result = await useCase.execute("Xàtiva", "Colón", now);
+
+    expect(result.type).toBe("disambiguation");
+    if (result.type !== "disambiguation") return;
+    expect(result.field).toBe("origin");
+    expect(result.candidates).toHaveLength(3);
+    expect(result.otherName).toBe("Colón");
+  });
+
+  it("should return disambiguation when destination has multiple matches", async () => {
+    const station3 = new Station(
+      new StationId("S3"),
+      new StationName("Àngel Guimerà"),
+      new StationLocation(39.46, -0.38),
+    );
+
+    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) => Promise.resolve(name === "Xàtiva" ? origin : null),
+      searchByName: () => Promise.resolve([destination, station3]),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", now);
+
+    expect(result.type).toBe("disambiguation");
+    if (result.type !== "disambiguation") return;
+    expect(result.field).toBe("destination");
+    expect(result.candidates).toHaveLength(2);
+    expect(result.otherName).toBe("Xàtiva");
   });
 
   it("should throw NoConnectionError when no connecting lines found", async () => {
@@ -285,6 +329,8 @@ describe("SearchNextDepartures", () => {
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
-    expect(result.departures).toHaveLength(3);
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(3);
   });
 });

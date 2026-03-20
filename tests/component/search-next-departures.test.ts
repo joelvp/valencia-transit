@@ -141,9 +141,11 @@ describe("SearchNextDepartures Component Test", () => {
 
     const result = await useCase.execute("Colón", "Xàtiva", now);
 
-    expect(result.departures).toHaveLength(1);
-    expect(result.departures[0]!.departureTime.value).toBe("06:00:00");
-    expect(result.departures[0]!.headsign).toBe("Xàtiva");
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(1);
+    expect(result.data.departures[0]!.departureTime.value).toBe("06:00:00");
+    expect(result.data.departures[0]!.headsign).toBe("Xàtiva");
   });
 
   it("should return next departure from Xàtiva to Colón on a weekday", async () => {
@@ -158,9 +160,11 @@ describe("SearchNextDepartures Component Test", () => {
 
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
-    expect(result.departures).toHaveLength(1);
-    expect(result.departures[0]!.departureTime.value).toBe("06:10:00");
-    expect(result.departures[0]!.headsign).toBe("Colón");
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(1);
+    expect(result.data.departures[0]!.departureTime.value).toBe("06:10:00");
+    expect(result.data.departures[0]!.headsign).toBe("Colón");
   });
 
   it("should throw NoActiveServiceError on a Saturday", async () => {

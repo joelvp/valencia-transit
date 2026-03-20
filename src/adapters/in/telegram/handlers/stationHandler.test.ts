@@ -60,7 +60,8 @@ describe("stationHandler", () => {
     const handler = stationHandler(mockUseCase as never);
     await handler(ctx as never);
 
-    expect(ctx.reply).toHaveBeenCalledWith("ℹ️ No stations available.");
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("No hay estaciones disponibles");
   });
 
   it("should show white circle for unknown colors", async () => {
