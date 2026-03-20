@@ -37,6 +37,7 @@ export const lines = pgTable(
     name: text("name").notNull(), // GTFS route_long_name or route_short_name
     shortName: text("short_name"), // GTFS route_short_name
     transportType: text("transport_type").notNull(), // 'metro', 'bus', 'tram'
+    color: text("color"), // GTFS route_color (hex, no #)
   },
   (t) => ({
     pk: primaryKey({ columns: [t.id, t.feedId] }),

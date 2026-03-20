@@ -63,6 +63,30 @@ export class LineRepositoryDrizzle implements LineRepository {
     );
   }
 
+  async findByStationId(stationId: StationId): Promise<Line[]> {
+    const stopRows = await this.db
+      .select({ lineId: lineStations.lineId, feedId: lineStations.feedId })
+      .from(lineStations)
+      .where(eq(lineStations.stationId, stationId.value));
+
+    if (stopRows.length === 0) return [];
+
+    const lineIds = [...new Set(stopRows.map((r) => r.lineId))];
+    const lineRows = await this.db.select().from(lines).where(inArray(lines.id, lineIds));
+
+    return Promise.all(
+      lineRows.map(async (lineRow) => {
+        const lineStopRows = await this.db
+          .select()
+          .from(lineStations)
+          .where(
+            and(eq(lineStations.lineId, lineRow.id), eq(lineStations.feedId, lineRow.feedId)),
+          );
+        return LineMapper.toDomain(lineRow, lineStopRows);
+      }),
+    );
+  }
+
   async findAll(): Promise<Line[]> {
     const lineRows = await this.db.select().from(lines);
 

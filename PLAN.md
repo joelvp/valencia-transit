@@ -361,7 +361,7 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 - [x] Structural validation already covered: parser throws on missing CSVs, VOs throw on malformed data
 - [x] No automated E2E test needed — departures query will be validated in Phase 5 with real imported data
 
-> Anomaly detection (dataset shrinks suspiciously, lines disappear, schedules don't cover today) is **Phase 8** responsibility — `CheckDatasetVersion` will compare incoming dataset against existing DB before committing the import.
+> Anomaly detection (dataset shrinks suspiciously, lines disappear, schedules don't cover today) is **Phase 9** responsibility — `CheckDatasetVersion` will compare incoming dataset against existing DB before committing the import.
 
 **Exit criteria**: ✅ Manual run succeeds. Structural errors already caught by parser + VOs. Anomaly detection deferred to Phase 8.
 
@@ -431,22 +431,77 @@ All items below were implemented as part of Phase 4B and 4C:
 - [x] `PersistAllEventsSubscriber` use case — generic event persistence subscriber (4C)
 - [x] Event wiring in `src/adapters/container.ts` (4C)
 
-Analytics queries (JSONB-based) deferred to Phase 9 or post-MVP.
+Analytics queries (JSONB-based) deferred to Phase 10 or post-MVP.
 
 ---
 
-### Phase 8 — Automatic GTFS Download & Version Detection
+### Phase 8 — UX & Usability
+
+Improve the bot's user experience: fuzzy search, command menu, line colors, disambiguation, HTML formatting, and graceful "no more trains" messages.
+
+#### 8A — Fuzzy Station Search (pg_trgm)
+
+- [ ] Hand-written SQL migration: `CREATE EXTENSION IF NOT EXISTS pg_trgm` + GIN index on `stations.name`
+- [ ] Update `StationRepositoryDrizzle.searchByName` — trigram similarity + `ILIKE` fallback, ordered by relevance
+- [ ] Integration tests: fuzzy matches ("Xativa" → "Xàtiva", "nou octubre" → "Nou d'Octubre")
+
+#### 8B — "Did you mean...?" with Inline Keyboards
+
+- [ ] `SearchNextDepartures` returns discriminated union: `departures | disambiguation`
+- [ ] `departureHandler` — show inline keyboard with station candidates on ambiguity
+- [ ] New `callbackHandler` — handle button press, re-run search with resolved station
+- [ ] Register callback handler in `TelegramBot`
+
+#### 8C — Command Menu (setMyCommands)
+
+- [ ] Call `bot.api.setMyCommands()` in `TelegramBot.start()` before `bot.start()`
+
+#### 8D — Alias `/s` for `/salida`
+
+- [ ] Register `/s` command in `TelegramBot`
+- [ ] Update help text
+
+#### 8E — Line Colors
+
+- [ ] `LineColor` VO — validates hex color (6 chars, no `#` prefix)
+- [ ] `Line` entity — add `color: LineColor | null`
+- [ ] Schema migration — add `color` column to `lines` table
+- [ ] `LineMapper` — map `color` field
+- [ ] `GtfsParser` — read `route_color` from `routes.txt`
+- [ ] `LineRepository` port — add `findByStationId(stationId)`
+- [ ] `LineRepositoryDrizzle` — implement `findByStationId`
+- [ ] `ListStationsWithLines` use case — returns stations with their lines
+- [ ] `stationHandler` — format stations with line color emojis
+- [ ] Wire `ListStationsWithLines` in `TelegramBot` + `main.ts`
+
+#### 8F — Improved Departure Format (HTML)
+
+- [ ] Switch handlers to `{ parse_mode: "HTML" }`
+- [ ] Format departures with `<b>bold</b>` times and line names
+- [ ] Add line color emoji in departures
+
+#### 8G — "No More Trains Today"
+
+- [ ] Extend `SearchResult` with `no_more_today` variant
+- [ ] `SearchNextDepartures` — find first departure tomorrow when empty
+- [ ] `departureHandler` — friendly "no more trains" message with first tomorrow departure
+
+**Exit criteria**: Fuzzy search works, command menu visible, disambiguation with buttons, HTML-formatted responses, stations show line colors, graceful handling of last train.
+
+---
+
+### Phase 9 — Automatic GTFS Download & Version Detection
 
 Automate the full data pipeline: detect new GTFS versions, download, import, notify.
 
-#### 8A — NAP Client
+#### 9A — NAP Client
 
 - [ ] `NapClient.ts` — HTTP client for NAP portal:
   - `login(username, password)` — POST to login endpoint, get session cookie
   - `downloadZip(sessionCookie)` — GET download endpoint, save to disk
 - [ ] Tests with mocked HTTP
 
-#### 8B — Version Checker
+#### 9B — Version Checker
 
 - [ ] `GtfsVersionChecker.ts` — fetch public NAP page, extract metadata (publication date, validity, file size)
 - [ ] `DatasetVersionRepository` — port interface in `core/domain/shared/`: `findLatest()`, `save(version)`
@@ -454,7 +509,7 @@ Automate the full data pipeline: detect new GTFS versions, download, import, not
 - [ ] `CheckDatasetVersion.ts` use case — compare metadata with `DatasetVersionRepository`, trigger import if new
 - [ ] **Anomaly detection** — before committing import, compare incoming counts against current DB (stations, lines, schedules). If any drops below a threshold (e.g. <50% of current), abort and notify admin instead of replacing good data with a truncated dataset.
 
-#### 8C — Cron Job
+#### 9C — Cron Job
 
 - [ ] `config/cron.ts` — daily job (overnight) that runs `CheckDatasetVersion`
 - [ ] Full automated flow: detect → download → import → notify admin
@@ -464,10 +519,8 @@ Automate the full data pipeline: detect new GTFS versions, download, import, not
 
 ---
 
-### Phase 9 — Polish & Hardening
+### Phase 10 — Hardening
 
-- [ ] Fuzzy station search with `pg_trgm` (Postgres trigram extension) or `fuse.js` in-memory
-- [ ] Better error messages (station suggestions on typos, "did you mean...?")
 - [ ] Rate limiting (grammY built-in throttling)
 - [ ] Logging (structured logs, differentiate local/dev/prod)
 - [ ] Health check endpoint (for Railway monitoring)
@@ -493,7 +546,6 @@ These are not prioritized yet. They represent growth directions.
 
 ### Advanced Features
 
-- Interactive station selection (Telegram inline keyboards)
 - Favorite routes per user
 - Push notifications for service disruptions
 - Multi-language support (Spanish, Valencian, English)

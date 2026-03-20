@@ -57,6 +57,7 @@ function makeMocks() {
   const lineRepository: LineRepository = {
     findById: mock(() => Promise.resolve(null)),
     findByStations: mock(() => Promise.resolve([])),
+    findByStationId: mock(() => Promise.resolve([])),
     findAll: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),

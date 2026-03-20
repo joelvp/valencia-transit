@@ -69,8 +69,9 @@ function makeRepos(
     findByName: (name: string) => Promise<Station | null>;
     searchByName: (query: string) => Promise<Station[]>;
     findByStations: () => Promise<Line[]>;
-    findActiveOn: () => Promise<Schedule[]>;
-    findDeparturesFromStation: () => Promise<Trip[]>;
+    findActiveOn: (date: Date) => Promise<Schedule[]>;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    findDeparturesFromStation: (...args: any[]) => Promise<Trip[]>;
   }>,
 ): {
   stationRepo: StationRepository;
@@ -91,6 +92,7 @@ function makeRepos(
   const lineRepo: LineRepository = {
     findByStations: mock(overrides.findByStations ?? (() => Promise.resolve([line]))),
     findById: mock(() => Promise.resolve(null)),
+    findByStationId: mock(() => Promise.resolve([])),
     findAll: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
@@ -134,12 +136,14 @@ describe("SearchNextDepartures", () => {
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
-    expect(result.origin).toEqual(origin);
-    expect(result.destination).toEqual(destination);
-    expect(result.departures).toHaveLength(1);
-    expect(result.departures[0]!.lineName).toBe("L3");
-    expect(result.departures[0]!.headsign).toBe("Direction A");
-    expect(result.searchedAt).toEqual(now);
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.origin).toEqual(origin);
+    expect(result.data.destination).toEqual(destination);
+    expect(result.data.departures).toHaveLength(1);
+    expect(result.data.departures[0]!.lineName).toBe("L3");
+    expect(result.data.departures[0]!.headsign).toBe("Direction A");
+    expect(result.data.searchedAt).toEqual(now);
   });
 
   it("should publish a DepartureSearched event", async () => {
@@ -176,8 +180,10 @@ describe("SearchNextDepartures", () => {
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
-    expect(result.origin).toEqual(origin);
-    expect(result.destination).toEqual(destination);
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.origin).toEqual(origin);
+    expect(result.data.destination).toEqual(destination);
   });
 
   it("should throw StationNotFoundError when station cannot be resolved", async () => {
@@ -196,10 +202,16 @@ describe("SearchNextDepartures", () => {
     expect(useCase.execute("Unknown", "Colón", now)).rejects.toBeInstanceOf(StationNotFoundError);
   });
 
-  it("should throw StationNotFoundError when searchByName returns multiple results", async () => {
+  it("should return disambiguation when origin has multiple matches", async () => {
+    const station3 = new Station(
+      new StationId("S3"),
+      new StationName("Àngel Guimerà"),
+      new StationLocation(39.46, -0.38),
+    );
+
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: () => Promise.resolve(null),
-      searchByName: () => Promise.resolve([origin, destination]),
+      searchByName: () => Promise.resolve([origin, destination, station3]),
     });
 
     const useCase = new SearchNextDepartures(
@@ -209,7 +221,41 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       eventBus,
     );
-    expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(StationNotFoundError);
+    const result = await useCase.execute("Xàtiva", "Colón", now);
+
+    expect(result.type).toBe("disambiguation");
+    if (result.type !== "disambiguation") return;
+    expect(result.field).toBe("origin");
+    expect(result.candidates).toHaveLength(3);
+    expect(result.otherName).toBe("Colón");
+  });
+
+  it("should return disambiguation when destination has multiple matches", async () => {
+    const station3 = new Station(
+      new StationId("S3"),
+      new StationName("Àngel Guimerà"),
+      new StationLocation(39.46, -0.38),
+    );
+
+    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) => Promise.resolve(name === "Xàtiva" ? origin : null),
+      searchByName: () => Promise.resolve([destination, station3]),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", now);
+
+    expect(result.type).toBe("disambiguation");
+    if (result.type !== "disambiguation") return;
+    expect(result.field).toBe("destination");
+    expect(result.candidates).toHaveLength(2);
+    expect(result.otherName).toBe("Xàtiva");
   });
 
   it("should throw NoConnectionError when no connecting lines found", async () => {
@@ -288,6 +334,77 @@ describe("SearchNextDepartures", () => {
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
-    expect(result.departures).toHaveLength(3);
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(3);
+  });
+
+  it("should return no_more_today when no departures remain and find first tomorrow", async () => {
+    // Trips only at 06:00 — querying at 23:00 yields nothing today
+    const lateNow = new Date(2026, 2, 18, 23, 0, 0);
+    const earlyTrip = new Trip(
+      new TripId("T-early"),
+      lineId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("06:00:00"), new TimeOfDay("06:00:00"), 1),
+        new PassingTime(destId, new TimeOfDay("06:10:00"), new TimeOfDay("06:10:00"), 2),
+      ],
+      "Direction A",
+    );
+
+    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findDeparturesFromStation: (stationId, after) => {
+        // After 23:00 → no trips. After 00:00 (tomorrow query) → return earlyTrip
+        if (after.value === "00:00:00") return Promise.resolve([earlyTrip]);
+        return Promise.resolve([]);
+      },
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", lateNow);
+
+    expect(result.type).toBe("no_more_today");
+    if (result.type !== "no_more_today") return;
+    expect(result.origin).toEqual(origin);
+    expect(result.destination).toEqual(destination);
+    expect(result.firstTomorrow).not.toBeNull();
+    expect(result.firstTomorrow!.departureTime.value).toBe("06:00:00");
+  });
+
+  it("should return no_more_today with null firstTomorrow when no service tomorrow", async () => {
+    const lateNow = new Date(2026, 2, 18, 23, 0, 0);
+
+    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findDeparturesFromStation: () => Promise.resolve([]),
+      findActiveOn: (date) => {
+        // Only today has service, tomorrow doesn't
+        if (date.getDate() === 18) return Promise.resolve([makeSchedule()]);
+        return Promise.resolve([]);
+      },
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", lateNow);
+
+    expect(result.type).toBe("no_more_today");
+    if (result.type !== "no_more_today") return;
+    expect(result.firstTomorrow).toBeNull();
   });
 });

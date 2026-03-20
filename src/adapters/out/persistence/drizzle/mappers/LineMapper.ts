@@ -1,12 +1,14 @@
 import { Line } from "@/core/domain/line/Line";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
+import { LineColor } from "@/core/domain/line/LineColor";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { StationId } from "@/core/domain/station/StationId";
 
 type LineRow = {
   id: string;
   name: string;
+  color: string | null;
 };
 
 type LineStationRow = {
@@ -20,6 +22,7 @@ type LineInsert = {
   name: string;
   shortName: string | null;
   transportType: string;
+  color: string | null;
 };
 
 type LineStationInsert = {
@@ -40,7 +43,8 @@ export const LineMapper = {
       (ls) => new LineStop(new StationId(ls.stationId), ls.sequence),
     );
 
-    return new Line(new LineId(row.id), new LineName(row.name), stops);
+    const color = row.color ? new LineColor(row.color) : null;
+    return new Line(new LineId(row.id), new LineName(row.name), stops, color);
   },
 
   toPersistence(line: Line, feedId: string): LinePersistenceResult {
@@ -50,6 +54,7 @@ export const LineMapper = {
       name: line.name.value,
       shortName: null,
       transportType: "metro",
+      color: line.color?.value ?? null,
     };
 
     const lineStations: LineStationInsert[] = line.stops.map((stop) => ({

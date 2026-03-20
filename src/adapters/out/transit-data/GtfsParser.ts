@@ -4,6 +4,7 @@ import { StationLocation } from "@/core/domain/station/StationLocation";
 import { Line } from "@/core/domain/line/Line";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
+import { LineColor } from "@/core/domain/line/LineColor";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { StationId } from "@/core/domain/station/StationId";
 import { Schedule } from "@/core/domain/schedule/Schedule";
@@ -146,11 +147,16 @@ export class GtfsParser {
       stopTimesByTrip.get(tripId)!.push(row);
     }
 
-    // Build route name map
+    // Build route name and color maps
     const routeNameMap = new Map<string, string>();
+    const routeColorMap = new Map<string, string>();
     for (const row of routeRows) {
       const name = row["route_long_name"] || row["route_short_name"] || row["route_id"]!;
       routeNameMap.set(row["route_id"]!, name);
+      const colorHex = row["route_color"]?.trim();
+      if (colorHex) {
+        routeColorMap.set(row["route_id"]!, colorHex);
+      }
     }
 
     // Group trips by route_id (direction encoded in route_id for MetroValencia)
@@ -185,7 +191,9 @@ export class GtfsParser {
         .sort((a, b) => a[1] - b[1])
         .map(([stationId, sequence]) => new LineStop(new StationId(stationId), sequence));
 
-      lines.push(new Line(lineId, new LineName(name), stops));
+      const colorHex = routeColorMap.get(routeId);
+      const color = colorHex ? new LineColor(colorHex) : null;
+      lines.push(new Line(lineId, new LineName(name), stops, color));
     }
 
     return lines;
