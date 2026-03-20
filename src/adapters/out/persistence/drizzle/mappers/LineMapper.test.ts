@@ -3,13 +3,14 @@ import { LineMapper } from "./LineMapper";
 import { Line } from "@/core/domain/line/Line";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
+import { LineColor } from "@/core/domain/line/LineColor";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { StationId } from "@/core/domain/station/StationId";
 
 describe("LineMapper", () => {
   describe("toDomain", () => {
     it("should convert a DB row with multiple stops to a Line domain entity", () => {
-      const row = { id: "line-1", name: "Línia 1" };
+      const row = { id: "line-1", name: "Línia 1", color: "DA291C" };
       const lineStationRows = [
         { stationId: "station-1", sequence: 1 },
         { stationId: "station-2", sequence: 2 },
@@ -20,6 +21,7 @@ describe("LineMapper", () => {
 
       expect(line.id.value).toBe("line-1");
       expect(line.name.value).toBe("Línia 1");
+      expect(line.color?.value).toBe("DA291C");
       expect(line.stops).toHaveLength(3);
       expect(line.stops[0]!.stationId.value).toBe("station-1");
       expect(line.stops[0]!.sequence).toBe(1);
@@ -28,7 +30,7 @@ describe("LineMapper", () => {
     });
 
     it("should return a Line instance", () => {
-      const row = { id: "line-1", name: "Línia 1" };
+      const row = { id: "line-1", name: "Línia 1", color: null };
       const lineStationRows = [{ stationId: "station-1", sequence: 1 }];
 
       const line = LineMapper.toDomain(row, lineStationRows);
@@ -36,8 +38,16 @@ describe("LineMapper", () => {
       expect(line).toBeInstanceOf(Line);
     });
 
+    it("should handle null color", () => {
+      const row = { id: "line-1", name: "Línia 1", color: null };
+
+      const line = LineMapper.toDomain(row, []);
+
+      expect(line.color).toBeNull();
+    });
+
     it("should handle empty stops array", () => {
-      const row = { id: "line-1", name: "Línia 1" };
+      const row = { id: "line-1", name: "Línia 1", color: null };
 
       const line = LineMapper.toDomain(row, []);
 
@@ -51,7 +61,12 @@ describe("LineMapper", () => {
         new LineStop(new StationId("station-1"), 1),
         new LineStop(new StationId("station-2"), 2),
       ];
-      const line = new Line(new LineId("line-1"), new LineName("Línia 1"), stops);
+      const line = new Line(
+        new LineId("line-1"),
+        new LineName("Línia 1"),
+        stops,
+        new LineColor("DA291C"),
+      );
 
       const result = LineMapper.toPersistence(line, "metrovalencia");
 
@@ -60,6 +75,7 @@ describe("LineMapper", () => {
       expect(result.line.name).toBe("Línia 1");
       expect(result.line.shortName).toBeNull();
       expect(result.line.transportType).toBe("metro");
+      expect(result.line.color).toBe("DA291C");
 
       expect(result.lineStations).toHaveLength(2);
       expect(result.lineStations[0]!.lineId).toBe("line-1");
@@ -69,6 +85,14 @@ describe("LineMapper", () => {
       expect(result.lineStations[1]!.stationId).toBe("station-2");
       expect(result.lineStations[1]!.sequence).toBe(2);
     });
+
+    it("should persist null color when line has no color", () => {
+      const line = new Line(new LineId("line-1"), new LineName("Línia 1"), []);
+
+      const result = LineMapper.toPersistence(line, "metrovalencia");
+
+      expect(result.line.color).toBeNull();
+    });
   });
 
   describe("round-trip", () => {
@@ -77,13 +101,19 @@ describe("LineMapper", () => {
         new LineStop(new StationId("station-1"), 1),
         new LineStop(new StationId("station-2"), 2),
       ];
-      const original = new Line(new LineId("line-1"), new LineName("Línia 1"), stops);
+      const original = new Line(
+        new LineId("line-1"),
+        new LineName("Línia 1"),
+        stops,
+        new LineColor("FFA500"),
+      );
 
       const { line: lineRow, lineStations } = LineMapper.toPersistence(original, "metrovalencia");
       const restored = LineMapper.toDomain(lineRow, lineStations);
 
       expect(restored.id.value).toBe(original.id.value);
       expect(restored.name.value).toBe(original.name.value);
+      expect(restored.color?.value).toBe(original.color?.value);
       expect(restored.stops).toHaveLength(original.stops.length);
       expect(restored.stops[0]!.stationId.value).toBe(original.stops[0]!.stationId.value);
       expect(restored.stops[1]!.sequence).toBe(original.stops[1]!.sequence);

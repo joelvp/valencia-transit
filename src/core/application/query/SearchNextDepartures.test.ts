@@ -90,6 +90,7 @@ function makeRepos(
   const lineRepo: LineRepository = {
     findByStations: mock(overrides.findByStations ?? (() => Promise.resolve([line]))),
     findById: mock(() => Promise.resolve(null)),
+    findByStationId: mock(() => Promise.resolve([])),
     findAll: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),

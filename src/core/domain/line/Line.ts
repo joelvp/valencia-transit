@@ -1,6 +1,7 @@
 import type { LineId } from "./LineId.ts";
 import type { LineName } from "./LineName.ts";
 import type { LineStop } from "./LineStop.ts";
+import type { LineColor } from "./LineColor.ts";
 import type { StationId } from "../station/StationId.ts";
 
 export class Line {
@@ -8,6 +9,7 @@ export class Line {
     readonly id: LineId,
     readonly name: LineName,
     readonly stops: LineStop[],
+    readonly color: LineColor | null = null,
   ) {}
 
   connectsInOrder(origin: StationId, destination: StationId): boolean {

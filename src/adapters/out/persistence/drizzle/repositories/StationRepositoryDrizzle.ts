@@ -1,4 +1,4 @@
-import { eq, ilike } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { Station } from "@/core/domain/station/Station";
@@ -21,10 +21,18 @@ export class StationRepositoryDrizzle implements StationRepository {
   }
 
   async searchByName(query: string): Promise<Station[]> {
-    const rows = await this.db
-      .select()
-      .from(stations)
-      .where(ilike(stations.name, `%${query}%`));
+    const rows = await this.db.execute<{
+      id: string;
+      name: string;
+      latitude: number;
+      longitude: number;
+    }>(sql`
+      SELECT id, name, latitude, longitude
+      FROM stations
+      WHERE name % ${query}::text OR name ILIKE ${"%" + query + "%"}
+      ORDER BY similarity(name, ${query}::text) DESC
+      LIMIT 10
+    `);
     return rows.map((row) => StationMapper.toDomain(row));
   }
 

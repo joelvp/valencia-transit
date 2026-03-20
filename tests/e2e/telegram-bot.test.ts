@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test"
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createContainer, type Container } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
-import { ListAllStations } from "@/core/application/query/ListAllStations";
+import { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { clearDatabase } from "../helpers/db";
 import {
@@ -45,7 +45,10 @@ describe("TelegramBot E2E", () => {
       container.tripRepository,
       container.eventBus,
     );
-    const listAllStations = new ListAllStations(container.stationRepository);
+    const listStationsWithLines = new ListStationsWithLines(
+      container.stationRepository,
+      container.lineRepository,
+    );
 
     const fakeBotInfo = {
       id: 123456789,
@@ -57,7 +60,7 @@ describe("TelegramBot E2E", () => {
       supports_inline_queries: false,
     } as UserFromGetMe;
 
-    bot = new TelegramBot("fake-token-for-testing", searchNextDepartures, listAllStations, {
+    bot = new TelegramBot("fake-token-for-testing", searchNextDepartures, listStationsWithLines, {
       botInfo: fakeBotInfo,
     });
 
@@ -211,7 +214,7 @@ describe("TelegramBot E2E", () => {
     expect(replies[0]!).toContain("⚠️ Usage:");
   });
 
-  it("should reply with station list for /paradas", async () => {
+  it("should reply with station list with lines for /paradas", async () => {
     await bot.handleUpdate(makeCommandUpdate("/paradas"));
 
     expect(replies).toHaveLength(1);
@@ -219,6 +222,7 @@ describe("TelegramBot E2E", () => {
     expect(reply).toContain("Colón");
     expect(reply).toContain("Xàtiva");
     expect(reply).toContain("Àngel Guimerà");
+    expect(reply).toContain("Línea 1");
   });
 
   it("should reply with help text for /help", async () => {

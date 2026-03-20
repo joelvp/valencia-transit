@@ -72,6 +72,47 @@ describe("StationRepositoryDrizzle", () => {
     expect(result).toEqual([]);
   });
 
+  describe("searchByName — fuzzy (pg_trgm)", () => {
+    beforeEach(async () => {
+      await clearTables(container.db, "stations");
+      await container.db.insert(stations).values([
+        StationMother.row({ id: "ST1", name: "Colón" }),
+        StationMother.row({ id: "ST2", name: "Xàtiva", longitude: -0.38 }),
+        StationMother.row({ id: "ST3", name: "Nou d'Octubre", longitude: -0.39 }),
+      ]);
+    });
+
+    it("should find Xàtiva when querying Xativa (accent-insensitive via trigram)", async () => {
+      const result = await repo.searchByName("Xativa");
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]!.id.value).toBe("ST2");
+    });
+
+    it("should find Nou d'Octubre when querying nou octubre (partial match with apostrophe)", async () => {
+      const result = await repo.searchByName("nou octubre");
+
+      expect(result.length).toBeGreaterThan(0);
+      const ids = result.map((s) => s.id.value);
+      expect(ids).toContain("ST3");
+    });
+
+    it("should find Colón when querying colon (accent-insensitive)", async () => {
+      const result = await repo.searchByName("colon");
+
+      expect(result.length).toBeGreaterThan(0);
+      const ids = result.map((s) => s.id.value);
+      expect(ids).toContain("ST1");
+    });
+
+    it("should return results ordered by relevance with best match first", async () => {
+      const result = await repo.searchByName("Xativa");
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]!.id.value).toBe("ST2");
+    });
+  });
+
   it("should return all stations", async () => {
     const result = await repo.findAll();
 

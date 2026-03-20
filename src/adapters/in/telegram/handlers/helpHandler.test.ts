@@ -17,6 +17,7 @@ describe("helpHandler", () => {
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const response = (ctx.reply.mock.calls[0] as unknown as [string])[0];
     expect(response).toContain("/salida <origin> - <destination>");
+    expect(response).toContain("/s <origin> - <destination>");
     expect(response).toContain("/paradas");
     expect(response).toContain("/help");
   });

@@ -3,6 +3,7 @@ import { Line } from "./Line.ts";
 import { LineId } from "./LineId.ts";
 import { LineName } from "./LineName.ts";
 import { LineStop } from "./LineStop.ts";
+import { LineColor } from "./LineColor.ts";
 import { StationId } from "../station/StationId.ts";
 
 function createLine(stops: { id: string; seq: number }[]): Line {
@@ -80,6 +81,25 @@ describe("Line", () => {
     it("should not be equal to a line with a different id", () => {
       const other = new Line(new LineId("L2"), new LineName("Line 1"), line.stops);
       expect(line.equals(other)).toBe(false);
+    });
+  });
+
+  describe("color", () => {
+    it("should default color to null when not provided", () => {
+      expect(line.color).toBeNull();
+    });
+
+    it("should store the color when provided", () => {
+      const color = new LineColor("FFA500");
+      const lineWithColor = new Line(new LineId("L1"), new LineName("Line 1"), [], color);
+      expect(lineWithColor.color?.value).toBe("FFA500");
+    });
+
+    it("equality should be based on id, not color", () => {
+      const color = new LineColor("FFA500");
+      const withColor = new Line(new LineId("L1"), new LineName("Line 1"), [], color);
+      const withoutColor = new Line(new LineId("L1"), new LineName("Line 1"), []);
+      expect(withColor.equals(withoutColor)).toBe(true);
     });
   });
 });

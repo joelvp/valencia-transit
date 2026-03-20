@@ -5,6 +5,7 @@ const HELP_TEXT = [
   "",
   "Available commands:",
   "/salida <origin> - <destination> — Next departures between two stations",
+  "/s <origin> - <destination> — Shortcut for /salida",
   "/paradas — List all stations",
   "/help — Show this help",
 ].join("\n");
