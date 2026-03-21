@@ -268,11 +268,10 @@ describe("TelegramBot E2E", () => {
     expect(reply).toContain("Xàtiva");
     expect(reply).toContain("Àngel Guimerà");
 
-    // Colón has lines — verify exact format: name + line emoji + line names
-    expect(reply).toContain("Colón  🟡 Línea 1 Anada · 🟡 Línea 1 Tornada");
+    // Colón has lines — deduped by color (FEC601), shown as L1
+    expect(reply).toContain("Colón  🟡 L1");
 
-    // No duplicates: "Colón" appears exactly once as a station entry
-    // ST1 and ST1b both have name "Colón" — ListStationsWithLines must deduplicate by name
+    // No duplicates: "Colón" appears exactly once (ST1 and ST1b merged by name)
     const colonOccurrences = reply.split("Colón  🟡").length - 1;
     expect(colonOccurrences).toBe(1);
   });

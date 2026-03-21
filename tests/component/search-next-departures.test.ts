@@ -136,7 +136,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should return next departure from Colón to Xàtiva on a weekday", async () => {
-    const now = new Date("2024-06-03T05:55:00"); // Monday
+    const now = new Date("2024-06-03T03:55:00Z") // 03:55 UTC = 05:55 Madrid (CEST); // Monday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -155,7 +155,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should return next departure from Xàtiva to Colón on a weekday", async () => {
-    const now = new Date("2024-06-03T06:05:00"); // Monday
+    const now = new Date("2024-06-03T04:05:00Z") // 04:05 UTC = 06:05 Madrid (CEST); // Monday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -174,7 +174,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should throw NoActiveServiceError on a Saturday", async () => {
-    const now = new Date("2024-06-01T05:55:00"); // Saturday
+    const now = new Date("2024-06-01T03:55:00Z") // 03:55 UTC = 05:55 Madrid (CEST); // Saturday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -189,7 +189,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should throw StationNotFoundError for unknown station", async () => {
-    const now = new Date("2024-06-03T05:55:00"); // Monday
+    const now = new Date("2024-06-03T03:55:00Z") // 03:55 UTC = 05:55 Madrid (CEST); // Monday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,

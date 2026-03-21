@@ -20,6 +20,8 @@ export class ListStationsWithLines {
       this.lineRepository.findAll(),
     ]);
 
+    const lineKey = (l: Line) => l.color?.value ?? l.name.value;
+
     const stationLinesMap = new Map<string, Line[]>();
     for (const line of allLines) {
       for (const stop of line.stops) {
@@ -28,7 +30,7 @@ export class ListStationsWithLines {
           stationLinesMap.set(key, []);
         }
         const existingLines = stationLinesMap.get(key)!;
-        if (!existingLines.some((l) => l.name.value === line.name.value)) {
+        if (!existingLines.some((l) => lineKey(l) === lineKey(line))) {
           existingLines.push(line);
         }
       }
@@ -43,7 +45,7 @@ export class ListStationsWithLines {
       } else {
         const existing = byName.get(name)!;
         for (const line of lines) {
-          if (!existing.lines.some((l) => l.name.value === line.name.value)) {
+          if (!existing.lines.some((l) => lineKey(l) === lineKey(line))) {
             existing.lines.push(line);
           }
         }

@@ -1,7 +1,7 @@
 import type { Context } from "grammy";
 import type { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
 import { getT } from "@/adapters/in/telegram/languageStore";
-import { hexToLineEmoji } from "@/adapters/in/telegram/lineEmoji";
+import { hexToLineEmoji, hexToLineName } from "@/adapters/in/telegram/lineEmoji";
 
 const MAX_CHARS = 4000;
 
@@ -17,7 +17,11 @@ export function stationHandler(useCase: ListStationsWithLines) {
 
     const lines = result.map(({ station, lines }) => {
       const lineLabels = lines
-        .map((l) => `${hexToLineEmoji(l.color?.value ?? null)} ${l.name.value}`)
+        .map((l) => {
+          const color = l.color?.value ?? null;
+          const name = hexToLineName(color) ?? l.name.value;
+          return `${hexToLineEmoji(color)} ${name}`;
+        })
         .join(" · ");
       return lineLabels ? `${station.name.value}  ${lineLabels}` : station.name.value;
     });
