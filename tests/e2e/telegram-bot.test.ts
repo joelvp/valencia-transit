@@ -31,6 +31,19 @@ function makeCommandUpdate(text: string, chatId = 1): Update {
   };
 }
 
+function makeTextUpdate(text: string, chatId = 1): Update {
+  return {
+    update_id: 2,
+    message: {
+      message_id: 2,
+      date: Math.floor(Date.now() / 1000),
+      chat: { id: chatId, type: "private", first_name: "Test" },
+      from: { id: chatId, is_bot: false, first_name: "Test" },
+      text,
+    },
+  };
+}
+
 describe("TelegramBot E2E", () => {
   let container: Container;
   let bot: TelegramBot;
@@ -104,17 +117,33 @@ describe("TelegramBot E2E", () => {
         longitude: -0.381,
         transportType: "metro",
       },
+      {
+        id: "ST1b",
+        feedId: FEED_ID,
+        name: "Colón",
+        latitude: 39.4683,
+        longitude: -0.3766,
+        transportType: "metro",
+      },
     ]);
 
     // Lines: L1 (ST2→ST1), L2 (ST1→ST2)
     await container.db.insert(lines).values([
-      { id: "L1", feedId: FEED_ID, name: "Línea 1 Anada", shortName: "1", transportType: "metro" },
+      {
+        id: "L1",
+        feedId: FEED_ID,
+        name: "Línea 1 Anada",
+        shortName: "1",
+        transportType: "metro",
+        color: "FEC601",
+      },
       {
         id: "L2",
         feedId: FEED_ID,
         name: "Línea 1 Tornada",
         shortName: "1",
         transportType: "metro",
+        color: "FEC601",
       },
     ]);
 
@@ -201,9 +230,18 @@ describe("TelegramBot E2E", () => {
 
     expect(replies).toHaveLength(1);
     const reply = replies[0]!;
-    expect(reply).toContain("→ Colón");
+
+    // Header with origin → destination and duration
+    expect(reply).toContain("🚇 <b>Xàtiva → Colón</b>");
+    expect(reply).toContain("(~5 min)");
+
+    // Próximas salidas label
     expect(reply).toContain("Próximas salidas:");
+
+    // Departure row: time, line color emoji, line name, headsign
     expect(reply).toContain("25:00");
+    expect(reply).toContain("🟡");
+    expect(reply).toContain("→ Colón");
   });
 
   it("should reply with station not found for /salida Desconocida Colón", async () => {
@@ -225,10 +263,18 @@ describe("TelegramBot E2E", () => {
 
     expect(replies).toHaveLength(1);
     const reply = replies[0]!;
-    expect(reply).toContain("Colón");
+
+    // All distinct station names present
     expect(reply).toContain("Xàtiva");
     expect(reply).toContain("Àngel Guimerà");
-    expect(reply).toContain("Línea 1");
+
+    // Colón has lines — verify exact format: name + line emoji + line names
+    expect(reply).toContain("Colón  🟡 Línea 1 Anada · 🟡 Línea 1 Tornada");
+
+    // No duplicates: "Colón" appears exactly once as a station entry
+    // ST1 and ST1b both have name "Colón" — ListStationsWithLines must deduplicate by name
+    const colonOccurrences = reply.split("Colón  🟡").length - 1;
+    expect(colonOccurrences).toBe(1);
   });
 
   it("should reply with help text for /help", async () => {
@@ -238,5 +284,21 @@ describe("TelegramBot E2E", () => {
     const reply = replies[0]!;
     expect(reply).toContain("/salida");
     expect(reply).toContain("/paradas");
+  });
+
+  it("should reply with same departures for free-text 'Xàtiva - Colón' as for /salida command", async () => {
+    await bot.handleUpdate(makeCommandUpdate("/salida Xàtiva - Colón"));
+    const commandReply = replies[0]!;
+    replies = [];
+
+    await bot.handleUpdate(makeTextUpdate("Xàtiva - Colón"));
+    const freeTextReply = replies[0]!;
+
+    expect(replies).toHaveLength(1);
+    expect(freeTextReply).toContain("🚇 <b>Xàtiva → Colón</b>");
+    expect(freeTextReply).toContain("Próximas salidas:");
+    expect(freeTextReply).toContain("25:00");
+    expect(freeTextReply).toContain("🟡");
+    expect(freeTextReply).toBe(commandReply);
   });
 });

@@ -151,7 +151,7 @@ export class GtfsParser {
     const routeNameMap = new Map<string, string>();
     const routeColorMap = new Map<string, string>();
     for (const row of routeRows) {
-      const name = row["route_long_name"] || row["route_short_name"] || row["route_id"]!;
+      const name = row["route_short_name"] || row["route_long_name"] || row["route_id"]!;
       routeNameMap.set(row["route_id"]!, name);
       const colorHex = row["route_color"]?.trim();
       if (colorHex) {

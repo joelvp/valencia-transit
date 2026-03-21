@@ -28,7 +28,7 @@ export class ListStationsWithLines {
           stationLinesMap.set(key, []);
         }
         const existingLines = stationLinesMap.get(key)!;
-        if (!existingLines.some((l) => l.id.equals(line.id))) {
+        if (!existingLines.some((l) => l.name.value === line.name.value)) {
           existingLines.push(line);
         }
       }
@@ -43,7 +43,7 @@ export class ListStationsWithLines {
       } else {
         const existing = byName.get(name)!;
         for (const line of lines) {
-          if (!existing.lines.some((l) => l.id.equals(line.id))) {
+          if (!existing.lines.some((l) => l.name.value === line.name.value)) {
             existing.lines.push(line);
           }
         }
