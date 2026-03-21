@@ -68,11 +68,8 @@ export class SearchNextDepartures {
     const origin = originResult;
     const destination = destResult;
 
-    const allLines = await this.lineRepository.findByStations(origin.id, destination.id);
-    const connectingLines = allLines.filter((line) =>
-      line.connectsInOrder(origin.id, destination.id),
-    );
-    if (connectingLines.length === 0) {
+    const matchingLines = await this.lineRepository.findByStations(origin.id, destination.id);
+    if (matchingLines.length === 0) {
       throw new NoConnectionError(originName, destinationName);
     }
 
@@ -83,7 +80,7 @@ export class SearchNextDepartures {
 
     const currentTime = TimeOfDay.fromDate(now);
     const activeScheduleIds = activeSchedules.map((s) => s.id);
-    const connectingLineIds = new Set(connectingLines.map((l) => l.id.value));
+    const matchingLineIds = new Set(matchingLines.map((l) => l.id.value));
 
     const trips = await this.tripRepository.findDeparturesFromStation(
       origin.id,
@@ -93,7 +90,7 @@ export class SearchNextDepartures {
 
     const filteredTrips = trips.filter(
       (trip) =>
-        connectingLineIds.has(trip.lineId.value) && trip.stopsInOrder(origin.id, destination.id),
+        matchingLineIds.has(trip.lineId.value) && trip.stopsInOrder(origin.id, destination.id),
     );
 
     const departures: Departure[] = [];
@@ -101,7 +98,7 @@ export class SearchNextDepartures {
       const departureTime = trip.getDepartureTimeAt(origin.id);
       if (!departureTime) continue;
 
-      const matchingLine = connectingLines.find((l) => l.id.equals(trip.lineId));
+      const matchingLine = matchingLines.find((l) => l.id.equals(trip.lineId));
       const lineName = matchingLine ? matchingLine.name.value : trip.lineId.value;
 
       departures.push(new Departure(departureTime, lineName, trip.headsign, currentTime));
@@ -119,7 +116,7 @@ export class SearchNextDepartures {
         now,
         origin,
         destination,
-        connectingLines,
+        matchingLines,
       );
       return { type: "no_more_today", origin, destination, firstTomorrow };
     }
@@ -134,7 +131,7 @@ export class SearchNextDepartures {
     now: Date,
     origin: Station,
     destination: Station,
-    connectingLines: Line[],
+    matchingLines: Line[],
   ): Promise<Departure | null> {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -143,7 +140,7 @@ export class SearchNextDepartures {
     if (tomorrowSchedules.length === 0) return null;
 
     const tomorrowScheduleIds = tomorrowSchedules.map((s) => s.id);
-    const connectingLineIds = new Set(connectingLines.map((l) => l.id.value));
+    const matchingLineIds = new Set(matchingLines.map((l) => l.id.value));
     const midnight = new TimeOfDay("00:00:00");
 
     const tomorrowTrips = await this.tripRepository.findDeparturesFromStation(
@@ -154,7 +151,7 @@ export class SearchNextDepartures {
 
     const filtered = tomorrowTrips.filter(
       (trip) =>
-        connectingLineIds.has(trip.lineId.value) && trip.stopsInOrder(origin.id, destination.id),
+        matchingLineIds.has(trip.lineId.value) && trip.stopsInOrder(origin.id, destination.id),
     );
 
     let earliest: Departure | null = null;
@@ -162,7 +159,7 @@ export class SearchNextDepartures {
       const departureTime = trip.getDepartureTimeAt(origin.id);
       if (!departureTime) continue;
 
-      const matchingLine = connectingLines.find((l) => l.id.equals(trip.lineId));
+      const matchingLine = matchingLines.find((l) => l.id.equals(trip.lineId));
       const lineName = matchingLine ? matchingLine.name.value : trip.lineId.value;
       const dep = new Departure(departureTime, lineName, trip.headsign, midnight);
 

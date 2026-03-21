@@ -2,7 +2,7 @@ import type { Context } from "grammy";
 import type { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
 import { getT } from "@/adapters/in/telegram/languageStore";
 
-const CHUNK_SIZE = 50;
+const MAX_CHARS = 4000;
 
 export function stationHandler(useCase: ListStationsWithLines) {
   return async (ctx: Context): Promise<void> => {
@@ -21,10 +21,30 @@ export function stationHandler(useCase: ListStationsWithLines) {
       return lineLabels ? `${station.name.value} — ${lineLabels}` : station.name.value;
     });
 
-    for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
-      const chunk = lines.slice(i, i + CHUNK_SIZE);
-      const header = i === 0 ? [t.stationsHeader, ""] : [];
-      await ctx.reply([...header, ...chunk].join("\n"), { parse_mode: "HTML" });
+    let isFirst = true;
+    let chunk: string[] = [];
+    let chunkLen = 0;
+
+    for (const line of lines) {
+      const prefix = isFirst && chunk.length === 0 ? `${t.stationsHeader}\n\n` : "";
+      const added = (chunk.length > 0 ? 1 : 0) + line.length; // 1 for "\n"
+      if (chunkLen + prefix.length + added > MAX_CHARS && chunk.length > 0) {
+        await ctx.reply(chunk.join("\n"), { parse_mode: "HTML" });
+        isFirst = false;
+        chunk = [];
+        chunkLen = 0;
+      }
+      if (isFirst && chunk.length === 0) {
+        chunk.push(t.stationsHeader, "", line);
+        chunkLen = t.stationsHeader.length + 1 + line.length;
+        isFirst = false;
+      } else {
+        chunk.push(line);
+        chunkLen += 1 + line.length;
+      }
+    }
+    if (chunk.length > 0) {
+      await ctx.reply(chunk.join("\n"), { parse_mode: "HTML" });
     }
   };
 }

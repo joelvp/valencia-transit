@@ -154,38 +154,38 @@ describe("TelegramBot E2E", () => {
       { id: "T2", feedId: FEED_ID, lineId: "L2", scheduleId: "WD", headsign: "Xàtiva" },
     ]);
 
-    // Passing times far in the future so they are always "next"
+    // Passing times using GTFS next-day notation (25:xx) so they are always "next"
     await container.db.insert(passingTimes).values([
       {
         tripId: "T1",
         stationId: "ST2",
         feedId: FEED_ID,
-        arrivalTime: "23:00:00",
-        departureTime: "23:00:00",
+        arrivalTime: "25:00:00",
+        departureTime: "25:00:00",
         sequence: 1,
       },
       {
         tripId: "T1",
         stationId: "ST1",
         feedId: FEED_ID,
-        arrivalTime: "23:05:00",
-        departureTime: "23:05:00",
+        arrivalTime: "25:05:00",
+        departureTime: "25:05:00",
         sequence: 2,
       },
       {
         tripId: "T2",
         stationId: "ST1",
         feedId: FEED_ID,
-        arrivalTime: "23:10:00",
-        departureTime: "23:10:00",
+        arrivalTime: "25:10:00",
+        departureTime: "25:10:00",
         sequence: 1,
       },
       {
         tripId: "T2",
         stationId: "ST2",
         feedId: FEED_ID,
-        arrivalTime: "23:15:00",
-        departureTime: "23:15:00",
+        arrivalTime: "25:15:00",
+        departureTime: "25:15:00",
         sequence: 2,
       },
     ]);
@@ -204,7 +204,7 @@ describe("TelegramBot E2E", () => {
     expect(reply).toContain("Xàtiva");
     expect(reply).toContain("Colón");
     expect(reply).toContain("Próximas salidas:");
-    expect(reply).toContain("23:00");
+    expect(reply).toContain("25:00");
   });
 
   it("should reply with station not found for /salida Desconocida Colón", async () => {

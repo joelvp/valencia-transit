@@ -12,15 +12,6 @@ export class Line {
     readonly color: LineColor | null = null,
   ) {}
 
-  connectsInOrder(origin: StationId, destination: StationId): boolean {
-    const originSeq = this.getSequence(origin);
-    const destSeq = this.getSequence(destination);
-    if (originSeq === undefined || destSeq === undefined) {
-      return false;
-    }
-    return originSeq < destSeq;
-  }
-
   getSequence(stationId: StationId): number | undefined {
     const stop = this.stops.find((s) => s.stationId.equals(stationId));
     return stop?.sequence;

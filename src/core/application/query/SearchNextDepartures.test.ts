@@ -380,6 +380,35 @@ describe("SearchNextDepartures", () => {
     expect(result.firstTomorrow!.departureTime.value).toBe("06:00:00");
   });
 
+  it("should find departures even when line_stations has merged bidirectional sequences", async () => {
+    // Regression: line_stations may store both directions merged, giving dest a lower seq than origin.
+    // The use case must rely on trip.stopsInOrder (passing_times) — not line.connectsInOrder.
+    const lineWithMergedSeqs = new Line(lineId, new LineName("L3"), [
+      new LineStop(destId, 1), // destination appears first (wrong order in line_stations)
+      new LineStop(originId, 7), // origin appears later
+    ]);
+
+    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findByStations: () => Promise.resolve([lineWithMergedSeqs]),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      eventBus,
+    );
+    // trip has correct passing_times: origin seq=1, dest seq=2
+    const result = await useCase.execute("Xàtiva", "Colón", now);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(1);
+  });
+
   it("should return no_more_today with null firstTomorrow when no service tomorrow", async () => {
     const lateNow = new Date(2026, 2, 18, 23, 0, 0);
 

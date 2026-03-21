@@ -22,28 +22,6 @@ describe("Line", () => {
     { id: "D", seq: 4 },
   ]);
 
-  describe("connectsInOrder", () => {
-    it("should return true when origin comes before destination", () => {
-      expect(line.connectsInOrder(new StationId("A"), new StationId("C"))).toBe(true);
-    });
-
-    it("should return false when origin comes after destination", () => {
-      expect(line.connectsInOrder(new StationId("C"), new StationId("A"))).toBe(false);
-    });
-
-    it("should return false when origin equals destination", () => {
-      expect(line.connectsInOrder(new StationId("B"), new StationId("B"))).toBe(false);
-    });
-
-    it("should return false when origin is not on the line", () => {
-      expect(line.connectsInOrder(new StationId("X"), new StationId("C"))).toBe(false);
-    });
-
-    it("should return false when destination is not on the line", () => {
-      expect(line.connectsInOrder(new StationId("A"), new StationId("X"))).toBe(false);
-    });
-  });
-
   describe("getSequence", () => {
     it("should return the sequence number for a station on the line", () => {
       expect(line.getSequence(new StationId("B"))).toBe(2);
