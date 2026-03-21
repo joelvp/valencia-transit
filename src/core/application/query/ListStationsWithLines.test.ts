@@ -115,4 +115,35 @@ describe("ListStationsWithLines", () => {
     const result = await useCase.execute();
     expect(result).toHaveLength(0);
   });
+
+  it("should deduplicate lines by name when multiple route variants share the same short name", async () => {
+    // Simulates GTFS: route_id "L1-A" and "L1-B" both resolve to LineName("1")
+    const s1 = makeStation("S1", "Xàtiva");
+    const stops = [new LineStop(new StationId("S1"), 1)];
+    const variantA = new Line(new LineId("L1-A"), new LineName("1"), stops);
+    const variantB = new Line(new LineId("L1-B"), new LineName("1"), stops);
+
+    const useCase = new ListStationsWithLines(
+      makeStationRepo([s1]),
+      makeLineRepo([variantA, variantB]),
+    );
+    const result = await useCase.execute();
+
+    expect(result[0]!.lines).toHaveLength(1);
+    expect(result[0]!.lines[0]!.name.value).toBe("1");
+  });
+
+  it("should deduplicate stations with the same name across multiple stop_ids", async () => {
+    // Simulates GTFS: same physical station with multiple stop_ids (e.g. per direction)
+    const s1a = makeStation("S1-A", "Xàtiva");
+    const s1b = makeStation("S1-B", "Xàtiva");
+    const line = makeLine("L1", ["S1-A", "S1-B"]);
+
+    const useCase = new ListStationsWithLines(makeStationRepo([s1a, s1b]), makeLineRepo([line]));
+    const result = await useCase.execute();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]!.station.name.value).toBe("Xàtiva");
+    expect(result[0]!.lines).toHaveLength(1);
+  });
 });

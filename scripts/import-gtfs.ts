@@ -2,12 +2,18 @@ import { createContainer } from "@/adapters/container";
 import { GtfsParser } from "@/adapters/out/transit-data/GtfsParser";
 import { ImportTransitData } from "@/core/application/import/ImportTransitData";
 
+const OPERATOR_ALIASES: Array<{ pattern: RegExp; feedId: string }> = [
+  { pattern: /metro.?valencia/i, feedId: "metrovalencia" },
+];
+
 function deriveFeedId(filePath: string): string {
-  // Extract filename without extension from path
-  // e.g., "/path/to/metrovalencia.zip" -> "metrovalencia"
-  // e.g., "./data/gtfs/metrovalencia" -> "metrovalencia"
   const filename = filePath.split(/[/\\]/).pop() ?? filePath;
   const withoutExt = filename.replace(/\.[^/.]+$/, "");
+
+  for (const { pattern, feedId } of OPERATOR_ALIASES) {
+    if (pattern.test(withoutExt)) return feedId;
+  }
+
   return withoutExt;
 }
 
