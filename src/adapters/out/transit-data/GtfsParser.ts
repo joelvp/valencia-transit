@@ -85,12 +85,11 @@ export class GtfsParser {
       parseCsv(getText("calendar_dates.txt")),
     );
     const stopTimesRows = parseCsv(getText("stop_times.txt"));
-    const lines = this.parseLines(
-      parseCsv(getText("routes.txt")),
-      parseCsv(getText("trips.txt")),
-      stopTimesRows,
-    );
-    const trips = this.parseTrips(parseCsv(getText("trips.txt")), stopTimesRows);
+    const routeRows = parseCsv(getText("routes.txt"));
+    const tripRows = parseCsv(getText("trips.txt"));
+    const canonicalRouteIds = this.computeCanonicalRouteIds(routeRows, tripRows);
+    const lines = this.parseLines(routeRows, tripRows, stopTimesRows, canonicalRouteIds);
+    const trips = this.parseTrips(tripRows, stopTimesRows, canonicalRouteIds);
 
     return { stations, lines, schedules, trips };
   }
@@ -136,7 +135,43 @@ export class GtfsParser {
     });
   }
 
-  private parseLines(routeRows: CsvRow[], tripRows: CsvRow[], stopTimesRows: CsvRow[]): Line[] {
+  private computeCanonicalRouteIds(routeRows: CsvRow[], tripRows: CsvRow[]): Set<string> {
+    // Count trips per route_id
+    const tripCountByRoute = new Map<string, number>();
+    for (const trip of tripRows) {
+      const routeId = trip["route_id"]!;
+      tripCountByRoute.set(routeId, (tripCountByRoute.get(routeId) ?? 0) + 1);
+    }
+
+    // Find max trip count per route_short_name group
+    const maxTripsByShortName = new Map<string, number>();
+    for (const row of routeRows) {
+      const shortName = row["route_short_name"] || row["route_id"]!;
+      const count = tripCountByRoute.get(row["route_id"]!) ?? 0;
+      const current = maxTripsByShortName.get(shortName) ?? 0;
+      if (count > current) maxTripsByShortName.set(shortName, count);
+    }
+
+    // A route is canonical if it has >= 15% of the max trips for its short name group
+    const canonicalRouteIds = new Set<string>();
+    for (const row of routeRows) {
+      const shortName = row["route_short_name"] || row["route_id"]!;
+      const count = tripCountByRoute.get(row["route_id"]!) ?? 0;
+      const max = maxTripsByShortName.get(shortName) ?? 0;
+      if (max === 0 || count >= max * 0.15) {
+        canonicalRouteIds.add(row["route_id"]!);
+      }
+    }
+
+    return canonicalRouteIds;
+  }
+
+  private parseLines(
+    routeRows: CsvRow[],
+    tripRows: CsvRow[],
+    stopTimesRows: CsvRow[],
+    canonicalRouteIds: Set<string>,
+  ): Line[] {
     // Build stop_times grouped by trip_id
     const stopTimesByTrip = new Map<string, CsvRow[]>();
     for (const row of stopTimesRows) {
@@ -163,6 +198,7 @@ export class GtfsParser {
     const lineMap = new Map<string, { routeId: string; stopRows: CsvRow[] }>();
     for (const trip of tripRows) {
       const routeId = trip["route_id"]!;
+      if (!canonicalRouteIds.has(routeId)) continue;
       if (!lineMap.has(routeId)) {
         lineMap.set(routeId, { routeId, stopRows: [] });
       }
@@ -199,7 +235,11 @@ export class GtfsParser {
     return lines;
   }
 
-  private parseTrips(tripRows: CsvRow[], stopTimesRows: CsvRow[]): Trip[] {
+  private parseTrips(
+    tripRows: CsvRow[],
+    stopTimesRows: CsvRow[],
+    canonicalRouteIds: Set<string>,
+  ): Trip[] {
     // Group stop_times by trip_id
     const stopTimesByTrip = new Map<string, CsvRow[]>();
     for (const row of stopTimesRows) {
@@ -210,31 +250,33 @@ export class GtfsParser {
       stopTimesByTrip.get(tripId)!.push(row);
     }
 
-    return tripRows.map((row) => {
-      const tripId = row["trip_id"]!;
-      const routeId = row["route_id"]!;
-      const lineId = new LineId(routeId);
+    return tripRows
+      .filter((row) => canonicalRouteIds.has(row["route_id"]!))
+      .map((row) => {
+        const tripId = row["trip_id"]!;
+        const routeId = row["route_id"]!;
+        const lineId = new LineId(routeId);
 
-      const stopRows = (stopTimesByTrip.get(tripId) ?? []).sort(
-        (a, b) => parseInt(a["stop_sequence"]!, 10) - parseInt(b["stop_sequence"]!, 10),
-      );
+        const stopRows = (stopTimesByTrip.get(tripId) ?? []).sort(
+          (a, b) => parseInt(a["stop_sequence"]!, 10) - parseInt(b["stop_sequence"]!, 10),
+        );
 
-      const passingTimes: PassingTime[] = stopRows.map((st) => {
-        const stationId = new StationId(st["stop_id"]!);
-        const arrivalTime = new TimeOfDay(st["arrival_time"]!);
-        const departureTime = new TimeOfDay(st["departure_time"]!);
-        const sequence = parseInt(st["stop_sequence"]!, 10);
-        return new PassingTime(stationId, arrivalTime, departureTime, sequence);
+        const passingTimes: PassingTime[] = stopRows.map((st) => {
+          const stationId = new StationId(st["stop_id"]!);
+          const arrivalTime = new TimeOfDay(st["arrival_time"]!);
+          const departureTime = new TimeOfDay(st["departure_time"]!);
+          const sequence = parseInt(st["stop_sequence"]!, 10);
+          return new PassingTime(stationId, arrivalTime, departureTime, sequence);
+        });
+
+        const headsign = row["trip_headsign"] ?? null;
+        return new Trip(
+          new TripId(tripId),
+          lineId,
+          new ScheduleId(row["service_id"]!),
+          passingTimes,
+          headsign,
+        );
       });
-
-      const headsign = row["trip_headsign"] ?? null;
-      return new Trip(
-        new TripId(tripId),
-        lineId,
-        new ScheduleId(row["service_id"]!),
-        passingTimes,
-        headsign,
-      );
-    });
   }
 }

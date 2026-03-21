@@ -132,7 +132,7 @@ describe("TelegramBot E2E", () => {
       {
         id: "L1",
         feedId: FEED_ID,
-        name: "Línea 1 Anada",
+        name: "1",
         shortName: "1",
         transportType: "metro",
         color: "FEC601",
@@ -140,7 +140,7 @@ describe("TelegramBot E2E", () => {
       {
         id: "L2",
         feedId: FEED_ID,
-        name: "Línea 1 Tornada",
+        name: "1",
         shortName: "1",
         transportType: "metro",
         color: "FEC601",
@@ -268,7 +268,7 @@ describe("TelegramBot E2E", () => {
     expect(reply).toContain("Xàtiva");
     expect(reply).toContain("Àngel Guimerà");
 
-    // Colón has lines — deduped by color (FEC601), shown as L1
+    // Colón has lines — deduped by name ("1"), shown as L1
     expect(reply).toContain("Colón  🟡 L1");
 
     // No duplicates: "Colón" appears exactly once (ST1 and ST1b merged by name)

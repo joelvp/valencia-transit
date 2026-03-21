@@ -56,6 +56,11 @@ describe("GtfsParser", () => {
     expect(result.lines).toHaveLength(2);
   });
 
+  it("should filter out non-canonical route R1-DEPOT (0 trips, below 15% threshold)", () => {
+    const depot = result.lines.find((l) => l.id.value === "R1-DEPOT");
+    expect(depot).toBeUndefined();
+  });
+
   it("should parse line R1 with correct id", () => {
     const line = result.lines.find((l) => l.id.value === "R1");
     expect(line).toBeDefined();

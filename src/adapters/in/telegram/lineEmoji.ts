@@ -1,22 +1,20 @@
-const LINE_BY_COLOR: Record<string, { emoji: string; name: string }> = {
-  FEC601: { emoji: "🟡", name: "L1" },
-  E60096: { emoji: "🩷", name: "L2" },
-  DD052C: { emoji: "🔴", name: "L3" },
-  "014A99": { emoji: "🔵", name: "L4" },
-  "008F71": { emoji: "🟢", name: "L5" },
-  "8884BF": { emoji: "🟣", name: "L6" },
-  F28D01: { emoji: "🟠", name: "L7" },
-  "82CEE6": { emoji: "🩵", name: "L8" },
-  B8804F: { emoji: "🟤", name: "L9" },
-  B7DD79: { emoji: "💚", name: "L10" },
+const LINE_BY_NUMBER: Record<string, { emoji: string; name: string }> = {
+  "1": { emoji: "🟡", name: "L1" },
+  "2": { emoji: "🩷", name: "L2" },
+  "3": { emoji: "🔴", name: "L3" },
+  "4": { emoji: "🔵", name: "L4" },
+  "5": { emoji: "🟢", name: "L5" },
+  "6": { emoji: "🟣", name: "L6" },
+  "7": { emoji: "🟠", name: "L7" },
+  "8": { emoji: "🩵", name: "L8" },
+  "9": { emoji: "🟤", name: "L9" },
+  "10": { emoji: "💚", name: "L10" },
 };
 
-export function hexToLineEmoji(hex: string | null): string {
-  if (!hex) return "⚪";
-  return LINE_BY_COLOR[hex.toUpperCase()]?.emoji ?? "⚪";
+export function lineNumberToEmoji(lineNumber: string): string {
+  return LINE_BY_NUMBER[lineNumber]?.emoji ?? "⚪";
 }
 
-export function hexToLineName(hex: string | null): string | null {
-  if (!hex) return null;
-  return LINE_BY_COLOR[hex.toUpperCase()]?.name ?? null;
+export function lineNumberToName(lineNumber: string): string {
+  return LINE_BY_NUMBER[lineNumber]?.name ?? `L${lineNumber}`;
 }

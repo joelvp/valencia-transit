@@ -33,8 +33,8 @@ describe("stationHandler", () => {
     const mockUseCase = {
       execute: mock(() =>
         Promise.resolve([
-          makeStationWithLines("Xàtiva", [makeLine("L3", "DD052C")]),
-          makeStationWithLines("Colón", [makeLine("L3", "DD052C"), makeLine("L5", "008F71")]),
+          makeStationWithLines("Xàtiva", [makeLine("3", "DD052C")]),
+          makeStationWithLines("Colón", [makeLine("3", "DD052C"), makeLine("5", "008F71")]),
           makeStationWithLines("Àngel Guimerà"),
         ]),
       ),
@@ -66,9 +66,7 @@ describe("stationHandler", () => {
 
   it("should show white circle for unknown colors", async () => {
     const mockUseCase = {
-      execute: mock(() =>
-        Promise.resolve([makeStationWithLines("Test", [makeLine("L9", "123ABC")])]),
-      ),
+      execute: mock(() => Promise.resolve([makeStationWithLines("Test", [makeLine("99")])])),
     };
 
     const ctx = makeCtx();
@@ -76,6 +74,6 @@ describe("stationHandler", () => {
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as string[])[0];
-    expect(response).toContain("⚪ L9");
+    expect(response).toContain("⚪ L99");
   });
 });

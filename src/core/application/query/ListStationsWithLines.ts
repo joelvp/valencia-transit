@@ -20,7 +20,7 @@ export class ListStationsWithLines {
       this.lineRepository.findAll(),
     ]);
 
-    const lineKey = (l: Line) => l.color?.value ?? l.name.value;
+    const lineKey = (l: Line) => l.name.value;
 
     const stationLinesMap = new Map<string, Line[]>();
     for (const line of allLines) {

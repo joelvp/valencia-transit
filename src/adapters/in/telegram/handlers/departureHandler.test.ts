@@ -57,8 +57,8 @@ describe("departureHandler", () => {
       execute: mock(() =>
         Promise.resolve(
           makeDepartureResult("Xàtiva", "Colón", [
-            makeDeparture(14, 23, "L3", 4, null, "DD052C", 8),
-            makeDeparture(14, 31, "L5", 12, null, "008F71", 8),
+            makeDeparture(14, 23, "3", 4, null, "DD052C", 8),
+            makeDeparture(14, 31, "5", 12, null, "008F71", 8),
           ]),
         ),
       ),
@@ -83,7 +83,7 @@ describe("departureHandler", () => {
       execute: mock(() =>
         Promise.resolve(
           makeDepartureResult("Xàtiva", "Colón", [
-            makeDeparture(17, 23, "L4", 5, null, "014A99", null),
+            makeDeparture(17, 23, "4", 5, null, "014A99", null),
           ]),
         ),
       ),
@@ -100,11 +100,11 @@ describe("departureHandler", () => {
     expect(response).toContain("(5 min)");
   });
 
-  it("should show white circle emoji when lineColor is null", async () => {
+  it("should show white circle emoji when line number is unknown", async () => {
     const mockUseCase = {
       execute: mock(() =>
         Promise.resolve(
-          makeDepartureResult("Xàtiva", "Colón", [makeDeparture(10, 0, "L1", 2, null, null, null)]),
+          makeDepartureResult("Xàtiva", "Colón", [makeDeparture(10, 0, "99", 2, null, null, null)]),
         ),
       ),
     };
@@ -122,7 +122,7 @@ describe("departureHandler", () => {
       execute: mock(() =>
         Promise.resolve(
           makeDepartureResult("Xàtiva", "Colón", [
-            makeDeparture(14, 23, "L3", 4, null, "DD052C", null),
+            makeDeparture(14, 23, "3", 4, null, "DD052C", null),
           ]),
         ),
       ),
@@ -140,7 +140,7 @@ describe("departureHandler", () => {
   it("should include origin and destination in header", async () => {
     const mockUseCase = {
       execute: mock(() =>
-        Promise.resolve(makeDepartureResult("Xàtiva", "Colón", [makeDeparture(14, 23, "L3", 4)])),
+        Promise.resolve(makeDepartureResult("Xàtiva", "Colón", [makeDeparture(14, 23, "3", 4)])),
       ),
     };
 
@@ -261,7 +261,7 @@ describe("departureHandler", () => {
       destination: makeStation("Colón"),
       firstTomorrow: {
         departureTime: { hours: 5, minutes: 42 },
-        lineName: "L3",
+        lineName: "3",
         headsign: "Colón",
         minutesRemaining: 0,
         lineColor: "DD052C",
