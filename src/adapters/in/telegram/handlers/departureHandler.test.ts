@@ -22,8 +22,17 @@ function makeDeparture(
   lineName: string,
   minutesRemaining: number,
   headsign: string | null = null,
+  lineColor: string | null = null,
+  durationMinutes: number | null = null,
 ) {
-  return { departureTime: { hours, minutes }, lineName, minutesRemaining, headsign };
+  return {
+    departureTime: { hours, minutes },
+    lineName,
+    minutesRemaining,
+    headsign,
+    lineColor,
+    durationMinutes,
+  };
 }
 
 function makeDepartureResult(
@@ -48,8 +57,8 @@ describe("departureHandler", () => {
       execute: mock(() =>
         Promise.resolve(
           makeDepartureResult("Xàtiva", "Colón", [
-            makeDeparture(14, 23, "L3", 4),
-            makeDeparture(14, 31, "L5", 12),
+            makeDeparture(14, 23, "L3", 4, null, "DD052C", 8),
+            makeDeparture(14, 31, "L5", 12, null, "008F71", 8),
           ]),
         ),
       ),
@@ -61,9 +70,86 @@ describe("departureHandler", () => {
 
     expect(mockUseCase.execute).toHaveBeenCalledWith("Xàtiva", "Colón", expect.any(Date));
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
-    expect(response).toContain("<b>Xàtiva → Colón</b>");
+    expect(response).toContain("🚇 <b>Xàtiva → Colón</b>");
+    expect(response).toContain("(~8 min)");
     expect(response).toContain("<b>14:23</b>");
     expect(response).toContain("<b>L3</b>");
+    expect(response).toContain("🔴");
+    expect(response).toContain("(4 min)");
+  });
+
+  it("should show color emoji based on lineColor hex", async () => {
+    const mockUseCase = {
+      execute: mock(() =>
+        Promise.resolve(
+          makeDepartureResult("Xàtiva", "Colón", [
+            makeDeparture(17, 23, "L4", 5, null, "014A99", null),
+          ]),
+        ),
+      ),
+    };
+
+    const ctx = makeCtx("/salida Xàtiva Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("🔵");
+    expect(response).toContain("<b>17:23</b>");
+    expect(response).toContain("<b>L4</b>");
+    expect(response).toContain("(5 min)");
+  });
+
+  it("should show white circle emoji when lineColor is null", async () => {
+    const mockUseCase = {
+      execute: mock(() =>
+        Promise.resolve(
+          makeDepartureResult("Xàtiva", "Colón", [makeDeparture(10, 0, "L1", 2, null, null, null)]),
+        ),
+      ),
+    };
+
+    const ctx = makeCtx("/salida Xàtiva Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("⚪");
+  });
+
+  it("should not include duration suffix when durationMinutes is null", async () => {
+    const mockUseCase = {
+      execute: mock(() =>
+        Promise.resolve(
+          makeDepartureResult("Xàtiva", "Colón", [
+            makeDeparture(14, 23, "L3", 4, null, "DD052C", null),
+          ]),
+        ),
+      ),
+    };
+
+    const ctx = makeCtx("/salida Xàtiva Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("🚇 <b>Xàtiva → Colón</b>");
+    expect(response).not.toContain("~");
+  });
+
+  it("should include origin and destination in header", async () => {
+    const mockUseCase = {
+      execute: mock(() =>
+        Promise.resolve(makeDepartureResult("Xàtiva", "Colón", [makeDeparture(14, 23, "L3", 4)])),
+      ),
+    };
+
+    const ctx = makeCtx("/salida Xàtiva Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("🚇 <b>Xàtiva → Colón</b>");
   });
 
   it("should parse stations separated by ' - '", async () => {
@@ -168,7 +254,7 @@ describe("departureHandler", () => {
     expect(opts.reply_markup).toBeDefined();
   });
 
-  it("should show no more trains today message", async () => {
+  it("should show no more trains today message with destination-only header", async () => {
     const noMoreResult: SearchResult = {
       type: "no_more_today",
       origin: makeStation("Xàtiva"),
@@ -178,6 +264,8 @@ describe("departureHandler", () => {
         lineName: "L3",
         headsign: "Colón",
         minutesRemaining: 0,
+        lineColor: "DD052C",
+        durationMinutes: null,
       },
     } as unknown as SearchResult;
 
@@ -191,6 +279,7 @@ describe("departureHandler", () => {
 
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
     const response = callArgs[0] as string;
+    expect(response).toContain("🚇 <b>Xàtiva → Colón</b>");
     expect(response).toContain("No hay más salidas hoy");
     expect(response).toContain("05:42");
     expect(response).toContain("Primera salida mañana");

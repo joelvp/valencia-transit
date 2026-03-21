@@ -29,13 +29,14 @@ export class TelegramBot {
       console.error("[TelegramBot] Unhandled error:", err.error);
     });
 
-    this.bot.command("salida", departureHandler(this.searchNextDepartures));
-    this.bot.command("s", departureHandler(this.searchNextDepartures));
-    this.bot.command("paradas", stationHandler(this.listStationsWithLines));
+    this.bot.command(["salida", "eixida"], departureHandler(this.searchNextDepartures));
+    this.bot.command(["s", "e"], departureHandler(this.searchNextDepartures));
+    this.bot.command(["paradas", "parades"], stationHandler(this.listStationsWithLines));
     this.bot.command("help", helpHandler());
     this.bot.command("start", helpHandler());
     this.bot.command("idioma", languageHandler(this.setCommandsForChat.bind(this)));
     this.bot.on("callback_query:data", callbackHandler(this.searchNextDepartures));
+    this.bot.on("message:text", departureHandler(this.searchNextDepartures));
   }
 
   async handleUpdate(update: Update): Promise<void> {
@@ -60,9 +61,9 @@ export class TelegramBot {
 
   private buildCommands(lang: Lang) {
     const t = translations[lang];
+    const isVal = lang === "val";
     return [
-      { command: "paradas", description: t.cmdParadas },
-      { command: "idioma", description: t.cmdIdioma },
+      { command: isVal ? "parades" : "paradas", description: t.cmdParadas },
       { command: "help", description: t.cmdHelp },
     ];
   }

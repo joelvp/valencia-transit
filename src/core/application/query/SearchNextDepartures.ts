@@ -100,8 +100,21 @@ export class SearchNextDepartures {
 
       const matchingLine = matchingLines.find((l) => l.id.equals(trip.lineId));
       const lineName = matchingLine ? matchingLine.name.value : trip.lineId.value;
+      const lineColor = matchingLine?.color?.value ?? null;
 
-      departures.push(new Departure(departureTime, lineName, trip.headsign, currentTime));
+      const arrivalAtDest = trip.getDepartureTimeAt(destination.id);
+      const durationMinutes = arrivalAtDest ? arrivalAtDest.minutesUntilFrom(departureTime) : null;
+
+      departures.push(
+        new Departure(
+          departureTime,
+          lineName,
+          trip.headsign,
+          currentTime,
+          lineColor,
+          durationMinutes,
+        ),
+      );
     }
 
     departures.sort((a, b) => a.departureTime.minutesUntilFrom(b.departureTime));
@@ -161,7 +174,17 @@ export class SearchNextDepartures {
 
       const matchingLine = matchingLines.find((l) => l.id.equals(trip.lineId));
       const lineName = matchingLine ? matchingLine.name.value : trip.lineId.value;
-      const dep = new Departure(departureTime, lineName, trip.headsign, midnight);
+      const lineColor = matchingLine?.color?.value ?? null;
+      const durationMinutes =
+        trip.getDepartureTimeAt(destination.id)?.minutesUntilFrom(departureTime) ?? null;
+      const dep = new Departure(
+        departureTime,
+        lineName,
+        trip.headsign,
+        midnight,
+        lineColor,
+        durationMinutes,
+      );
 
       if (!earliest || departureTime.isBefore(earliest.departureTime)) {
         earliest = dep;

@@ -201,8 +201,7 @@ describe("TelegramBot E2E", () => {
 
     expect(replies).toHaveLength(1);
     const reply = replies[0]!;
-    expect(reply).toContain("Xàtiva");
-    expect(reply).toContain("Colón");
+    expect(reply).toContain("→ Colón");
     expect(reply).toContain("Próximas salidas:");
     expect(reply).toContain("25:00");
   });

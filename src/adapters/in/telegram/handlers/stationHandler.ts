@@ -1,6 +1,7 @@
 import type { Context } from "grammy";
 import type { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
 import { getT } from "@/adapters/in/telegram/languageStore";
+import { hexToLineEmoji } from "@/adapters/in/telegram/lineEmoji";
 
 const MAX_CHARS = 4000;
 
@@ -16,9 +17,9 @@ export function stationHandler(useCase: ListStationsWithLines) {
 
     const lines = result.map(({ station, lines }) => {
       const lineLabels = lines
-        .map((l) => `${hexToLineEmoji(l.color?.value ?? null)}${l.name.value}`)
-        .join(" ");
-      return lineLabels ? `${station.name.value} — ${lineLabels}` : station.name.value;
+        .map((l) => `${hexToLineEmoji(l.color?.value ?? null)} ${l.name.value}`)
+        .join(" · ");
+      return lineLabels ? `${station.name.value}  ${lineLabels}` : station.name.value;
     });
 
     let isFirst = true;
@@ -47,19 +48,4 @@ export function stationHandler(useCase: ListStationsWithLines) {
       await ctx.reply(chunk.join("\n"), { parse_mode: "HTML" });
     }
   };
-}
-
-function hexToLineEmoji(hex: string | null): string {
-  if (!hex) return "⚪";
-  const map: Record<string, string> = {
-    DA291C: "🔴",
-    FFD100: "🟡",
-    ED1C24: "🔴",
-    "00A650": "🟢",
-    "0072CE": "🔵",
-    "8B4513": "🟤",
-    "800080": "🟣",
-    FFA500: "🟠",
-  };
-  return map[hex] ?? "⚪";
 }

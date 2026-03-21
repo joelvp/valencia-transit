@@ -13,6 +13,7 @@ import { Line } from "../../domain/line/Line.ts";
 import { LineId } from "../../domain/line/LineId.ts";
 import { LineName } from "../../domain/line/LineName.ts";
 import { LineStop } from "../../domain/line/LineStop.ts";
+import { LineColor } from "../../domain/line/LineColor.ts";
 import { Trip } from "../../domain/trip/Trip.ts";
 import { TripId } from "../../domain/trip/TripId.ts";
 import { ScheduleId } from "../../domain/schedule/ScheduleId.ts";
@@ -407,6 +408,51 @@ describe("SearchNextDepartures", () => {
     expect(result.type).toBe("departures");
     if (result.type !== "departures") return;
     expect(result.data.departures).toHaveLength(1);
+  });
+
+  it("should propagate lineColor in no_more_today firstTomorrow", async () => {
+    const lateNow = new Date(2026, 2, 18, 23, 0, 0);
+    const lineWithColor = new Line(
+      lineId,
+      new LineName("L3"),
+      [new LineStop(originId, 1), new LineStop(destId, 2)],
+      new LineColor("FF0000"),
+    );
+
+    const earlyTrip = new Trip(
+      new TripId("T-early"),
+      lineId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("06:00:00"), new TimeOfDay("06:00:00"), 1),
+        new PassingTime(destId, new TimeOfDay("06:10:00"), new TimeOfDay("06:10:00"), 2),
+      ],
+      "Direction A",
+    );
+
+    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findByStations: () => Promise.resolve([lineWithColor]),
+      findDeparturesFromStation: (stationId, after) => {
+        if (after.value === "00:00:00") return Promise.resolve([earlyTrip]);
+        return Promise.resolve([]);
+      },
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", lateNow);
+
+    expect(result.type).toBe("no_more_today");
+    if (result.type !== "no_more_today") return;
+    expect(result.firstTomorrow).not.toBeNull();
+    expect(result.firstTomorrow!.lineColor).toBe("FF0000");
   });
 
   it("should return no_more_today with null firstTomorrow when no service tomorrow", async () => {

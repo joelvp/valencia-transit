@@ -67,14 +67,14 @@ const es: Translations = {
 };
 
 const val: Translations = {
-  usage: "⚠️ Ús: /salida &lt;origen&gt; - &lt;destí&gt;",
+  usage: "⚠️ Ús: /eixida &lt;origen&gt; - &lt;destí&gt;",
   helpText: [
     "🤖 <b>Valencia Transit Bot</b>",
     "",
-    "Comandos disponibles:",
-    "/salida &lt;origen&gt; - &lt;destí&gt; — Pròximes eixides entre dos estacions",
-    "/s &lt;origen&gt; - &lt;destí&gt; — Drecera per a /salida",
-    "/paradas — Llistar estacions",
+    "Ordres disponibles:",
+    "/eixida &lt;origen&gt; - &lt;destí&gt; — Pròximes eixides entre dos estacions",
+    "/e &lt;origen&gt; - &lt;destí&gt; — Drecera per a /eixida",
+    "/parades — Llistar estacions",
     "/idioma es | val — Canviar idioma",
     "/help — Mostrar aquesta ajuda",
   ].join("\n"),
@@ -98,7 +98,7 @@ const val: Translations = {
   errStillAmbiguous: "Encara hi ha ambigüitat",
   cmdParadas: "Llistar estacions",
   cmdIdioma: "Canviar idioma: /idioma es | val",
-  cmdHelp: "Ajuda",
+  cmdHelp: "Ajuda i informació",
 };
 
 export const translations: Record<Lang, Translations> = { es, val };

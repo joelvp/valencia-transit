@@ -8,6 +8,7 @@ import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/languageStore";
+import { hexToLineEmoji } from "@/adapters/in/telegram/lineEmoji";
 
 export function departureHandler(useCase: SearchNextDepartures) {
   return async (ctx: Context): Promise<void> => {
@@ -103,13 +104,15 @@ function formatDepartures(
   destination: string,
   departures: Departure[],
 ): string {
-  const header = `🚇 <b>${origin} → ${destination}</b>`;
-  const lines = departures.map((d, i) => {
+  const durationSuffix =
+    departures[0]?.durationMinutes != null ? `  (~${departures[0].durationMinutes} min)` : "";
+  const header = `🚇 <b>${origin} → ${destination}</b>${durationSuffix}`;
+  const lines = departures.map((d) => {
     const h = String(d.departureTime.hours).padStart(2, "0");
     const m = String(d.departureTime.minutes).padStart(2, "0");
     const time = `<b>${h}:${m}</b>`;
     const headsign = d.headsign ? ` → ${d.headsign}` : "";
-    return `${i + 1}. ${time} (${d.minutesRemaining} min) — <b>${d.lineName}</b>${headsign}`;
+    return `${time} (${d.minutesRemaining} min) — ${hexToLineEmoji(d.lineColor)}<b>${d.lineName}</b>${headsign}`;
   });
 
   return [header, "", t.nextDepartures, ...lines, "", t.disclaimer].join("\n");
