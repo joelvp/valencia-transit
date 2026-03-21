@@ -342,7 +342,7 @@ describe("SearchNextDepartures", () => {
 
   it("should return no_more_today when no departures remain and find first tomorrow", async () => {
     // Trips only at 06:00 — querying at 23:00 yields nothing today
-    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)) // 22:00 UTC = 23:00 Madrid (CET);
+    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
     const earlyTrip = new Trip(
       new TripId("T-early"),
       lineId,
@@ -411,7 +411,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should propagate lineColor in no_more_today firstTomorrow", async () => {
-    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)) // 22:00 UTC = 23:00 Madrid (CET);
+    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
     const lineWithColor = new Line(
       lineId,
       new LineName("L3"),
@@ -456,7 +456,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should return no_more_today with null firstTomorrow when no service tomorrow", async () => {
-    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)) // 22:00 UTC = 23:00 Madrid (CET);
+    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
 
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
