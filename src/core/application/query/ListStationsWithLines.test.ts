@@ -123,7 +123,10 @@ describe("ListStationsWithLines", () => {
     const variantA = new Line(new LineId("L1-A"), new LineName("1"), stops);
     const variantB = new Line(new LineId("L1-B"), new LineName("1"), stops);
 
-    const useCase = new ListStationsWithLines(makeStationRepo([s1]), makeLineRepo([variantA, variantB]));
+    const useCase = new ListStationsWithLines(
+      makeStationRepo([s1]),
+      makeLineRepo([variantA, variantB]),
+    );
     const result = await useCase.execute();
 
     expect(result[0]!.lines).toHaveLength(1);
