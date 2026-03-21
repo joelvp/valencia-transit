@@ -55,11 +55,14 @@ describe("ListStationsWithLines", () => {
     const result = await useCase.execute();
 
     expect(result).toHaveLength(2);
-    expect(result[0]!.station).toBe(s1);
-    expect(result[0]!.lines).toHaveLength(1);
-    expect(result[0]!.lines[0]!.id.value).toBe("L1");
-    expect(result[1]!.station).toBe(s2);
-    expect(result[1]!.lines).toHaveLength(1);
+    const xativa = result.find((r) => r.station.name.value === "Xàtiva")!;
+    const colon = result.find((r) => r.station.name.value === "Colón")!;
+    expect(xativa.lines).toHaveLength(1);
+    expect(xativa.lines[0]!.id.value).toBe("L1");
+    expect(colon.lines).toHaveLength(1);
+    // result is sorted alphabetically: Colón before Xàtiva
+    expect(result[0]!.station.name.value).toBe("Colón");
+    expect(result[1]!.station.name.value).toBe("Xàtiva");
   });
 
   it("should return empty lines array for a station not on any line", async () => {

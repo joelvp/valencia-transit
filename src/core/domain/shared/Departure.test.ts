@@ -111,6 +111,28 @@ describe("Departure", () => {
     expect(a.equals(b)).toBe(false);
   });
 
+  it("should store lineColor when provided", () => {
+    const departure = new Departure(
+      new TimeOfDay("14:30:00"),
+      "L3",
+      null,
+      new TimeOfDay("14:00:00"),
+      "#FF0000",
+    );
+    expect(departure.lineColor).toBe("#FF0000");
+  });
+
+  it("should default lineColor and durationMinutes to null", () => {
+    const departure = new Departure(
+      new TimeOfDay("14:30:00"),
+      "L3",
+      null,
+      new TimeOfDay("14:00:00"),
+    );
+    expect(departure.lineColor).toBeNull();
+    expect(departure.durationMinutes).toBeNull();
+  });
+
   it("should not be equal when one headsign is null and the other is not", () => {
     const a = new Departure(new TimeOfDay("14:30:00"), "L3", null, new TimeOfDay("14:00:00"));
     const b = new Departure(

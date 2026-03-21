@@ -33,8 +33,8 @@ describe("stationHandler", () => {
     const mockUseCase = {
       execute: mock(() =>
         Promise.resolve([
-          makeStationWithLines("Xàtiva", [makeLine("L3", "DA291C")]),
-          makeStationWithLines("Colón", [makeLine("L3", "DA291C"), makeLine("L5", "0072CE")]),
+          makeStationWithLines("Xàtiva", [makeLine("L3", "DD052C")]),
+          makeStationWithLines("Colón", [makeLine("L3", "DD052C"), makeLine("L5", "008F71")]),
           makeStationWithLines("Àngel Guimerà"),
         ]),
       ),
@@ -46,8 +46,8 @@ describe("stationHandler", () => {
 
     expect(mockUseCase.execute).toHaveBeenCalled();
     const response = (ctx.reply.mock.calls[0] as string[])[0];
-    expect(response).toContain("Xàtiva — 🔴L3");
-    expect(response).toContain("Colón — 🔴L3 🔵L5");
+    expect(response).toContain("Xàtiva  🔴 L3");
+    expect(response).toContain("Colón  🔴 L3 · 🟢 L5");
     expect(response).toContain("Àngel Guimerà");
   });
 
@@ -76,6 +76,6 @@ describe("stationHandler", () => {
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as string[])[0];
-    expect(response).toContain("⚪L9");
+    expect(response).toContain("⚪ L9");
   });
 });

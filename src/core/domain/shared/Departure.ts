@@ -8,6 +8,8 @@ export class Departure {
     readonly lineName: string,
     readonly headsign: string | null,
     readonly currentTime: TimeOfDay,
+    readonly lineColor: string | null = null,
+    readonly durationMinutes: number | null = null,
   ) {
     this.minutesRemaining = departureTime.minutesUntilFrom(currentTime);
   }
