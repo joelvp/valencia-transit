@@ -239,7 +239,7 @@ describe("TelegramBot E2E", () => {
     expect(reply).toContain("Próximas salidas:");
 
     // Departure row: time, line color emoji, line name, headsign
-    expect(reply).toContain("25:00");
+    expect(reply).toContain("01:00");
     expect(reply).toContain("🟡");
     expect(reply).toContain("→ Colón");
   });
@@ -296,7 +296,7 @@ describe("TelegramBot E2E", () => {
     expect(replies).toHaveLength(1);
     expect(freeTextReply).toContain("🚇 <b>Xàtiva → Colón</b>");
     expect(freeTextReply).toContain("Próximas salidas:");
-    expect(freeTextReply).toContain("25:00");
+    expect(freeTextReply).toContain("01:00");
     expect(freeTextReply).toContain("🟡");
     expect(freeTextReply).toBe(commandReply);
   });
