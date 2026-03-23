@@ -1,14 +1,13 @@
 import type { Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
-import type { Departure } from "@/core/domain/shared/Departure";
 import type { Station } from "@/core/domain/station/Station";
 import type { Translations } from "@/adapters/in/telegram/i18n";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/languageStore";
-import { lineNumberToEmoji, lineNumberToName } from "@/adapters/in/telegram/lineEmoji";
+import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
 
 export function departureHandler(useCase: SearchNextDepartures) {
   return async (ctx: Context): Promise<void> => {
@@ -96,45 +95,6 @@ function parseStations(args: string): { originName: string; destinationName: str
   const spaceIdx = args.indexOf(" ");
   if (spaceIdx === -1) return null;
   return { originName: args.slice(0, spaceIdx), destinationName: args.slice(spaceIdx + 1) };
-}
-
-function formatDepartures(
-  t: Translations,
-  origin: string,
-  destination: string,
-  departures: Departure[],
-): string {
-  const durationSuffix =
-    departures[0]?.durationMinutes != null ? `  (~${departures[0].durationMinutes} min)` : "";
-  const header = `🚇 <b>${origin} → ${destination}</b>${durationSuffix}`;
-  const lines = departures.map((d) => {
-    const h = String(d.departureTime.hours).padStart(2, "0");
-    const m = String(d.departureTime.minutes).padStart(2, "0");
-    const time = `<b>${h}:${m}</b>`;
-    const headsign = d.headsign ? ` → ${d.headsign}` : "";
-    const lineName = lineNumberToName(d.lineName);
-    return `${time} (${d.minutesRemaining} min) — ${lineNumberToEmoji(d.lineName)}<b>${lineName}</b>${headsign}`;
-  });
-
-  return [header, "", t.nextDepartures, ...lines, "", t.disclaimer].join("\n");
-}
-
-function formatNoMoreToday(
-  t: Translations,
-  origin: string,
-  destination: string,
-  firstTomorrow: Departure | null,
-): string {
-  const header = `🚇 <b>${origin} → ${destination}</b>`;
-  const noMore = `\n${t.noMoreToday(origin, destination)}`;
-
-  if (firstTomorrow) {
-    const h = String(firstTomorrow.departureTime.hours).padStart(2, "0");
-    const m = String(firstTomorrow.departureTime.minutes).padStart(2, "0");
-    return `${header}${noMore}\n\n${t.firstTomorrow(`${h}:${m}`, firstTomorrow.lineName)}`;
-  }
-
-  return `${header}${noMore}`;
 }
 
 function formatDisambiguation(

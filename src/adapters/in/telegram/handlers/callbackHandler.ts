@@ -1,8 +1,7 @@
 import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
-import type { Departure } from "@/core/domain/shared/Departure";
-import type { Translations } from "@/adapters/in/telegram/i18n";
 import { getT } from "@/adapters/in/telegram/languageStore";
+import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
 
 export function callbackHandler(useCase: SearchNextDepartures) {
   return async (ctx: Context): Promise<void> => {
@@ -28,16 +27,16 @@ export function callbackHandler(useCase: SearchNextDepartures) {
       }
 
       if (result.type === "no_more_today") {
-        const o = result.origin.name.value;
-        const d = result.destination.name.value;
-        let msg = `🚇 <b>${o} → ${d}</b>\n${t.noMoreToday(o, d)}`;
-        if (result.firstTomorrow) {
-          const h = String(result.firstTomorrow.departureTime.hours).padStart(2, "0");
-          const m = String(result.firstTomorrow.departureTime.minutes).padStart(2, "0");
-          msg += `\n\n${t.firstTomorrow(`${h}:${m}`, result.firstTomorrow.lineName)}`;
-        }
         await ctx.answerCallbackQuery();
-        await ctx.editMessageText(msg, { parse_mode: "HTML" });
+        await ctx.editMessageText(
+          formatNoMoreToday(
+            t,
+            result.origin.name.value,
+            result.destination.name.value,
+            result.firstTomorrow,
+          ),
+          { parse_mode: "HTML" },
+        );
         return;
       }
 
@@ -70,22 +69,4 @@ function parseCallbackData(data: string): { originName: string; destinationName:
   }
 
   return null;
-}
-
-function formatDepartures(
-  t: Translations,
-  origin: string,
-  destination: string,
-  departures: Departure[],
-): string {
-  const header = `🚇 <b>${origin} → ${destination}</b>`;
-  const lines = departures.map((d, i) => {
-    const h = String(d.departureTime.hours).padStart(2, "0");
-    const m = String(d.departureTime.minutes).padStart(2, "0");
-    const time = `<b>${h}:${m}</b>`;
-    const headsign = d.headsign ? ` → ${d.headsign}` : "";
-    return `${i + 1}. ${time} (${d.minutesRemaining} min) — <b>${d.lineName}</b>${headsign}`;
-  });
-
-  return [header, "", t.nextDepartures, ...lines, "", t.disclaimer].join("\n");
 }
