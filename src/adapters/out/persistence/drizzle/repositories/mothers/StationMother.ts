@@ -1,5 +1,6 @@
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 type StationRow = {
   id: string;
@@ -16,6 +17,7 @@ export class StationMother {
       overrides.id ?? "ST1",
       overrides.name ?? "Colón",
       new StationLocation(overrides.lat ?? 39.47, overrides.lng ?? -0.37),
+      TransportType.METRO,
     );
   }
 

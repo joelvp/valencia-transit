@@ -5,9 +5,15 @@ import { Station } from "../../domain/station/Station.ts";
 import { StationId } from "../../domain/station/StationId.ts";
 import { StationName } from "../../domain/station/StationName.ts";
 import { StationLocation } from "../../domain/station/StationLocation.ts";
+import { TransportType } from "../../domain/shared/TransportType.ts";
 
 function makeStation(id: string, name: string): Station {
-  return new Station(new StationId(id), new StationName(name), new StationLocation(39.47, -0.37));
+  return new Station(
+    new StationId(id),
+    new StationName(name),
+    new StationLocation(39.47, -0.37),
+    TransportType.METRO,
+  );
 }
 
 describe("ListAllStations", () => {

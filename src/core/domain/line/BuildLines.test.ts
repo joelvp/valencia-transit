@@ -9,6 +9,7 @@ import { LineId } from "./LineId.ts";
 import { StationId } from "../station/StationId.ts";
 import { ScheduleId } from "../schedule/ScheduleId.ts";
 import { TimeOfDay } from "../shared/TimeOfDay.ts";
+import { TransportType } from "../shared/TransportType.ts";
 
 const SCHEDULE = new ScheduleId("S1");
 const TIME = new TimeOfDay("08:00:00");
@@ -17,8 +18,8 @@ function makePt(stationId: string, sequence: number): PassingTime {
   return new PassingTime(new StationId(stationId), TIME, TIME, sequence);
 }
 
-function makeRoute(routeId: string, lineId: string): Route {
-  return new Route(new RouteId(routeId), new LineId(lineId), []);
+function makeRoute(routeId: string, lineId: string, transportType = TransportType.METRO): Route {
+  return new Route(new RouteId(routeId), new LineId(lineId), [], transportType);
 }
 
 function makeTrip(tripId: string, routeId: string, stationIds: string[]): Trip {

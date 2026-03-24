@@ -1,11 +1,13 @@
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 type StationRow = {
   id: string;
   name: string;
   latitude: number;
   longitude: number;
+  transportType: string;
 };
 
 type StationInsert = {
@@ -20,7 +22,7 @@ type StationInsert = {
 export const StationMapper = {
   toDomain(row: StationRow): Station {
     const location = new StationLocation(row.latitude, row.longitude);
-    return Station.create(row.id, row.name, location);
+    return Station.create(row.id, row.name, location, new TransportType(row.transportType));
   },
 
   toPersistence(station: Station, feedId: string): StationInsert {
@@ -30,7 +32,7 @@ export const StationMapper = {
       name: station.name.value,
       latitude: station.location.latitude,
       longitude: station.location.longitude,
-      transportType: "metro",
+      transportType: station.transportType.value,
     };
   },
 };

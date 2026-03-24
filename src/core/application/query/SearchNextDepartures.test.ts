@@ -26,6 +26,7 @@ import { DateRange } from "../../domain/schedule/DateRange.ts";
 import { StationNotFoundError } from "../../domain/error/StationNotFoundError.ts";
 import { NoConnectionError } from "../../domain/error/NoConnectionError.ts";
 import { NoActiveServiceError } from "../../domain/error/NoActiveServiceError.ts";
+import { TransportType } from "../../domain/shared/TransportType.ts";
 
 const originId = new StationId("S1");
 const destId = new StationId("S2");
@@ -34,11 +35,17 @@ const lineId = new LineId("L3");
 const routeId = new RouteId("L3");
 const scheduleId = new ScheduleId("SC1");
 
-const origin = new Station(originId, new StationName("Xàtiva"), new StationLocation(39.47, -0.37));
+const origin = new Station(
+  originId,
+  new StationName("Xàtiva"),
+  new StationLocation(39.47, -0.37),
+  TransportType.METRO,
+);
 const destination = new Station(
   destId,
   new StationName("Colón"),
   new StationLocation(39.48, -0.36),
+  TransportType.METRO,
 );
 
 const line = new Line(lineId, new LineName("L3"), [
@@ -208,6 +215,7 @@ describe("SearchNextDepartures", () => {
       new StationId("S3"),
       new StationName("Àngel Guimerà"),
       new StationLocation(39.46, -0.38),
+      TransportType.METRO,
     );
 
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
@@ -236,6 +244,7 @@ describe("SearchNextDepartures", () => {
       new StationId("S3"),
       new StationName("Àngel Guimerà"),
       new StationLocation(39.46, -0.38),
+      TransportType.METRO,
     );
 
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({

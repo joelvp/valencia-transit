@@ -4,12 +4,15 @@ import { RouteId } from "./RouteId.ts";
 import { RouteStation } from "./RouteStation.ts";
 import { LineId } from "../line/LineId.ts";
 import { StationId } from "../station/StationId.ts";
+import { TransportType } from "../shared/TransportType.ts";
 
 function makeRoute(routeId = "V4-114-98", lineId = "4"): Route {
-  return new Route(new RouteId(routeId), new LineId(lineId), [
-    new RouteStation(new StationId("S1")),
-    new RouteStation(new StationId("S2")),
-  ]);
+  return new Route(
+    new RouteId(routeId),
+    new LineId(lineId),
+    [new RouteStation(new StationId("S1")), new RouteStation(new StationId("S2"))],
+    TransportType.METRO,
+  );
 }
 
 describe("Route", () => {
@@ -33,7 +36,7 @@ describe("Route", () => {
   });
 
   it("should allow an empty stations list", () => {
-    const route = new Route(new RouteId("R1"), new LineId("1"), []);
+    const route = new Route(new RouteId("R1"), new LineId("1"), [], TransportType.METRO);
     expect(route.stations).toHaveLength(0);
   });
 });

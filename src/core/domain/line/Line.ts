@@ -3,6 +3,7 @@ import type { LineName } from "./LineName.ts";
 import type { LineStop } from "./LineStop.ts";
 import type { LineColor } from "./LineColor.ts";
 import type { StationId } from "../station/StationId.ts";
+import { TransportType } from "../shared/TransportType.ts";
 
 export class Line {
   constructor(
@@ -10,6 +11,7 @@ export class Line {
     readonly name: LineName,
     readonly stops: LineStop[],
     readonly color: LineColor | null = null,
+    readonly transportType: TransportType = TransportType.METRO,
   ) {}
 
   getSequence(stationId: StationId): number | undefined {

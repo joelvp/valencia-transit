@@ -27,8 +27,9 @@ export class StationRepositoryDrizzle implements StationRepository {
       name: string;
       latitude: number;
       longitude: number;
+      transportType: string;
     }>(sql`
-      SELECT id, name, latitude, longitude
+      SELECT id, name, latitude, longitude, transport_type AS "transportType"
       FROM stations
       WHERE name % ${query}::text OR name ILIKE ${"%" + query + "%"}
       ORDER BY similarity(name, ${query}::text) DESC

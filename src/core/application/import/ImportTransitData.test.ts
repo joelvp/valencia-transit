@@ -15,6 +15,7 @@ import { StationLocation } from "../../domain/station/StationLocation.ts";
 import { Route } from "../../domain/route/Route.ts";
 import { RouteId } from "../../domain/route/RouteId.ts";
 import { LineId } from "../../domain/line/LineId.ts";
+import { TransportType } from "../../domain/shared/TransportType.ts";
 import { Schedule } from "../../domain/schedule/Schedule.ts";
 import { ScheduleId } from "../../domain/schedule/ScheduleId.ts";
 import { Weekdays } from "../../domain/schedule/Weekdays.ts";
@@ -27,13 +28,15 @@ function makeGtfsData(): GtfsData {
     new StationId("S1"),
     new StationName("Xàtiva"),
     new StationLocation(39.47, -0.37),
+    TransportType.METRO,
   );
   const s2 = new Station(
     new StationId("S2"),
     new StationName("Colón"),
     new StationLocation(39.47, -0.36),
+    TransportType.METRO,
   );
-  const route = new Route(new RouteId("V1-1-3"), new LineId("1"), []);
+  const route = new Route(new RouteId("V1-1-3"), new LineId("1"), [], TransportType.METRO);
   const schedule = new Schedule(
     new ScheduleId("SC1"),
     new Weekdays(true, true, true, true, true, false, false),

@@ -3,6 +3,7 @@ import { RouteId } from "@/core/domain/route/RouteId.ts";
 import { RouteStation } from "@/core/domain/route/RouteStation.ts";
 import { LineId } from "@/core/domain/line/LineId.ts";
 import { StationId } from "@/core/domain/station/StationId.ts";
+import { TransportType } from "@/core/domain/shared/TransportType.ts";
 
 type RouteRow = {
   id: string;
@@ -36,6 +37,7 @@ export const RouteMapper = {
       new RouteId(row.id),
       new LineId(lineId),
       stationRows.map((s) => new RouteStation(new StationId(s.stationId))),
+      new TransportType(row.transportType),
     );
   },
 
@@ -44,7 +46,7 @@ export const RouteMapper = {
       route: {
         id: route.id.value,
         feedId,
-        transportType: "metro", // TODO: derive from feed
+        transportType: route.transportType.value,
       },
       stations: route.stations.map((s) => ({
         routeId: route.id.value,

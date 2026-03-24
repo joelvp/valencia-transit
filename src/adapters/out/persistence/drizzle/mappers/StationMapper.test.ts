@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { StationMapper } from "./StationMapper";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 describe("StationMapper", () => {
   describe("toDomain", () => {
@@ -11,6 +12,7 @@ describe("StationMapper", () => {
         name: "Xàtiva",
         latitude: 39.4699,
         longitude: -0.3763,
+        transportType: "metro",
       };
 
       const station = StationMapper.toDomain(row);
@@ -19,6 +21,7 @@ describe("StationMapper", () => {
       expect(station.name.value).toBe("Xàtiva");
       expect(station.location.latitude).toBe(39.4699);
       expect(station.location.longitude).toBe(-0.3763);
+      expect(station.transportType.value).toBe("metro");
     });
 
     it("should return a Station instance", () => {
@@ -27,6 +30,7 @@ describe("StationMapper", () => {
         name: "Colón",
         latitude: 39.4702,
         longitude: -0.3756,
+        transportType: "tram",
       };
 
       const station = StationMapper.toDomain(row);
@@ -38,7 +42,7 @@ describe("StationMapper", () => {
   describe("toPersistence", () => {
     it("should convert a Station domain entity to a DB insert row", () => {
       const location = new StationLocation(39.4699, -0.3763);
-      const station = Station.create("station-1", "Xàtiva", location);
+      const station = Station.create("station-1", "Xàtiva", location, TransportType.METRO);
 
       const row = StationMapper.toPersistence(station, "metrovalencia");
 
@@ -50,20 +54,20 @@ describe("StationMapper", () => {
       expect(row.transportType).toBe("metro");
     });
 
-    it("should always set transportType to metro", () => {
+    it("should use the station transportType when persisting", () => {
       const location = new StationLocation(39.4702, -0.3756);
-      const station = Station.create("station-2", "Colón", location);
+      const station = Station.create("station-2", "Colón", location, TransportType.TRAM);
 
       const row = StationMapper.toPersistence(station, "metrovalencia");
 
-      expect(row.transportType).toBe("metro");
+      expect(row.transportType).toBe("tram");
     });
   });
 
   describe("round-trip", () => {
     it("should produce an equivalent entity after toPersistence and toDomain", () => {
       const location = new StationLocation(39.4699, -0.3763);
-      const original = Station.create("station-1", "Xàtiva", location);
+      const original = Station.create("station-1", "Xàtiva", location, TransportType.METRO);
 
       const persisted = StationMapper.toPersistence(original, "metrovalencia");
       const restored = StationMapper.toDomain(persisted);
@@ -72,6 +76,7 @@ describe("StationMapper", () => {
       expect(restored.name.value).toBe(original.name.value);
       expect(restored.location.latitude).toBe(original.location.latitude);
       expect(restored.location.longitude).toBe(original.location.longitude);
+      expect(restored.transportType.value).toBe(original.transportType.value);
     });
   });
 });

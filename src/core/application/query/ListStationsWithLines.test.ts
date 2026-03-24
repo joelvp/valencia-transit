@@ -10,9 +10,15 @@ import { Line } from "../../domain/line/Line.ts";
 import { LineId } from "../../domain/line/LineId.ts";
 import { LineName } from "../../domain/line/LineName.ts";
 import { LineStop } from "../../domain/line/LineStop.ts";
+import { TransportType } from "../../domain/shared/TransportType.ts";
 
 function makeStation(id: string, name = "Station"): Station {
-  return new Station(new StationId(id), new StationName(name), new StationLocation(39.47, -0.37));
+  return new Station(
+    new StationId(id),
+    new StationName(name),
+    new StationLocation(39.47, -0.37),
+    TransportType.METRO,
+  );
 }
 
 function makeLine(id: string, stationIds: string[]): Line {
