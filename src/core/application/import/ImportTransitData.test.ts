@@ -14,9 +14,7 @@ import { StationName } from "../../domain/station/StationName.ts";
 import { StationLocation } from "../../domain/station/StationLocation.ts";
 import { Route } from "../../domain/route/Route.ts";
 import { RouteId } from "../../domain/route/RouteId.ts";
-import { Line } from "../../domain/line/Line.ts";
 import { LineId } from "../../domain/line/LineId.ts";
-import { LineName } from "../../domain/line/LineName.ts";
 import { Schedule } from "../../domain/schedule/Schedule.ts";
 import { ScheduleId } from "../../domain/schedule/ScheduleId.ts";
 import { Weekdays } from "../../domain/schedule/Weekdays.ts";
@@ -36,7 +34,6 @@ function makeGtfsData(): GtfsData {
     new StationLocation(39.47, -0.36),
   );
   const route = new Route(new RouteId("V1-1-3"), new LineId("1"), []);
-  const line = new Line(new LineId("1"), new LineName("Línia 1"), []);
   const schedule = new Schedule(
     new ScheduleId("SC1"),
     new Weekdays(true, true, true, true, true, false, false),
@@ -48,7 +45,6 @@ function makeGtfsData(): GtfsData {
   return {
     stations: [s1, s2],
     routes: [route],
-    lines: [line],
     schedules: [schedule],
     trips: [trip],
   };

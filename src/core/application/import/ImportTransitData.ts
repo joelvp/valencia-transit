@@ -6,6 +6,7 @@ import type { TripRepository } from "../../domain/trip/TripRepository.ts";
 import type { EventBus } from "../../domain/event/EventBus.ts";
 import type { GtfsData } from "../../domain/shared/GtfsData.ts";
 import { DatasetImported } from "../../domain/event/DatasetImported.ts";
+import { BuildLines } from "../../domain/line/BuildLines.ts";
 
 export interface ImportSummary {
   feedId: string;
@@ -29,6 +30,8 @@ export class ImportTransitData {
   async execute(data: GtfsData, feedId: string): Promise<ImportSummary> {
     console.log(`[import] Starting import for feed "${feedId}"...`);
 
+    const lines = BuildLines.fromRoutesAndTrips(data.routes, data.trips);
+
     // Delete in FK-safe order:
     // passing_times → line_stations → trips → route_stations → routes → lines → schedule_exceptions → schedules → stations
     // (cascade handles child tables, but explicit order for readability)
@@ -49,8 +52,8 @@ export class ImportTransitData {
     await this.scheduleRepository.saveAll(data.schedules, feedId);
     console.log(`[import] Schedules done.`);
 
-    console.log(`[import] Importing ${data.lines.length} lines...`);
-    await this.lineRepository.saveMany(data.lines, feedId);
+    console.log(`[import] Importing ${lines.length} lines...`);
+    await this.lineRepository.saveMany(lines, feedId);
     console.log(`[import] Lines done.`);
 
     console.log(`[import] Importing ${data.routes.length} routes...`);
@@ -65,7 +68,7 @@ export class ImportTransitData {
       new DatasetImported(
         feedId,
         data.stations.length,
-        data.lines.length,
+        lines.length,
         data.schedules.length,
         data.trips.length,
       ),
@@ -75,7 +78,7 @@ export class ImportTransitData {
       feedId,
       stationsImported: data.stations.length,
       routesImported: data.routes.length,
-      linesImported: data.lines.length,
+      linesImported: lines.length,
       schedulesImported: data.schedules.length,
       tripsImported: data.trips.length,
     };

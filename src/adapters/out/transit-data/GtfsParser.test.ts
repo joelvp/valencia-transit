@@ -68,34 +68,6 @@ describe("GtfsParser", () => {
     expect(route!.lineId.value).toBe("1");
   });
 
-  // Lines (one per route_short_name, canonical routes only)
-  it("should parse 2 lines (one per route_short_name)", () => {
-    expect(result.lines).toHaveLength(2);
-  });
-
-  it("should filter out depot route from lines (V1-1-3-DEPOT has 0 trips, below 15% threshold)", () => {
-    const depot = result.lines.find((l) => l.id.value === "V1-1-3-DEPOT");
-    expect(depot).toBeUndefined();
-  });
-
-  it("should parse line '1' keyed by route_short_name", () => {
-    const line = result.lines.find((l) => l.id.value === "1");
-    expect(line).toBeDefined();
-  });
-
-  it("should parse line '1' stops in direction 1→3 (origin suffix matches route_id)", () => {
-    const line = result.lines.find((l) => l.id.value === "1");
-    expect(line).toBeDefined();
-    const stopIds = line!.stops.map((s) => s.stationId.value);
-    expect(stopIds[0]).toBe("1");
-    expect(stopIds[stopIds.length - 1]).toBe("3");
-  });
-
-  it("should parse line '2' keyed by route_short_name", () => {
-    const line = result.lines.find((l) => l.id.value === "2");
-    expect(line).toBeDefined();
-  });
-
   it("should parse schedule SVC1 with monday=true and saturday=false", () => {
     const svc1 = result.schedules.find((s) => s.id.value === "SVC1");
     expect(svc1).toBeDefined();

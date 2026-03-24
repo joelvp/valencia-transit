@@ -91,7 +91,6 @@ describe("ImportTransitData Component Test", () => {
     const gtfsData = parser.parse(tempPath);
 
     expect(gtfsData.stations).toHaveLength(2);
-    expect(gtfsData.lines).toHaveLength(1); // 1 route_id = 1 line
     expect(gtfsData.schedules).toHaveLength(1);
     expect(gtfsData.trips).toHaveLength(2);
 
