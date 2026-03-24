@@ -3,6 +3,8 @@ import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
 
 type TableName =
   | "stations"
+  | "routes"
+  | "route_stations"
   | "lines"
   | "line_stations"
   | "schedules"
@@ -19,6 +21,8 @@ const ALL_TABLES: TableName[] = [
   "schedules",
   "line_stations",
   "lines",
+  "route_stations",
+  "routes",
   "stations",
   "domain_events",
   "dataset_versions",

@@ -68,7 +68,7 @@ export class SearchNextDepartures {
     const origin = originResult;
     const destination = destResult;
 
-    const matchingLines = await this.lineRepository.findByStations(origin.id, destination.id);
+    const matchingLines = await this.lineRepository.findByStationIds(origin.id, destination.id);
     if (matchingLines.length === 0) {
       throw new NoConnectionError(originName, destinationName);
     }
@@ -90,7 +90,7 @@ export class SearchNextDepartures {
 
     const filteredTrips = trips.filter(
       (trip) =>
-        matchingLineIds.has(trip.lineId.value) && trip.stopsInOrder(origin.id, destination.id),
+        matchingLineIds.has(trip.routeId.value) && trip.stopsInOrder(origin.id, destination.id),
     );
 
     const departures: Departure[] = [];
@@ -98,8 +98,8 @@ export class SearchNextDepartures {
       const departureTime = trip.getDepartureTimeAt(origin.id);
       if (!departureTime) continue;
 
-      const matchingLine = matchingLines.find((l) => l.id.equals(trip.lineId));
-      const lineName = matchingLine ? matchingLine.name.value : trip.lineId.value;
+      const matchingLine = matchingLines.find((l) => l.id.equals(trip.routeId));
+      const lineName = matchingLine ? matchingLine.name.value : trip.routeId.value;
       const lineColor = matchingLine?.color?.value ?? null;
 
       const arrivalAtDest = trip.getDepartureTimeAt(destination.id);
@@ -164,7 +164,7 @@ export class SearchNextDepartures {
 
     const filtered = tomorrowTrips.filter(
       (trip) =>
-        matchingLineIds.has(trip.lineId.value) && trip.stopsInOrder(origin.id, destination.id),
+        matchingLineIds.has(trip.routeId.value) && trip.stopsInOrder(origin.id, destination.id),
     );
 
     let earliest: Departure | null = null;
@@ -172,8 +172,8 @@ export class SearchNextDepartures {
       const departureTime = trip.getDepartureTimeAt(origin.id);
       if (!departureTime) continue;
 
-      const matchingLine = matchingLines.find((l) => l.id.equals(trip.lineId));
-      const lineName = matchingLine ? matchingLine.name.value : trip.lineId.value;
+      const matchingLine = matchingLines.find((l) => l.id.equals(trip.routeId));
+      const lineName = matchingLine ? matchingLine.name.value : trip.routeId.value;
       const lineColor = matchingLine?.color?.value ?? null;
       const durationMinutes =
         trip.getDepartureTimeAt(destination.id)?.minutesUntilFrom(departureTime) ?? null;

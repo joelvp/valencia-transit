@@ -3,7 +3,7 @@ import { TripMapper } from "./TripMapper";
 import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
 import { PassingTime } from "@/core/domain/trip/PassingTime";
-import { LineId } from "@/core/domain/line/LineId";
+import { RouteId } from "@/core/domain/route/RouteId";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
@@ -13,7 +13,7 @@ describe("TripMapper", () => {
     it("should convert a DB row with multiple passing times to a Trip domain entity", () => {
       const row = {
         id: "trip-1",
-        lineId: "line-1",
+        routeId: "route-1",
         scheduleId: "schedule-1",
         headsign: null,
       };
@@ -26,7 +26,7 @@ describe("TripMapper", () => {
       const trip = TripMapper.toDomain(row, passingTimeRows);
 
       expect(trip.id.value).toBe("trip-1");
-      expect(trip.lineId.value).toBe("line-1");
+      expect(trip.routeId.value).toBe("route-1");
       expect(trip.scheduleId.value).toBe("schedule-1");
       expect(trip.passingTimes).toHaveLength(3);
       expect(trip.passingTimes[0]!.stationId.value).toBe("station-1");
@@ -40,7 +40,7 @@ describe("TripMapper", () => {
     it("should return a Trip instance", () => {
       const row = {
         id: "trip-1",
-        lineId: "line-1",
+        routeId: "route-1",
         scheduleId: "schedule-1",
         headsign: null,
       };
@@ -56,7 +56,7 @@ describe("TripMapper", () => {
     it("should handle empty passing times array", () => {
       const row = {
         id: "trip-1",
-        lineId: "line-1",
+        routeId: "route-1",
         scheduleId: "schedule-1",
         headsign: null,
       };
@@ -69,7 +69,7 @@ describe("TripMapper", () => {
     it("should handle GTFS next-day times where hours exceed 23", () => {
       const row = {
         id: "trip-late",
-        lineId: "line-1",
+        routeId: "route-1",
         scheduleId: "schedule-1",
         headsign: null,
       };
@@ -102,7 +102,7 @@ describe("TripMapper", () => {
       ];
       const trip = new Trip(
         new TripId("trip-1"),
-        new LineId("line-1"),
+        new RouteId("route-1"),
         new ScheduleId("schedule-1"),
         passingTimes,
       );
@@ -111,7 +111,7 @@ describe("TripMapper", () => {
 
       expect(result.trip.id).toBe("trip-1");
       expect(result.trip.feedId).toBe("metrovalencia");
-      expect(result.trip.lineId).toBe("line-1");
+      expect(result.trip.routeId).toBe("route-1");
       expect(result.trip.scheduleId).toBe("schedule-1");
       expect(result.trip.headsign).toBeNull();
 
@@ -129,7 +129,7 @@ describe("TripMapper", () => {
     it("should set headsign to null when not provided", () => {
       const trip = new Trip(
         new TripId("trip-1"),
-        new LineId("line-1"),
+        new RouteId("route-1"),
         new ScheduleId("schedule-1"),
         [],
       );
@@ -142,7 +142,7 @@ describe("TripMapper", () => {
     it("should produce empty passingTimes array when trip has no passing times", () => {
       const trip = new Trip(
         new TripId("trip-1"),
-        new LineId("line-1"),
+        new RouteId("route-1"),
         new ScheduleId("schedule-1"),
         [],
       );
@@ -171,7 +171,7 @@ describe("TripMapper", () => {
       ];
       const original = new Trip(
         new TripId("trip-1"),
-        new LineId("line-1"),
+        new RouteId("route-1"),
         new ScheduleId("schedule-1"),
         passingTimes,
       );
@@ -181,7 +181,7 @@ describe("TripMapper", () => {
       const restored = TripMapper.toDomain(tripRow, passingTimeRows);
 
       expect(restored.id.value).toBe(original.id.value);
-      expect(restored.lineId.value).toBe(original.lineId.value);
+      expect(restored.routeId.value).toBe(original.routeId.value);
       expect(restored.scheduleId.value).toBe(original.scheduleId.value);
       expect(restored.passingTimes).toHaveLength(original.passingTimes.length);
       expect(restored.passingTimes[0]!.stationId.value).toBe(original.passingTimes[0]!.stationId.value);

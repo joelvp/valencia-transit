@@ -4,14 +4,14 @@ import { clearDatabase, clearTables } from "tests/helpers/db";
 import { TripRepositoryDrizzle } from "./TripRepositoryDrizzle";
 import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
-import { LineId } from "@/core/domain/line/LineId";
+import { RouteId } from "@/core/domain/route/RouteId";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 import { PassingTime } from "@/core/domain/trip/PassingTime";
-import { stations, lines, schedules, trips, passingTimes } from "../schema";
+import { stations, routes, schedules, trips, passingTimes } from "../schema";
 import { StationMother } from "./mothers/StationMother";
-import { LineMother } from "./mothers/LineMother";
+import { RouteMother } from "./mothers/RouteMother";
 import { ScheduleMother } from "./mothers/ScheduleMother";
 import { TripMother } from "./mothers/TripMother";
 
@@ -26,16 +26,16 @@ describe("TripRepositoryDrizzle", () => {
   });
 
   beforeEach(async () => {
-    await clearTables(container.db, "passing_times", "trips", "schedule_exceptions", "schedules", "line_stations", "lines", "stations");
+    await clearTables(container.db, "passing_times", "trips", "schedule_exceptions", "schedules", "route_stations", "routes", "stations");
     repo = new TripRepositoryDrizzle(container.db);
 
-    // FK dependencies: stations, lines, schedules must exist first
+    // FK dependencies: stations, routes, schedules must exist first
     await container.db.insert(stations).values([
       StationMother.row(),
       StationMother.row({ id: "ST2", name: "Xàtiva", longitude: -0.38 }),
     ]);
 
-    await container.db.insert(lines).values([LineMother.row()]);
+    await container.db.insert(routes).values([RouteMother.row()]);
 
     await container.db.insert(schedules).values([ScheduleMother.row(), ScheduleMother.weekendRow()]);
 
@@ -59,16 +59,16 @@ describe("TripRepositoryDrizzle", () => {
     await container.dispose();
   });
 
-  it("should return trips for given line and schedule", async () => {
-    const result = await repo.findByLineAndSchedule(new LineId("L1"), new ScheduleId("SC1"));
+  it("should return trips for given route and schedule", async () => {
+    const result = await repo.findByRouteAndSchedule(new RouteId("R1"), new ScheduleId("SC1"));
 
     expect(result.length).toBe(2);
     const ids = result.map((t) => t.id.value).sort();
     expect(ids).toEqual(["TR1", "TR2"]);
   });
 
-  it("should return empty array when no trips match the given line and schedule", async () => {
-    const result = await repo.findByLineAndSchedule(new LineId("L1"), new ScheduleId("NONE"));
+  it("should return empty array when no trips match the given route and schedule", async () => {
+    const result = await repo.findByRouteAndSchedule(new RouteId("R1"), new ScheduleId("NONE"));
 
     expect(result).toEqual([]);
   });
@@ -119,7 +119,7 @@ describe("TripRepositoryDrizzle", () => {
   it("should insert trip with passing times and allow retrieval after save", async () => {
     const trip = new Trip(
       new TripId("TR99"),
-      new LineId("L1"),
+      new RouteId("R1"),
       new ScheduleId("SC1"),
       [
         new PassingTime(new StationId("ST1"), new TimeOfDay("12:00:00"), new TimeOfDay("12:00:00"), 1),
@@ -129,7 +129,7 @@ describe("TripRepositoryDrizzle", () => {
 
     await repo.save(trip, FEED_ID);
 
-    const result = await repo.findByLineAndSchedule(new LineId("L1"), new ScheduleId("SC1"));
+    const result = await repo.findByRouteAndSchedule(new RouteId("R1"), new ScheduleId("SC1"));
     const saved = result.find((t) => t.id.value === "TR99");
     expect(saved).not.toBeUndefined();
     expect(saved!.passingTimes.length).toBe(2);
@@ -138,14 +138,14 @@ describe("TripRepositoryDrizzle", () => {
   it("should upsert without error when saving an already-existing trip", async () => {
     const trip = new Trip(
       new TripId("TR1"),
-      new LineId("L1"),
+      new RouteId("R1"),
       new ScheduleId("SC1"),
       [],
     );
 
     await repo.save(trip, FEED_ID);
 
-    const result = await repo.findByLineAndSchedule(new LineId("L1"), new ScheduleId("SC1"));
+    const result = await repo.findByRouteAndSchedule(new RouteId("R1"), new ScheduleId("SC1"));
     const updated = result.find((t) => t.id.value === "TR1");
     expect(updated).not.toBeUndefined();
   });
@@ -162,12 +162,12 @@ describe("TripRepositoryDrizzle", () => {
     await container.db.insert(stations).values([
       StationMother.row({ id: "STO1", feedId: OTHER_FEED, name: "Other Station", latitude: 39.5, longitude: -0.4 }),
     ]);
-    await container.db.insert(lines).values([
-      LineMother.row({ id: "LO1", feedId: OTHER_FEED, name: "Other Line", shortName: "O" }),
+    await container.db.insert(routes).values([
+      RouteMother.row({ id: "RO1", feedId: OTHER_FEED }),
     ]);
     await container.db.insert(schedules).values([ScheduleMother.row({ id: "SCO1", feedId: OTHER_FEED })]);
     await container.db.insert(trips).values([
-      TripMother.row({ id: "TRO1", feedId: OTHER_FEED, lineId: "LO1", scheduleId: "SCO1", headsign: "Other" }),
+      TripMother.row({ id: "TRO1", feedId: OTHER_FEED, routeId: "RO1", scheduleId: "SCO1", headsign: "Other" }),
     ]);
 
     await repo.deleteByFeedId(FEED_ID);
@@ -179,18 +179,18 @@ describe("TripRepositoryDrizzle", () => {
 
   describe("saveAll", () => {
     it("should save all trips with passing times and make them retrievable", async () => {
-      await clearTables(container.db, "passing_times", "trips", "schedule_exceptions", "schedules", "line_stations", "lines", "stations");
+      await clearTables(container.db, "passing_times", "trips", "schedule_exceptions", "schedules", "route_stations", "routes", "stations");
 
       await container.db.insert(stations).values([
         StationMother.row({ id: "SA1", name: "Facultats", longitude: -0.39 }),
         StationMother.row({ id: "SA2", name: "Patraix", longitude: -0.40 }),
       ]);
-      await container.db.insert(lines).values([LineMother.row({ id: "LA1" })]);
+      await container.db.insert(routes).values([RouteMother.row({ id: "RA1" })]);
       await container.db.insert(schedules).values([ScheduleMother.row({ id: "SCA1" })]);
 
       const tripA = new Trip(
         new TripId("TA1"),
-        new LineId("LA1"),
+        new RouteId("RA1"),
         new ScheduleId("SCA1"),
         [
           new PassingTime(new StationId("SA1"), new TimeOfDay("07:00:00"), new TimeOfDay("07:00:00"), 1),
@@ -199,7 +199,7 @@ describe("TripRepositoryDrizzle", () => {
       );
       const tripB = new Trip(
         new TripId("TA2"),
-        new LineId("LA1"),
+        new RouteId("RA1"),
         new ScheduleId("SCA1"),
         [
           new PassingTime(new StationId("SA1"), new TimeOfDay("08:00:00"), new TimeOfDay("08:00:00"), 1),
@@ -208,7 +208,7 @@ describe("TripRepositoryDrizzle", () => {
 
       await repo.saveAll([tripA, tripB], FEED_ID);
 
-      const result = await repo.findByLineAndSchedule(new LineId("LA1"), new ScheduleId("SCA1"));
+      const result = await repo.findByRouteAndSchedule(new RouteId("RA1"), new ScheduleId("SCA1"));
       expect(result.length).toBe(2);
 
       const savedA = result.find((t) => t.id.value === "TA1");

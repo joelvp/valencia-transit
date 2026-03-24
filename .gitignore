@@ -51,9 +51,16 @@ agent.log
 .DS_Store
 
 # Project-specific
-data/gtfs/
+data/
 CHANGELOG.md
 docs/implementation_plan.md
+
+# npm lock file (project uses Bun)
+package-lock.json
+
+# Research/investigation files
+Plano-zonal-tarifario-Metrovalencia_.pdf
+Plano-zonal-tarifario-Metrovalencia_.png
 
 # Skill-creator
 *-workspace/

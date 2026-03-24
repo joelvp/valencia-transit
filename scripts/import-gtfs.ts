@@ -42,6 +42,7 @@ async function main() {
     const parser = new GtfsParser();
     const gtfsData = parser.parse(zipPath);
     console.log(`  - Stations: ${gtfsData.stations.length}`);
+    console.log(`  - Routes: ${gtfsData.routes.length}`);
     console.log(`  - Lines: ${gtfsData.lines.length}`);
     console.log(`  - Schedules: ${gtfsData.schedules.length}`);
     console.log(`  - Trips: ${gtfsData.trips.length}`);
@@ -51,6 +52,7 @@ async function main() {
     console.log("Importing data into database...");
     const importUseCase = new ImportTransitData(
       container.stationRepository,
+      container.routeRepository,
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
@@ -64,6 +66,7 @@ async function main() {
     console.log("=== Import Summary ===");
     console.log(`Feed ID: ${summary.feedId}`);
     console.log(`Stations imported: ${summary.stationsImported}`);
+    console.log(`Routes imported: ${summary.routesImported}`);
     console.log(`Lines imported: ${summary.linesImported}`);
     console.log(`Schedules imported: ${summary.schedulesImported}`);
     console.log(`Trips imported: ${summary.tripsImported}`);

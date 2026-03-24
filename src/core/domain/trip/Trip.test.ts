@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { Trip } from "./Trip.ts";
 import { TripId } from "./TripId.ts";
-import { LineId } from "../line/LineId.ts";
+import { RouteId } from "../route/RouteId.ts";
 import { ScheduleId } from "../schedule/ScheduleId.ts";
 import { PassingTime } from "./PassingTime.ts";
 import { StationId } from "../station/StationId.ts";
@@ -26,7 +26,7 @@ function createTrip(
       ),
   );
 
-  return new Trip(new TripId("T1"), new LineId("L1"), new ScheduleId("SCH1"), times);
+  return new Trip(new TripId("T1"), new RouteId("R1"), new ScheduleId("SCH1"), times);
 }
 
 describe("Trip", () => {
@@ -79,7 +79,7 @@ describe("Trip", () => {
 
   describe("equals", () => {
     it("should be equal to another trip with the same id", () => {
-      const other = new Trip(new TripId("T1"), new LineId("L2"), new ScheduleId("SCH2"), []);
+      const other = new Trip(new TripId("T1"), new RouteId("R2"), new ScheduleId("SCH2"), []);
       expect(trip.equals(other)).toBe(true);
     });
 
@@ -87,7 +87,7 @@ describe("Trip", () => {
       const other = createTrip();
       const different = new Trip(
         new TripId("T2"),
-        other.lineId,
+        other.routeId,
         other.scheduleId,
         other.passingTimes,
       );

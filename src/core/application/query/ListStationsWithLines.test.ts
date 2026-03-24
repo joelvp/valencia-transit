@@ -35,11 +35,8 @@ function makeStationRepo(stations: Station[]): StationRepository {
 function makeLineRepo(lines: Line[]): LineRepository {
   return {
     findAll: mock(() => Promise.resolve(lines)),
-    findById: mock(() => Promise.resolve(null)),
-    findByStations: mock(() => Promise.resolve([])),
-    findByStationId: mock(() => Promise.resolve([])),
-    save: mock(() => Promise.resolve()),
-    saveAll: mock(() => Promise.resolve()),
+    findByStationIds: mock(() => Promise.resolve([])),
+    saveMany: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
 }

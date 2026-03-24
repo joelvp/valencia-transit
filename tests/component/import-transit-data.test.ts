@@ -112,6 +112,7 @@ describe("ImportTransitData Component Test", () => {
     // Import using real use case (no mocks)
     const importUseCase = new ImportTransitData(
       container.stationRepository,
+      container.routeRepository,
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
@@ -152,6 +153,7 @@ describe("ImportTransitData Component Test", () => {
     const gtfsData = parser.parse(tempPath);
     const importUseCase = new ImportTransitData(
       container.stationRepository,
+      container.routeRepository,
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,

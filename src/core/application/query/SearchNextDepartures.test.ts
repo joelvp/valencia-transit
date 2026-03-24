@@ -16,6 +16,7 @@ import { LineStop } from "../../domain/line/LineStop.ts";
 import { LineColor } from "../../domain/line/LineColor.ts";
 import { Trip } from "../../domain/trip/Trip.ts";
 import { TripId } from "../../domain/trip/TripId.ts";
+import { RouteId } from "../../domain/route/RouteId.ts";
 import { ScheduleId } from "../../domain/schedule/ScheduleId.ts";
 import { PassingTime } from "../../domain/trip/PassingTime.ts";
 import { TimeOfDay } from "../../domain/shared/TimeOfDay.ts";
@@ -28,7 +29,9 @@ import { NoActiveServiceError } from "../../domain/error/NoActiveServiceError.ts
 
 const originId = new StationId("S1");
 const destId = new StationId("S2");
+// lineId and routeId share the same value so SearchNextDepartures filter passes
 const lineId = new LineId("L3");
+const routeId = new RouteId("L3");
 const scheduleId = new ScheduleId("SC1");
 
 const origin = new Station(originId, new StationName("Xàtiva"), new StationLocation(39.47, -0.37));
@@ -47,7 +50,7 @@ const now = new Date(Date.UTC(2026, 2, 18, 13, 0, 0)); // 13:00 UTC = 14:00 Madr
 
 const trip = new Trip(
   new TripId("T1"),
-  lineId,
+  routeId,
   scheduleId,
   [
     new PassingTime(originId, new TimeOfDay("14:30:00"), new TimeOfDay("14:30:00"), 1),
@@ -69,7 +72,7 @@ function makeRepos(
   overrides: Partial<{
     findByName: (name: string) => Promise<Station | null>;
     searchByName: (query: string) => Promise<Station[]>;
-    findByStations: () => Promise<Line[]>;
+    findByStationIds: () => Promise<Line[]>;
     findActiveOn: (date: Date) => Promise<Schedule[]>;
     /* eslint-disable @typescript-eslint/no-explicit-any */
     findDeparturesFromStation: (...args: any[]) => Promise<Trip[]>;
@@ -91,12 +94,9 @@ function makeRepos(
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const lineRepo: LineRepository = {
-    findByStations: mock(overrides.findByStations ?? (() => Promise.resolve([line]))),
-    findById: mock(() => Promise.resolve(null)),
-    findByStationId: mock(() => Promise.resolve([])),
+    findByStationIds: mock(overrides.findByStationIds ?? (() => Promise.resolve([line]))),
     findAll: mock(() => Promise.resolve([])),
-    save: mock(() => Promise.resolve()),
-    saveAll: mock(() => Promise.resolve()),
+    saveMany: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const scheduleRepo: ScheduleRepository = {
@@ -110,7 +110,7 @@ function makeRepos(
     findDeparturesFromStation: mock(
       overrides.findDeparturesFromStation ?? (() => Promise.resolve([trip])),
     ),
-    findByLineAndSchedule: mock(() => Promise.resolve([])),
+    findByRouteAndSchedule: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
@@ -263,7 +263,7 @@ describe("SearchNextDepartures", () => {
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
-      findByStations: () => Promise.resolve([]),
+      findByStationIds: () => Promise.resolve([]),
     });
 
     const useCase = new SearchNextDepartures(
@@ -299,7 +299,7 @@ describe("SearchNextDepartures", () => {
       (_, i) =>
         new Trip(
           new TripId(`T${i}`),
-          lineId,
+          routeId,
           scheduleId,
           [
             new PassingTime(
@@ -345,7 +345,7 @@ describe("SearchNextDepartures", () => {
     const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
     const earlyTrip = new Trip(
       new TripId("T-early"),
-      lineId,
+      routeId,
       scheduleId,
       [
         new PassingTime(originId, new TimeOfDay("06:00:00"), new TimeOfDay("06:00:00"), 1),
@@ -392,7 +392,7 @@ describe("SearchNextDepartures", () => {
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
-      findByStations: () => Promise.resolve([lineWithMergedSeqs]),
+      findByStationIds: () => Promise.resolve([lineWithMergedSeqs]),
     });
 
     const useCase = new SearchNextDepartures(
@@ -421,7 +421,7 @@ describe("SearchNextDepartures", () => {
 
     const earlyTrip = new Trip(
       new TripId("T-early"),
-      lineId,
+      routeId,
       scheduleId,
       [
         new PassingTime(originId, new TimeOfDay("06:00:00"), new TimeOfDay("06:00:00"), 1),
@@ -433,7 +433,7 @@ describe("SearchNextDepartures", () => {
     const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
-      findByStations: () => Promise.resolve([lineWithColor]),
+      findByStationIds: () => Promise.resolve([lineWithColor]),
       findDeparturesFromStation: (stationId, after) => {
         if (after.value === "00:00:00") return Promise.resolve([earlyTrip]);
         return Promise.resolve([]);

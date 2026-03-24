@@ -1,6 +1,6 @@
 ---
 name: domain-expert
-description: DDD expert for Valencia Transit. Designs aggregates, entities, value objects, domain events, and hexagonal architecture. Use when creating or modifying business concepts like stations, lines, schedules, trips, or any domain modeling work.
+description: DDD expert for Valencia Transit. Designs aggregates, entities, value objects, domain events, and hexagonal architecture. Use when creating or modifying business concepts like stations, lines, routes, schedules, trips, or any domain modeling work.
 model: sonnet
 memory: project
 tools:

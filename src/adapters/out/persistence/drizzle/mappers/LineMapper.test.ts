@@ -73,7 +73,6 @@ describe("LineMapper", () => {
       expect(result.line.id).toBe("line-1");
       expect(result.line.feedId).toBe("metrovalencia");
       expect(result.line.name).toBe("Línia 1");
-      expect(result.line.shortName).toBeNull();
       expect(result.line.transportType).toBe("metro");
       expect(result.line.color).toBe("DA291C");
 

@@ -7,6 +7,7 @@ import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { clearDatabase } from "../helpers/db";
 import {
   stations,
+  routes,
   lines,
   lineStations,
   schedules,
@@ -127,24 +128,16 @@ describe("TelegramBot E2E", () => {
       },
     ]);
 
-    // Lines: L1 (ST2→ST1), L2 (ST1→ST2)
+    // Routes (operational): one per direction
+    await container.db.insert(routes).values([
+      { id: "L1", feedId: FEED_ID, transportType: "metro" },
+      { id: "L2", feedId: FEED_ID, transportType: "metro" },
+    ]);
+
+    // Lines (commercial): Trip.routeId matches Line.id for SearchNextDepartures filter
     await container.db.insert(lines).values([
-      {
-        id: "L1",
-        feedId: FEED_ID,
-        name: "1",
-        shortName: "1",
-        transportType: "metro",
-        color: "FEC601",
-      },
-      {
-        id: "L2",
-        feedId: FEED_ID,
-        name: "1",
-        shortName: "1",
-        transportType: "metro",
-        color: "FEC601",
-      },
+      { id: "L1", feedId: FEED_ID, name: "1", transportType: "metro", color: "FEC601" },
+      { id: "L2", feedId: FEED_ID, name: "1", transportType: "metro", color: "FEC601" },
     ]);
 
     await container.db.insert(lineStations).values([
@@ -177,10 +170,10 @@ describe("TelegramBot E2E", () => {
       .insert(scheduleExceptions)
       .values([{ scheduleId: "WD", feedId: FEED_ID, date: today, isActive: true }]);
 
-    // Trips: T1 on L1 (Xàtiva→Colón), T2 on L2 (Colón→Xàtiva)
+    // Trips: T1 on route L1 (Xàtiva→Colón), T2 on route L2 (Colón→Xàtiva)
     await container.db.insert(trips).values([
-      { id: "T1", feedId: FEED_ID, lineId: "L1", scheduleId: "WD", headsign: "Colón" },
-      { id: "T2", feedId: FEED_ID, lineId: "L2", scheduleId: "WD", headsign: "Xàtiva" },
+      { id: "T1", feedId: FEED_ID, routeId: "L1", scheduleId: "WD", headsign: "Colón" },
+      { id: "T2", feedId: FEED_ID, routeId: "L2", scheduleId: "WD", headsign: "Xàtiva" },
     ]);
 
     // Passing times using GTFS next-day notation (25:xx) so they are always "next"

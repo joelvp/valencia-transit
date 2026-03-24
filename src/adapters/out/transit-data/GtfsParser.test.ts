@@ -44,30 +44,55 @@ describe("GtfsParser", () => {
     expect(result.stations).toHaveLength(3);
   });
 
-  it("should parse station S1 with correct id, name, and location", () => {
-    const s1 = result.stations.find((s) => s.id.value === "S1");
+  it("should parse station 1 with correct id, name, and location", () => {
+    const s1 = result.stations.find((s) => s.id.value === "1");
     expect(s1).toBeDefined();
     expect(s1!.name.value).toBe("Estació del Nord");
     expect(s1!.location.latitude).toBeCloseTo(39.4699);
     expect(s1!.location.longitude).toBeCloseTo(-0.3763);
   });
 
-  it("should parse 2 lines total (1 per route_id)", () => {
+  // Routes (one per GTFS route_id)
+  it("should parse 3 routes (one per route_id including depot)", () => {
+    expect(result.routes).toHaveLength(3);
+  });
+
+  it("should include depot route V1-1-3-DEPOT in routes", () => {
+    const depot = result.routes.find((r) => r.id.value === "V1-1-3-DEPOT");
+    expect(depot).toBeDefined();
+  });
+
+  it("should parse route V1-1-3 with lineId '1'", () => {
+    const route = result.routes.find((r) => r.id.value === "V1-1-3");
+    expect(route).toBeDefined();
+    expect(route!.lineId.value).toBe("1");
+  });
+
+  // Lines (one per route_short_name, canonical routes only)
+  it("should parse 2 lines (one per route_short_name)", () => {
     expect(result.lines).toHaveLength(2);
   });
 
-  it("should filter out non-canonical route R1-DEPOT (0 trips, below 15% threshold)", () => {
-    const depot = result.lines.find((l) => l.id.value === "R1-DEPOT");
+  it("should filter out depot route from lines (V1-1-3-DEPOT has 0 trips, below 15% threshold)", () => {
+    const depot = result.lines.find((l) => l.id.value === "V1-1-3-DEPOT");
     expect(depot).toBeUndefined();
   });
 
-  it("should parse line R1 with correct id", () => {
-    const line = result.lines.find((l) => l.id.value === "R1");
+  it("should parse line '1' keyed by route_short_name", () => {
+    const line = result.lines.find((l) => l.id.value === "1");
     expect(line).toBeDefined();
   });
 
-  it("should parse line R2 with correct id", () => {
-    const line = result.lines.find((l) => l.id.value === "R2");
+  it("should parse line '1' stops in direction 1→3 (origin suffix matches route_id)", () => {
+    const line = result.lines.find((l) => l.id.value === "1");
+    expect(line).toBeDefined();
+    const stopIds = line!.stops.map((s) => s.stationId.value);
+    expect(stopIds[0]).toBe("1");
+    expect(stopIds[stopIds.length - 1]).toBe("3");
+  });
+
+  it("should parse line '2' keyed by route_short_name", () => {
+    const line = result.lines.find((l) => l.id.value === "2");
     expect(line).toBeDefined();
   });
 
@@ -112,10 +137,10 @@ describe("GtfsParser", () => {
     expect(t1!.scheduleId.value).toBe("SVC1");
   });
 
-  it("should parse trip T1 with lineId R1", () => {
+  it("should parse trip T1 with routeId V1-1-3", () => {
     const t1 = result.trips.find((t) => t.id.value === "T1");
     expect(t1).toBeDefined();
-    expect(t1!.lineId.value).toBe("R1");
+    expect(t1!.routeId.value).toBe("V1-1-3");
   });
 
   it("should parse trip T1 with 3 passing times", () => {
@@ -123,16 +148,16 @@ describe("GtfsParser", () => {
     expect(t1!.passingTimes).toHaveLength(3);
   });
 
-  it("should parse passing time for T1/S1 with arrivalTime 08:00:00", () => {
+  it("should parse passing time for T1/stop 1 with arrivalTime 08:00:00", () => {
     const t1 = result.trips.find((t) => t.id.value === "T1");
-    const pt = t1!.passingTimes.find((p) => p.stationId.value === "S1");
+    const pt = t1!.passingTimes.find((p) => p.stationId.value === "1");
     expect(pt).toBeDefined();
     expect(pt!.arrivalTime.value).toBe("08:00:00");
   });
 
-  it("should parse passing time for T1/S1 with departureTime 08:00:30", () => {
+  it("should parse passing time for T1/stop 1 with departureTime 08:00:30", () => {
     const t1 = result.trips.find((t) => t.id.value === "T1");
-    const pt = t1!.passingTimes.find((p) => p.stationId.value === "S1");
+    const pt = t1!.passingTimes.find((p) => p.stationId.value === "1");
     expect(pt).toBeDefined();
     expect(pt!.departureTime.value).toBe("08:00:30");
   });

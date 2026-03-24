@@ -5,6 +5,7 @@ import { createDatabase } from "@/adapters/out/persistence/drizzle/db";
 import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
 import { StationRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/StationRepositoryDrizzle";
 import { LineRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/LineRepositoryDrizzle";
+import { RouteRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/RouteRepositoryDrizzle";
 import { ScheduleRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/ScheduleRepositoryDrizzle";
 import { TripRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/TripRepositoryDrizzle";
 import { DomainEventRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/DomainEventRepositoryDrizzle";
@@ -12,6 +13,7 @@ import { PersistAllEventsSubscriber } from "@/core/application/event/PersistAllE
 import { InMemoryEventBus } from "@/adapters/out/event-bus/InMemoryEventBus";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
+import type { RouteRepository } from "@/core/domain/route/RouteRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
@@ -20,6 +22,7 @@ export interface Container {
   secrets: Secrets;
   stationRepository: StationRepository;
   lineRepository: LineRepository;
+  routeRepository: RouteRepository;
   scheduleRepository: ScheduleRepository;
   tripRepository: TripRepository;
   eventBus: EventBus;
@@ -34,6 +37,7 @@ export function createContainer(): Container {
 
   const stationRepository = new StationRepositoryDrizzle(db);
   const lineRepository = new LineRepositoryDrizzle(db);
+  const routeRepository = new RouteRepositoryDrizzle(db);
   const scheduleRepository = new ScheduleRepositoryDrizzle(db);
   const tripRepository = new TripRepositoryDrizzle(db);
   const domainEventRepository = new DomainEventRepositoryDrizzle(db);
@@ -45,6 +49,7 @@ export function createContainer(): Container {
     secrets,
     stationRepository,
     lineRepository,
+    routeRepository,
     scheduleRepository,
     tripRepository,
     eventBus,

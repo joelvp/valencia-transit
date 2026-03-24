@@ -6,6 +6,7 @@ import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import {
   stations,
+  routes,
   lines,
   lineStations,
   schedules,
@@ -46,16 +47,18 @@ describe("SearchNextDepartures Component Test", () => {
       },
     ]);
 
-    // Lines: L1 (ST1→ST2), L2 (ST2→ST1)
+    // Routes (operational): one per direction
+    await container.db.insert(routes).values([
+      { id: "L1", feedId: FEED_ID, transportType: "metro" },
+      { id: "L2", feedId: FEED_ID, transportType: "metro" },
+    ]);
+
+    // Lines (commercial): SearchNextDepartures uses line IDs to filter trips.
+    // Trip.routeId must match Line.id for the filter to work.
+    // We use "L1" / "L2" as both line IDs and route IDs in this test.
     await container.db.insert(lines).values([
-      { id: "L1", feedId: FEED_ID, name: "Línea 1 Anada", shortName: "1", transportType: "metro" },
-      {
-        id: "L2",
-        feedId: FEED_ID,
-        name: "Línea 1 Tornada",
-        shortName: "1",
-        transportType: "metro",
-      },
+      { id: "L1", feedId: FEED_ID, name: "Línea 1 Anada", transportType: "metro" },
+      { id: "L2", feedId: FEED_ID, name: "Línea 1 Tornada", transportType: "metro" },
     ]);
 
     await container.db.insert(lineStations).values([
@@ -87,10 +90,10 @@ describe("SearchNextDepartures Component Test", () => {
       .insert(scheduleExceptions)
       .values([{ scheduleId: "WD", feedId: FEED_ID, date: "2024-06-03", isActive: true }]);
 
-    // Trips: T1 on L1/WD headsign "Xàtiva", T2 on L2/WD headsign "Colón"
+    // Trips: T1 on route L1/WD headsign "Xàtiva", T2 on route L2/WD headsign "Colón"
     await container.db.insert(trips).values([
-      { id: "T1", feedId: FEED_ID, lineId: "L1", scheduleId: "WD", headsign: "Xàtiva" },
-      { id: "T2", feedId: FEED_ID, lineId: "L2", scheduleId: "WD", headsign: "Colón" },
+      { id: "T1", feedId: FEED_ID, routeId: "L1", scheduleId: "WD", headsign: "Xàtiva" },
+      { id: "T2", feedId: FEED_ID, routeId: "L2", scheduleId: "WD", headsign: "Colón" },
     ]);
 
     // Passing times: T1 ST1(06:00)→ST2(06:05), T2 ST2(06:10)→ST1(06:15)

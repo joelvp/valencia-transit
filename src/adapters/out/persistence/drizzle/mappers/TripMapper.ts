@@ -1,14 +1,14 @@
 import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
 import { PassingTime } from "@/core/domain/trip/PassingTime";
-import { LineId } from "@/core/domain/line/LineId";
+import { RouteId } from "@/core/domain/route/RouteId";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 
 type TripRow = {
   id: string;
-  lineId: string;
+  routeId: string;
   scheduleId: string;
   headsign: string | null;
 };
@@ -24,7 +24,7 @@ type PassingTimeRow = {
 type TripInsert = {
   id: string;
   feedId: string;
-  lineId: string;
+  routeId: string;
   scheduleId: string;
   headsign: string | null;
 };
@@ -57,7 +57,7 @@ export const TripMapper = {
 
     return new Trip(
       new TripId(row.id),
-      new LineId(row.lineId),
+      new RouteId(row.routeId),
       new ScheduleId(row.scheduleId),
       passingTimes,
       row.headsign,
@@ -68,7 +68,7 @@ export const TripMapper = {
     const tripInsert: TripInsert = {
       id: trip.id.value,
       feedId,
-      lineId: trip.lineId.value,
+      routeId: trip.routeId.value,
       scheduleId: trip.scheduleId.value,
       headsign: trip.headsign,
     };

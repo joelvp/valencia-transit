@@ -1,4 +1,4 @@
 route_id,route_long_name,route_short_name
-R1,Línia 1,L1
-R1-DEPOT,Depot Run,L1
-R2,Línia 2,L2
+V1-1-3,Línia 1,1
+V1-1-3-DEPOT,Depot Run,1
+V2-1-2,Línia 2,2

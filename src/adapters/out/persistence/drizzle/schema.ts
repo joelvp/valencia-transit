@@ -28,23 +28,56 @@ export const stations = pgTable(
   }),
 );
 
-// Lines (Routes in GTFS)
-export const lines = pgTable(
-  "lines",
+// Routes (operational unit — one per GTFS route_id)
+export const routes = pgTable(
+  "routes",
   {
-    id: text("id").notNull(), // GTFS route_id
+    id: text("id").notNull(), // GTFS route_id ("V4-114-98")
     feedId: text("feed_id").notNull(),
-    name: text("name").notNull(), // GTFS route_long_name or route_short_name
-    shortName: text("short_name"), // GTFS route_short_name
-    transportType: text("transport_type").notNull(), // 'metro', 'bus', 'tram'
-    color: text("color"), // GTFS route_color (hex, no #)
+    transportType: text("transport_type").notNull(),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.id, t.feedId] }),
   }),
 );
 
-// Junction table: which lines stop at which stations
+// Junction table: which stations belong to which route (unordered)
+export const routeStations = pgTable(
+  "route_stations",
+  {
+    routeId: text("route_id").notNull(),
+    stationId: text("station_id").notNull(),
+    feedId: text("feed_id").notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.routeId, t.stationId, t.feedId] }),
+    routeFk: foreignKey({
+      columns: [t.routeId, t.feedId],
+      foreignColumns: [routes.id, routes.feedId],
+    }).onDelete("cascade"),
+    stationFk: foreignKey({
+      columns: [t.stationId, t.feedId],
+      foreignColumns: [stations.id, stations.feedId],
+    }).onDelete("cascade"),
+  }),
+);
+
+// Lines (commercial line the traveler sees — keyed by route_short_name)
+export const lines = pgTable(
+  "lines",
+  {
+    id: text("id").notNull(), // route_short_name ("4", "1")
+    feedId: text("feed_id").notNull(),
+    name: text("name").notNull(), // "Línia 4"
+    color: text("color"), // hardcoded hex, no #
+    transportType: text("transport_type").notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.id, t.feedId] }),
+  }),
+);
+
+// Junction table: which lines stop at which stations (ordered)
 export const lineStations = pgTable(
   "line_stations",
   {
@@ -105,21 +138,21 @@ export const scheduleExceptions = pgTable(
   }),
 );
 
-// Trips (trips.txt)
+// Trips (trips.txt) — reference route_id, not line_id
 export const trips = pgTable(
   "trips",
   {
     id: text("id").notNull(), // GTFS trip_id
     feedId: text("feed_id").notNull(),
-    lineId: text("line_id").notNull(),
+    routeId: text("route_id").notNull(),
     scheduleId: text("schedule_id").notNull(),
     headsign: text("headsign"), // GTFS trip_headsign
   },
   (t) => ({
     pk: primaryKey({ columns: [t.id, t.feedId] }),
-    lineFk: foreignKey({
-      columns: [t.lineId, t.feedId],
-      foreignColumns: [lines.id, lines.feedId],
+    routeFk: foreignKey({
+      columns: [t.routeId, t.feedId],
+      foreignColumns: [routes.id, routes.feedId],
     }).onDelete("cascade"),
     scheduleFk: foreignKey({
       columns: [t.scheduleId, t.feedId],

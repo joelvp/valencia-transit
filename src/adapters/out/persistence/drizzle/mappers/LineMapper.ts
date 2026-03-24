@@ -20,7 +20,6 @@ type LineInsert = {
   id: string;
   feedId: string;
   name: string;
-  shortName: string | null;
   transportType: string;
   color: string | null;
 };
@@ -52,7 +51,6 @@ export const LineMapper = {
       id: line.id.value,
       feedId,
       name: line.name.value,
-      shortName: null,
       transportType: "metro",
       color: line.color?.value ?? null,
     };

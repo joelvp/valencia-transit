@@ -7,8 +7,8 @@ type LineRow = {
   id: string;
   feedId: string;
   name: string;
-  shortName: string;
   transportType: string;
+  color?: string | null;
 };
 
 type LineStopRow = {
@@ -32,7 +32,6 @@ export class LineMother {
       id: "L1",
       feedId: "metrovalencia",
       name: "Línia 1",
-      shortName: "1",
       transportType: "metro",
       ...overrides,
     };
