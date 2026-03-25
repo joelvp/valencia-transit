@@ -1,7 +1,8 @@
 import { describe, it, expect, mock } from "bun:test";
 import { departureHandler } from "./departureHandler";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
-import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
+import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
+import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 
@@ -208,15 +209,26 @@ describe("departureHandler", () => {
     expect(ctx.reply).toHaveBeenCalledWith("❌ Estación no encontrada: Unknwon");
   });
 
-  it("should handle NoConnectionError", async () => {
+  it("should handle StationsNotConnectedError", async () => {
     const mockUseCase = {
-      execute: mock(() => Promise.reject(new NoConnectionError("Xàtiva", "Colón"))),
+      execute: mock(() => Promise.reject(new StationsNotConnectedError("Xàtiva", "Colón"))),
     };
     const ctx = makeCtx("/salida Xàtiva Colón");
     const handler = departureHandler(mockUseCase as never);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ No hay conexión entre Xàtiva y Colón");
+  });
+
+  it("should handle NoServiceError", async () => {
+    const mockUseCase = {
+      execute: mock(() => Promise.reject(new NoServiceError("Xàtiva", "Colón"))),
+    };
+    const ctx = makeCtx("/salida Xàtiva Colón");
+    const handler = departureHandler(mockUseCase as never);
+    await handler(ctx as never);
+
+    expect(ctx.reply).toHaveBeenCalledWith("❌ No hay servicio activo en este momento");
   });
 
   it("should handle NoActiveServiceError", async () => {

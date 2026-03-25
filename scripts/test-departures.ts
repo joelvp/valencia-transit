@@ -52,7 +52,9 @@ const useCase = new SearchNextDepartures(
   container.eventBus,
 );
 
-console.log(`\nSearching: ${originArg} → ${destinationArg} at ${now.toLocaleTimeString("es-ES")}\n`);
+console.log(
+  `\nSearching: ${originArg} → ${destinationArg} at ${now.toLocaleTimeString("es-ES")}\n`,
+);
 
 try {
   const result = await useCase.execute(originArg, destinationArg, now);

@@ -1,6 +1,10 @@
 import type { Departure } from "@/core/domain/shared/Departure";
 import type { Translations } from "@/adapters/in/telegram/i18n";
-import { lineNumberToEmoji, lineNumberToName, lineNumberToHeaderEmoji } from "@/adapters/in/telegram/lineEmoji";
+import {
+  lineNumberToEmoji,
+  lineNumberToName,
+  lineNumberToHeaderEmoji,
+} from "@/adapters/in/telegram/lineEmoji";
 
 function formatTime(hours: number, minutes: number): string {
   const h = String(hours % 24).padStart(2, "0");
@@ -45,10 +49,22 @@ export function formatDepartures(
   });
 
   const tomorrowLine = firstTomorrow
-    ? [t.firstTomorrow(formatTime(firstTomorrow.departureTime.hours, firstTomorrow.departureTime.minutes))]
+    ? [
+        t.firstTomorrow(
+          formatTime(firstTomorrow.departureTime.hours, firstTomorrow.departureTime.minutes),
+        ),
+      ]
     : [];
 
-  return [header, "", t.nextDepartures, ...lines, ...(tomorrowLine.length ? ["", ...tomorrowLine] : []), "", t.disclaimer].join("\n");
+  return [
+    header,
+    "",
+    t.nextDepartures,
+    ...lines,
+    ...(tomorrowLine.length ? ["", ...tomorrowLine] : []),
+    "",
+    t.disclaimer,
+  ].join("\n");
 }
 
 export function formatNoMoreToday(
