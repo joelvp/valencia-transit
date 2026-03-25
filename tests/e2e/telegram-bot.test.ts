@@ -129,23 +129,22 @@ describe("TelegramBot E2E", () => {
       },
     ]);
 
-    // Lines (commercial): must be inserted before routes due to FK
-    await container.db.insert(lines).values([
-      { id: "L1", feedId: FEED_ID, name: "1", transportType: "metro", color: "FEC601" },
-      { id: "L2", feedId: FEED_ID, name: "1", transportType: "metro", color: "FEC601" },
-    ]);
+    // Lines (commercial): one commercial line, two operational routes (one per direction)
+    await container.db
+      .insert(lines)
+      .values([
+        { id: "1", feedId: FEED_ID, name: "Línia 1", transportType: "metro", color: "FEC601" },
+      ]);
 
-    // Routes (operational): one per direction, linked to their commercial line
+    // Routes (operational): one per direction, linked to commercial line "1"
     await container.db.insert(routes).values([
-      { id: "L1", feedId: FEED_ID, transportType: "metro", lineId: "L1" },
-      { id: "L2", feedId: FEED_ID, transportType: "metro", lineId: "L2" },
+      { id: "R1", feedId: FEED_ID, transportType: "metro", lineId: "1" },
+      { id: "R2", feedId: FEED_ID, transportType: "metro", lineId: "1" },
     ]);
 
     await container.db.insert(lineStations).values([
-      { lineId: "L1", stationId: "ST2", feedId: FEED_ID, sequence: 1 },
-      { lineId: "L1", stationId: "ST1", feedId: FEED_ID, sequence: 2 },
-      { lineId: "L2", stationId: "ST1", feedId: FEED_ID, sequence: 1 },
-      { lineId: "L2", stationId: "ST2", feedId: FEED_ID, sequence: 2 },
+      { lineId: "1", stationId: "ST2", feedId: FEED_ID, sequence: 1 },
+      { lineId: "1", stationId: "ST1", feedId: FEED_ID, sequence: 2 },
     ]);
 
     // Schedule: active every day, wide date range
@@ -171,10 +170,10 @@ describe("TelegramBot E2E", () => {
       .insert(scheduleExceptions)
       .values([{ scheduleId: "WD", feedId: FEED_ID, date: today, isActive: true }]);
 
-    // Trips: T1 on route L1 (Xàtiva→Colón), T2 on route L2 (Colón→Xàtiva)
+    // Trips: T1 on route R1 (Xàtiva→Colón), T2 on route R2 (Colón→Xàtiva)
     await container.db.insert(trips).values([
-      { id: "T1", feedId: FEED_ID, routeId: "L1", scheduleId: "WD", headsign: "Colón" },
-      { id: "T2", feedId: FEED_ID, routeId: "L2", scheduleId: "WD", headsign: "Xàtiva" },
+      { id: "T1", feedId: FEED_ID, routeId: "R1", scheduleId: "WD", headsign: "Colón" },
+      { id: "T2", feedId: FEED_ID, routeId: "R2", scheduleId: "WD", headsign: "Xàtiva" },
     ]);
 
     // Passing times using GTFS next-day notation (25:xx) so they are always "next"

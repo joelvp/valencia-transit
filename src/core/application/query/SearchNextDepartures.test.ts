@@ -280,10 +280,11 @@ describe("SearchNextDepartures", () => {
     expect(result.otherName).toBe("Xàtiva");
   });
 
-  it("should throw NoConnectionError when no connecting lines found", async () => {
+  it("should throw NoConnectionError when no trips connect the stations", async () => {
     const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findDeparturesFromStation: () => Promise.resolve([]),
       findByStationIds: () => Promise.resolve([]),
     });
 

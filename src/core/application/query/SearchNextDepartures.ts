@@ -93,13 +93,23 @@ export class SearchNextDepartures {
 
     const filteredTrips = trips.filter((trip) => trip.stopsInOrder(origin.id, destination.id));
 
-    if (filteredTrips.length === 0) {
-      throw new NoConnectionError(originName, destinationName);
-    }
-
     // Lines that officially serve both stations — used only for display
     const matchingLines = await this.lineRepository.findByStationIds(origin.id, destination.id);
     const matchingLineIds = new Set(matchingLines.map((l) => l.id.value));
+
+    if (filteredTrips.length === 0) {
+      const firstTomorrow = await this.findFirstTomorrowDeparture(
+        now,
+        origin,
+        destination,
+        matchingLines,
+      );
+      if (!firstTomorrow && matchingLines.length === 0) {
+        throw new NoConnectionError(originName, destinationName);
+      }
+      const routeLineName = matchingLines[0]?.id.value ?? null;
+      return { type: "no_more_today", origin, destination, firstTomorrow, routeLineName };
+    }
 
     const departures: Departure[] = [];
     for (const trip of filteredTrips) {
@@ -108,7 +118,9 @@ export class SearchNextDepartures {
 
       const lineId = routeLineMap.get(trip.routeId.value);
       const isOfficialLine = lineId !== undefined && matchingLineIds.has(lineId);
-      const matchingLine = isOfficialLine ? matchingLines.find((l) => l.id.value === lineId) : undefined;
+      const matchingLine = isOfficialLine
+        ? matchingLines.find((l) => l.id.value === lineId)
+        : undefined;
       const lineName = matchingLine ? matchingLine.id.value : null;
       const lineColor = matchingLine?.color?.value ?? null;
 
@@ -134,17 +146,6 @@ export class SearchNextDepartures {
       new DepartureSearched(origin.id.value, destination.id.value, topDepartures.length),
     );
 
-    if (topDepartures.length === 0) {
-      const firstTomorrow = await this.findFirstTomorrowDeparture(
-        now,
-        origin,
-        destination,
-        matchingLines,
-      );
-      const routeLineName = matchingLines[0]?.id.value ?? null;
-      return { type: "no_more_today", origin, destination, firstTomorrow, routeLineName };
-    }
-
     const firstTomorrow =
       topDepartures.length < this.maxDepartures
         ? await this.findFirstTomorrowDeparture(now, origin, destination, matchingLines)
@@ -153,7 +154,14 @@ export class SearchNextDepartures {
     const routeLineName = matchingLines[0]?.id.value ?? null;
     return {
       type: "departures",
-      data: { origin, destination, departures: topDepartures, firstTomorrow, routeLineName, searchedAt: now },
+      data: {
+        origin,
+        destination,
+        departures: topDepartures,
+        firstTomorrow,
+        routeLineName,
+        searchedAt: now,
+      },
     };
   }
 
@@ -191,7 +199,9 @@ export class SearchNextDepartures {
 
       const lineId = routeLineMap.get(trip.routeId.value);
       const isOfficialLine = lineId !== undefined && matchingLineIds.has(lineId);
-      const matchingLine = isOfficialLine ? matchingLines.find((l) => l.id.value === lineId) : undefined;
+      const matchingLine = isOfficialLine
+        ? matchingLines.find((l) => l.id.value === lineId)
+        : undefined;
       const lineName = matchingLine ? matchingLine.id.value : null;
       const lineColor = matchingLine?.color?.value ?? null;
       const durationMinutes =
