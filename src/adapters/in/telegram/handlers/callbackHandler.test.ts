@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { callbackHandler } from "./callbackHandler";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
+import type { GetLineStationsResult } from "@/core/application/query/GetLineStations";
 
 function makeStation(name: string) {
   return { name: { value: name }, id: { value: name.toLowerCase() } };
@@ -23,6 +24,22 @@ function makeCtx(data: string | undefined) {
     callbackQuery: data !== undefined ? { data } : undefined,
     answerCallbackQuery: mock(() => Promise.resolve()),
     editMessageText: mock(() => Promise.resolve()),
+    reply: mock(() => Promise.resolve()),
+  };
+}
+
+function makeNoopGetLineStations() {
+  return { execute: mock(() => Promise.resolve(null)) };
+}
+
+function makeGetLineStationsResult(lineId: string): GetLineStationsResult {
+  return {
+    line: { id: { value: lineId } } as GetLineStationsResult["line"],
+    stations: [
+      { name: "Rafelbunyol", sequence: 1 },
+      { name: "Almàssera", sequence: 2 },
+      { name: "Aeroport", sequence: 3 },
+    ],
   };
 }
 
@@ -73,7 +90,7 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith("Xàtiva", "Colón", expect.any(Date));
@@ -85,7 +102,7 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|d|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith("Colón", "Xàtiva", expect.any(Date));
@@ -97,7 +114,7 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
@@ -117,7 +134,7 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
@@ -136,7 +153,7 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|X|Colón");
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
@@ -154,7 +171,7 @@ describe("callbackHandler", () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
 
     const ctx = makeCtx("bad_data");
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
@@ -167,7 +184,7 @@ describe("callbackHandler", () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
 
     const ctx = makeCtx(undefined);
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
@@ -181,12 +198,49 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never);
+    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
     await handler(ctx as never);
 
     expect(ctx.editMessageText).not.toHaveBeenCalled();
     expect(ctx.answerCallbackQuery).toHaveBeenCalledTimes(1);
     const [opts] = ctx.answerCallbackQuery.mock.calls[0] as unknown as [{ text: string }];
     expect(opts.text).toContain("Error");
+  });
+
+  it("should call getLineStations and reply with station list for li|3", async () => {
+    const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockGetLineStations = {
+      execute: mock(() => Promise.resolve(makeGetLineStationsResult("3"))),
+    };
+
+    const ctx = makeCtx("li|3");
+    const handler = callbackHandler(mockUseCase as never, mockGetLineStations as never);
+    await handler(ctx as never);
+
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3");
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+    const [text, opts] = ctx.reply.mock.calls[0] as unknown as [string, { parse_mode: string }];
+    expect(text).toContain("L3");
+    expect(text).toContain("Rafelbunyol");
+    expect(text).toContain("Aeroport");
+    expect(opts.parse_mode).toBe("HTML");
+  });
+
+  it("should answerCallbackQuery with errLineNotFound when getLineStations returns null", async () => {
+    const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockGetLineStations = {
+      execute: mock(() => Promise.resolve(null)),
+    };
+
+    const ctx = makeCtx("li|unknown");
+    const handler = callbackHandler(mockUseCase as never, mockGetLineStations as never);
+    await handler(ctx as never);
+
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith("unknown");
+    expect(ctx.reply).not.toHaveBeenCalled();
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledTimes(1);
+    const [opts] = ctx.answerCallbackQuery.mock.calls[0] as unknown as [{ text: string }];
+    expect(opts.text).toBeDefined();
   });
 });

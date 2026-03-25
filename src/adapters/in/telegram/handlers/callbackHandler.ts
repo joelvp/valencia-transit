@@ -1,18 +1,47 @@
 import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
+import type { GetLineStations } from "@/core/application/query/GetLineStations";
 import { getT } from "@/adapters/in/telegram/languageStore";
 import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
 import {
   formatDisambiguation,
   buildDisambiguationKeyboard,
 } from "@/adapters/in/telegram/handlers/disambiguation";
+import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegram/lineEmoji";
 
-export function callbackHandler(useCase: SearchNextDepartures) {
+export function callbackHandler(useCase: SearchNextDepartures, getLineStations: GetLineStations) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(chatId);
     const data = ctx.callbackQuery?.data;
     if (!data) return;
+
+    // Handle line stations callback
+    if (data.startsWith("li|")) {
+      const parts = data.split("|");
+      const lineId = parts[1];
+      if (!lineId) {
+        await ctx.answerCallbackQuery({ text: t.errInvalidData });
+        return;
+      }
+
+      const result = await getLineStations.execute(lineId);
+      if (!result) {
+        await ctx.answerCallbackQuery({ text: t.errLineNotFound });
+        return;
+      }
+
+      await ctx.answerCallbackQuery();
+      const transportEmoji = lineNumberToHeaderEmoji(result.line.id.value);
+      const colorEmoji = lineNumberToEmoji(result.line.id.value);
+      const from = result.stations[0]?.name ?? "";
+      const to = result.stations[result.stations.length - 1]?.name ?? "";
+      const header = `${transportEmoji} ${colorEmoji} <b>L${result.line.id.value}: ${from} → ${to}</b>`;
+      const stationLines = result.stations.map((s, i) => `${i + 1}. ${s.name}`).join("\n");
+
+      await ctx.reply(`${header}\n\n${stationLines}`, { parse_mode: "HTML" });
+      return;
+    }
 
     const parsed = parseCallbackData(data);
     if (!parsed) {

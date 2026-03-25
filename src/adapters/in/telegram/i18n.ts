@@ -25,8 +25,13 @@ export interface Translations {
   // Callback errors
   errInvalidData: string;
   errStillAmbiguous: string;
+  // Lines
+  linesTitle: string;
+  lineStationsTitle: (lineName: string, from: string, to: string) => string;
+  errLineNotFound: string;
   // Command menu descriptions
   cmdParadas: string;
+  cmdLineas: string;
   cmdIdioma: string;
   cmdHelp: string;
 }
@@ -61,7 +66,11 @@ const es: Translations = {
   langUnknown: "Idioma no reconocido. Usa /idioma es o /idioma val",
   errInvalidData: "Datos inválidos",
   errStillAmbiguous: "Aún hay ambigüedad",
+  linesTitle: "Selecciona una línea:",
+  lineStationsTitle: (lineName, from, to) => `Paradas de L${lineName}: ${from} → ${to}`,
+  errLineNotFound: "Línea no encontrada",
   cmdParadas: "Listar estaciones",
+  cmdLineas: "Ver líneas disponibles",
   cmdIdioma: "Cambiar idioma: /idioma es | val",
   cmdHelp: "Ayuda",
 };
@@ -96,7 +105,11 @@ const val: Translations = {
   langUnknown: "Idioma no reconegut. Usa /idioma es o /idioma val",
   errInvalidData: "Dades invàlides",
   errStillAmbiguous: "Encara hi ha ambigüitat",
+  linesTitle: "Selecciona una línia:",
+  lineStationsTitle: (lineName, from, to) => `Parades de L${lineName}: ${from} → ${to}`,
+  errLineNotFound: "Línia no trobada",
   cmdParadas: "Llistar estacions",
+  cmdLineas: "Veure línies disponibles",
   cmdIdioma: "Canviar idioma: /idioma es | val",
   cmdHelp: "Ajuda i informació",
 };

@@ -1,6 +1,8 @@
 import { createContainer } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
+import { ListLines } from "@/core/application/query/ListLines";
+import { GetLineStations } from "@/core/application/query/GetLineStations";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 
 const container = createContainer();
@@ -17,8 +19,16 @@ const listStationsWithLines = new ListStationsWithLines(
   container.stationRepository,
   container.lineRepository,
 );
+const listLines = new ListLines(container.lineRepository, container.stationRepository);
+const getLineStations = new GetLineStations(container.lineRepository, container.stationRepository);
 
 const botToken = "BOT_TOKEN" in container.secrets ? container.secrets.BOT_TOKEN : undefined;
-const bot = new TelegramBot(botToken, searchNextDepartures, listStationsWithLines);
+const bot = new TelegramBot(
+  botToken,
+  searchNextDepartures,
+  listStationsWithLines,
+  listLines,
+  getLineStations,
+);
 
 await bot.start();
