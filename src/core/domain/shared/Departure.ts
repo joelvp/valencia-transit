@@ -5,7 +5,7 @@ export class Departure {
 
   constructor(
     readonly departureTime: TimeOfDay,
-    readonly lineName: string,
+    readonly lineName: string | null,
     readonly headsign: string | null,
     readonly currentTime: TimeOfDay,
     readonly lineColor: string | null = null,

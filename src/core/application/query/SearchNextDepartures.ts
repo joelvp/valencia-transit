@@ -2,6 +2,7 @@ import type { Station } from "../../domain/station/Station.ts";
 import type { Line } from "../../domain/line/Line.ts";
 import type { StationRepository } from "../../domain/station/StationRepository.ts";
 import type { LineRepository } from "../../domain/line/LineRepository.ts";
+import type { RouteRepository } from "../../domain/route/RouteRepository.ts";
 import type { ScheduleRepository } from "../../domain/schedule/ScheduleRepository.ts";
 import type { TripRepository } from "../../domain/trip/TripRepository.ts";
 import type { EventBus } from "../../domain/event/EventBus.ts";
@@ -16,6 +17,8 @@ export interface DepartureResult {
   origin: Station;
   destination: Station;
   departures: Departure[];
+  firstTomorrow: Departure | null;
+  routeLineName: string | null;
   searchedAt: Date;
 }
 
@@ -32,6 +35,7 @@ export type SearchResult =
       origin: Station;
       destination: Station;
       firstTomorrow: Departure | null;
+      routeLineName: string | null;
     };
 
 export class SearchNextDepartures {
@@ -40,6 +44,7 @@ export class SearchNextDepartures {
     private readonly lineRepository: LineRepository,
     private readonly scheduleRepository: ScheduleRepository,
     private readonly tripRepository: TripRepository,
+    private readonly routeRepository: RouteRepository,
     private readonly eventBus: EventBus,
     private readonly maxDepartures: number = 5,
   ) {}
@@ -68,11 +73,6 @@ export class SearchNextDepartures {
     const origin = originResult;
     const destination = destResult;
 
-    const matchingLines = await this.lineRepository.findByStationIds(origin.id, destination.id);
-    if (matchingLines.length === 0) {
-      throw new NoConnectionError(originName, destinationName);
-    }
-
     const activeSchedules = await this.scheduleRepository.findActiveOn(now);
     if (activeSchedules.length === 0) {
       throw new NoActiveServiceError(now);
@@ -80,7 +80,6 @@ export class SearchNextDepartures {
 
     const currentTime = TimeOfDay.fromDate(now);
     const activeScheduleIds = activeSchedules.map((s) => s.id);
-    const matchingLineIds = new Set(matchingLines.map((l) => l.id.value));
 
     const trips = await this.tripRepository.findDeparturesFromStation(
       origin.id,
@@ -88,18 +87,29 @@ export class SearchNextDepartures {
       activeScheduleIds,
     );
 
-    const filteredTrips = trips.filter(
-      (trip) =>
-        matchingLineIds.has(trip.routeId.value) && trip.stopsInOrder(origin.id, destination.id),
-    );
+    // Get route→line mapping for all trips
+    const routeIds = [...new Set(trips.map((t) => t.routeId))];
+    const routeLineMap = await this.routeRepository.findLineIdsByRouteIds(routeIds);
+
+    const filteredTrips = trips.filter((trip) => trip.stopsInOrder(origin.id, destination.id));
+
+    if (filteredTrips.length === 0) {
+      throw new NoConnectionError(originName, destinationName);
+    }
+
+    // Lines that officially serve both stations — used only for display
+    const matchingLines = await this.lineRepository.findByStationIds(origin.id, destination.id);
+    const matchingLineIds = new Set(matchingLines.map((l) => l.id.value));
 
     const departures: Departure[] = [];
     for (const trip of filteredTrips) {
       const departureTime = trip.getDepartureTimeAt(origin.id);
       if (!departureTime) continue;
 
-      const matchingLine = matchingLines.find((l) => l.id.equals(trip.routeId));
-      const lineName = matchingLine ? matchingLine.name.value : trip.routeId.value;
+      const lineId = routeLineMap.get(trip.routeId.value);
+      const isOfficialLine = lineId !== undefined && matchingLineIds.has(lineId);
+      const matchingLine = isOfficialLine ? matchingLines.find((l) => l.id.value === lineId) : undefined;
+      const lineName = matchingLine ? matchingLine.id.value : null;
       const lineColor = matchingLine?.color?.value ?? null;
 
       const arrivalAtDest = trip.getDepartureTimeAt(destination.id);
@@ -131,12 +141,19 @@ export class SearchNextDepartures {
         destination,
         matchingLines,
       );
-      return { type: "no_more_today", origin, destination, firstTomorrow };
+      const routeLineName = matchingLines[0]?.id.value ?? null;
+      return { type: "no_more_today", origin, destination, firstTomorrow, routeLineName };
     }
 
+    const firstTomorrow =
+      topDepartures.length < this.maxDepartures
+        ? await this.findFirstTomorrowDeparture(now, origin, destination, matchingLines)
+        : null;
+
+    const routeLineName = matchingLines[0]?.id.value ?? null;
     return {
       type: "departures",
-      data: { origin, destination, departures: topDepartures, searchedAt: now },
+      data: { origin, destination, departures: topDepartures, firstTomorrow, routeLineName, searchedAt: now },
     };
   }
 
@@ -162,18 +179,20 @@ export class SearchNextDepartures {
       tomorrowScheduleIds,
     );
 
-    const filtered = tomorrowTrips.filter(
-      (trip) =>
-        matchingLineIds.has(trip.routeId.value) && trip.stopsInOrder(origin.id, destination.id),
-    );
+    const tomorrowRouteIds = [...new Set(tomorrowTrips.map((t) => t.routeId))];
+    const routeLineMap = await this.routeRepository.findLineIdsByRouteIds(tomorrowRouteIds);
+
+    const filtered = tomorrowTrips.filter((trip) => trip.stopsInOrder(origin.id, destination.id));
 
     let earliest: Departure | null = null;
     for (const trip of filtered) {
       const departureTime = trip.getDepartureTimeAt(origin.id);
       if (!departureTime) continue;
 
-      const matchingLine = matchingLines.find((l) => l.id.equals(trip.routeId));
-      const lineName = matchingLine ? matchingLine.name.value : trip.routeId.value;
+      const lineId = routeLineMap.get(trip.routeId.value);
+      const isOfficialLine = lineId !== undefined && matchingLineIds.has(lineId);
+      const matchingLine = isOfficialLine ? matchingLines.find((l) => l.id.value === lineId) : undefined;
+      const lineName = matchingLine ? matchingLine.id.value : null;
       const lineColor = matchingLine?.color?.value ?? null;
       const durationMinutes =
         trip.getDepartureTimeAt(destination.id)?.minutesUntilFrom(departureTime) ?? null;

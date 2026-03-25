@@ -11,10 +11,17 @@ const LINE_BY_NUMBER: Record<string, { emoji: string; name: string }> = {
   "10": { emoji: "💚", name: "L10" },
 };
 
+const TRAM_LINES = new Set(["4", "6", "8", "10"]);
+
 export function lineNumberToEmoji(lineNumber: string): string {
   return LINE_BY_NUMBER[lineNumber]?.emoji ?? "⚪";
 }
 
 export function lineNumberToName(lineNumber: string): string {
   return LINE_BY_NUMBER[lineNumber]?.name ?? `L${lineNumber}`;
+}
+
+export function lineNumberToHeaderEmoji(lineNumber: string | null): string {
+  if (lineNumber && TRAM_LINES.has(lineNumber)) return "🚋";
+  return "🚇";
 }
