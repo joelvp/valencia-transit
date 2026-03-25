@@ -3,6 +3,8 @@ import type { Update, UserFromGetMe } from "grammy/types";
 import { createContainer, type Container } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
+import { ListLines } from "@/core/application/query/ListLines";
+import { GetLineStations } from "@/core/application/query/GetLineStations";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { clearDatabase } from "../helpers/db";
 import {
@@ -65,6 +67,11 @@ describe("TelegramBot E2E", () => {
       container.stationRepository,
       container.lineRepository,
     );
+    const listLines = new ListLines(container.lineRepository, container.stationRepository);
+    const getLineStations = new GetLineStations(
+      container.lineRepository,
+      container.stationRepository,
+    );
 
     const fakeBotInfo = {
       id: 123456789,
@@ -76,9 +83,14 @@ describe("TelegramBot E2E", () => {
       supports_inline_queries: false,
     } as UserFromGetMe;
 
-    bot = new TelegramBot("fake-token-for-testing", searchNextDepartures, listStationsWithLines, {
-      botInfo: fakeBotInfo,
-    });
+    bot = new TelegramBot(
+      "fake-token-for-testing",
+      searchNextDepartures,
+      listStationsWithLines,
+      listLines,
+      getLineStations,
+      { botInfo: fakeBotInfo },
+    );
 
     replies = [];
     bot["bot"].api.config.use((prev, method, payload) => {
