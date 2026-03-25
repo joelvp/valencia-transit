@@ -10,7 +10,8 @@ import { Departure } from "../../domain/shared/Departure.ts";
 import { TimeOfDay } from "../../domain/shared/TimeOfDay.ts";
 import { DepartureSearched } from "../../domain/event/DepartureSearched.ts";
 import { StationNotFoundError } from "../../domain/error/StationNotFoundError.ts";
-import { NoConnectionError } from "../../domain/error/NoConnectionError.ts";
+import { StationsNotConnectedError } from "../../domain/error/StationsNotConnectedError.ts";
+import { NoServiceError } from "../../domain/error/NoServiceError.ts";
 import { NoActiveServiceError } from "../../domain/error/NoActiveServiceError.ts";
 
 export interface DepartureResult {
@@ -104,10 +105,19 @@ export class SearchNextDepartures {
         destination,
         matchingLines,
       );
-      if (!firstTomorrow && matchingLines.length === 0) {
-        throw new NoConnectionError(originName, destinationName);
-      }
       const routeLineName = matchingLines[0]?.id.value ?? null;
+      if (!firstTomorrow) {
+        if (matchingLines.length === 0) {
+          throw new StationsNotConnectedError(originName, destinationName);
+        }
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowSchedules = await this.scheduleRepository.findActiveOn(tomorrow);
+        if (tomorrowSchedules.length > 0) {
+          throw new NoServiceError(originName, destinationName);
+        }
+        return { type: "no_more_today", origin, destination, firstTomorrow: null, routeLineName };
+      }
       return { type: "no_more_today", origin, destination, firstTomorrow, routeLineName };
     }
 

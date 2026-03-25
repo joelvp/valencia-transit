@@ -25,7 +25,8 @@ import { Schedule } from "../../domain/schedule/Schedule.ts";
 import { Weekdays } from "../../domain/schedule/Weekdays.ts";
 import { DateRange } from "../../domain/schedule/DateRange.ts";
 import { StationNotFoundError } from "../../domain/error/StationNotFoundError.ts";
-import { NoConnectionError } from "../../domain/error/NoConnectionError.ts";
+import { StationsNotConnectedError } from "../../domain/error/StationsNotConnectedError.ts";
+import { NoServiceError } from "../../domain/error/NoServiceError.ts";
 import { NoActiveServiceError } from "../../domain/error/NoActiveServiceError.ts";
 import { TransportType } from "../../domain/shared/TransportType.ts";
 
@@ -280,7 +281,7 @@ describe("SearchNextDepartures", () => {
     expect(result.otherName).toBe("Xàtiva");
   });
 
-  it("should throw NoConnectionError when no trips connect the stations", async () => {
+  it("should throw StationsNotConnectedError when no trips and no official lines", async () => {
     const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
@@ -296,7 +297,27 @@ describe("SearchNextDepartures", () => {
       routeRepo,
       eventBus,
     );
-    expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(NoConnectionError);
+    expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(
+      StationsNotConnectedError,
+    );
+  });
+
+  it("should throw NoServiceError when official lines exist but no trips today or tomorrow", async () => {
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findDeparturesFromStation: () => Promise.resolve([]),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(NoServiceError);
   });
 
   it("should throw NoActiveServiceError when no schedules active", async () => {
