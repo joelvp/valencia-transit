@@ -18,6 +18,13 @@ const listLines = new ListLines(container.lineRepository, container.stationRepos
 const getLineStations = new GetLineStations(container.lineRepository, container.stationRepository);
 
 const botToken = "BOT_TOKEN" in container.secrets ? container.secrets.BOT_TOKEN : undefined;
-const bot = new TelegramBot(botToken, searchNextDepartures, listLines, getLineStations);
+const bot = new TelegramBot(
+  botToken,
+  searchNextDepartures,
+  listLines,
+  getLineStations,
+  container.userRepository,
+  container.eventBus,
+);
 
 await bot.start();

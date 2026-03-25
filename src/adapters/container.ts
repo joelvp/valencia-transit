@@ -9,6 +9,7 @@ import { RouteRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repos
 import { ScheduleRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/ScheduleRepositoryDrizzle";
 import { TripRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/TripRepositoryDrizzle";
 import { DomainEventRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/DomainEventRepositoryDrizzle";
+import { UserRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/UserRepositoryDrizzle";
 import { PersistAllEventsSubscriber } from "@/core/application/event/PersistAllEventsSubscriber";
 import { InMemoryEventBus } from "@/adapters/out/event-bus/InMemoryEventBus";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
@@ -16,6 +17,7 @@ import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { RouteRepository } from "@/core/domain/route/RouteRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
+import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 
 export interface Container {
@@ -25,6 +27,7 @@ export interface Container {
   routeRepository: RouteRepository;
   scheduleRepository: ScheduleRepository;
   tripRepository: TripRepository;
+  userRepository: UserRepository;
   eventBus: EventBus;
   db: AppDatabase;
   dispose(): Promise<void>;
@@ -41,6 +44,7 @@ export function createContainer(): Container {
   const scheduleRepository = new ScheduleRepositoryDrizzle(db);
   const tripRepository = new TripRepositoryDrizzle(db);
   const domainEventRepository = new DomainEventRepositoryDrizzle(db);
+  const userRepository = new UserRepositoryDrizzle(db);
 
   const persistAllEvents = new PersistAllEventsSubscriber(domainEventRepository);
   const eventBus = new InMemoryEventBus([persistAllEvents]);
@@ -52,6 +56,7 @@ export function createContainer(): Container {
     routeRepository,
     scheduleRepository,
     tripRepository,
+    userRepository,
     eventBus,
     db,
     dispose: () => sql.end(),

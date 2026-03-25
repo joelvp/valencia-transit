@@ -34,14 +34,14 @@ export const DomainEventMapper = {
     );
   },
 
-  toPersistence(event: DomainEvent): DomainEventInsert {
+  toPersistence(event: DomainEvent, traceId?: string): DomainEventInsert {
     return {
       type: event.eventName,
       occurredOn: event.occurredOn,
       body: { ...event } as Record<string, unknown>,
       aggregateId: event.aggregateId ?? null,
       aggregateType: event.aggregateType ?? null,
-      traceId: null,
+      traceId: traceId ?? null,
     };
   },
 };

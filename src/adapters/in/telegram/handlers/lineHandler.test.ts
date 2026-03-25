@@ -2,6 +2,9 @@ import { describe, it, expect, mock } from "bun:test";
 import { lineHandler } from "./lineHandler";
 import type { LineWithTerminals } from "@/core/application/query/ListLines";
 
+const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+const mockEventBus = { publish: mock(() => Promise.resolve()) };
+
 function makeLine(id: string): LineWithTerminals["line"] {
   return { id: { value: id } } as LineWithTerminals["line"];
 }
@@ -27,7 +30,7 @@ describe("lineHandler", () => {
     };
 
     const ctx = makeCtx();
-    const handler = lineHandler(mockUseCase as never);
+    const handler = lineHandler(mockUseCase as never, mockUserRepository, mockEventBus);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledTimes(1);
@@ -48,7 +51,7 @@ describe("lineHandler", () => {
     };
 
     const ctx = makeCtx();
-    const handler = lineHandler(mockUseCase as never);
+    const handler = lineHandler(mockUseCase as never, mockUserRepository, mockEventBus);
     await handler(ctx as never);
 
     const [, opts] = ctx.reply.mock.calls[0] as unknown as [
@@ -67,7 +70,7 @@ describe("lineHandler", () => {
     };
 
     const ctx = makeCtx();
-    const handler = lineHandler(mockUseCase as never);
+    const handler = lineHandler(mockUseCase as never, mockUserRepository, mockEventBus);
     await handler(ctx as never);
 
     const [, opts] = ctx.reply.mock.calls[0] as unknown as [

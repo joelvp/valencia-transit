@@ -50,7 +50,12 @@ export class SearchNextDepartures {
     private readonly maxDepartures: number = 5,
   ) {}
 
-  async execute(originName: string, destinationName: string, now: Date): Promise<SearchResult> {
+  async execute(
+    originName: string,
+    destinationName: string,
+    now: Date,
+    traceId?: string,
+  ): Promise<SearchResult> {
     const originResult = await this.resolveStation(originName);
     if (Array.isArray(originResult)) {
       return {
@@ -154,6 +159,7 @@ export class SearchNextDepartures {
 
     await this.eventBus.publish(
       new DepartureSearched(origin.id.value, destination.id.value, topDepartures.length),
+      traceId,
     );
 
     const firstTomorrow =

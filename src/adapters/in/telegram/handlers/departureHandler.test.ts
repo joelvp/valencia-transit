@@ -6,6 +6,8 @@ import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 
+const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+
 function makeCtx(text: string) {
   return {
     message: { text },
@@ -66,10 +68,15 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
-    expect(mockUseCase.execute).toHaveBeenCalledWith("Xàtiva", "Colón", expect.any(Date));
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Xàtiva",
+      "Colón",
+      expect.any(Date),
+      expect.any(String),
+    );
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
     expect(response).toContain("🚇 <b>Xàtiva → Colón</b>");
     expect(response).toContain("(~8 min)");
@@ -91,7 +98,7 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -111,7 +118,7 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -130,7 +137,7 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -146,7 +153,7 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -159,10 +166,15 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Àngel Guimerà - Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
-    expect(mockUseCase.execute).toHaveBeenCalledWith("Àngel Guimerà", "Colón", expect.any(Date));
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Àngel Guimerà",
+      "Colón",
+      expect.any(Date),
+      expect.any(String),
+    );
   });
 
   it("should parse stations separated by ' a '", async () => {
@@ -171,16 +183,21 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Àngel Guimerà a Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
-    expect(mockUseCase.execute).toHaveBeenCalledWith("Àngel Guimerà", "Colón", expect.any(Date));
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Àngel Guimerà",
+      "Colón",
+      expect.any(Date),
+      expect.any(String),
+    );
   });
 
   it("should reply with usage hint when no arguments provided", async () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
     const ctx = makeCtx("/salida");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
@@ -191,7 +208,7 @@ describe("departureHandler", () => {
   it("should reply with usage hint when only one word provided", async () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
     const ctx = makeCtx("/salida Xàtiva");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -203,7 +220,7 @@ describe("departureHandler", () => {
       execute: mock(() => Promise.reject(new StationNotFoundError("Unknwon"))),
     };
     const ctx = makeCtx("/salida Unknwon Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ Estación no encontrada: Unknwon");
@@ -214,7 +231,7 @@ describe("departureHandler", () => {
       execute: mock(() => Promise.reject(new StationsNotConnectedError("Xàtiva", "Colón"))),
     };
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ No hay conexión entre Xàtiva y Colón");
@@ -225,7 +242,7 @@ describe("departureHandler", () => {
       execute: mock(() => Promise.reject(new NoServiceError("Xàtiva", "Colón"))),
     };
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ No hay servicio activo en este momento");
@@ -236,7 +253,7 @@ describe("departureHandler", () => {
       execute: mock(() => Promise.reject(new NoActiveServiceError(new Date()))),
     };
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ No hay servicio activo en este momento");
@@ -255,7 +272,7 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida X Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
@@ -286,7 +303,7 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
@@ -310,7 +327,7 @@ describe("departureHandler", () => {
     };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
