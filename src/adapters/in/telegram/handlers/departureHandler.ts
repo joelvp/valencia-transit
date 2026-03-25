@@ -4,7 +4,8 @@ import type { SearchNextDepartures } from "@/core/application/query/SearchNextDe
 import type { Station } from "@/core/domain/station/Station";
 import type { Translations } from "@/adapters/in/telegram/i18n";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
-import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
+import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
+import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/languageStore";
 import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
@@ -51,6 +52,7 @@ export function departureHandler(useCase: SearchNextDepartures) {
             result.origin.name.value,
             result.destination.name.value,
             result.firstTomorrow,
+            result.routeLineName,
           ),
           { parse_mode: "HTML" },
         );
@@ -63,6 +65,8 @@ export function departureHandler(useCase: SearchNextDepartures) {
           result.data.origin.name.value,
           result.data.destination.name.value,
           result.data.departures,
+          result.data.firstTomorrow,
+          result.data.routeLineName,
         ),
         { parse_mode: "HTML" },
       );
@@ -71,8 +75,10 @@ export function departureHandler(useCase: SearchNextDepartures) {
         const match = /^Station not found: "(.+)"$/.exec(err.message);
         const stationName = match ? match[1]! : "unknown";
         await ctx.reply(t.errNotFound(stationName));
-      } else if (err instanceof NoConnectionError) {
+      } else if (err instanceof StationsNotConnectedError) {
         await ctx.reply(t.errNoConn(originName, destinationName));
+      } else if (err instanceof NoServiceError) {
+        await ctx.reply(t.errNoService);
       } else if (err instanceof NoActiveServiceError) {
         await ctx.reply(t.errNoService);
       } else {

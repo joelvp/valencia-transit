@@ -18,7 +18,7 @@ export function stationHandler(useCase: ListStationsWithLines) {
     const lines = result.map(({ station, lines }) => {
       const lineLabels = lines
         .map((l) => {
-          const num = l.name.value;
+          const num = l.id.value;
           return `${lineNumberToEmoji(num)} ${lineNumberToName(num)}`;
         })
         .join(" · ");

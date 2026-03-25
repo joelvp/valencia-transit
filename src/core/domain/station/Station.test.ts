@@ -3,23 +3,48 @@ import { Station } from "./Station.ts";
 import { StationId } from "./StationId.ts";
 import { StationName } from "./StationName.ts";
 import { StationLocation } from "./StationLocation.ts";
+import { TransportType } from "../shared/TransportType.ts";
 
 describe("Station", () => {
   const location = new StationLocation(39.4699, -0.3763);
 
   it("should create a station with VOs", () => {
-    const station = new Station(new StationId("S1"), new StationName("Xàtiva"), location);
+    const station = new Station(new StationId("S1"), new StationName("Xàtiva"), location, [
+      TransportType.METRO,
+    ]);
 
     expect(station.id.value).toBe("S1");
     expect(station.name.value).toBe("Xàtiva");
     expect(station.location.latitude).toBe(39.4699);
+    expect(station.transportTypes).toEqual([TransportType.METRO]);
+  });
+
+  it("should default to empty transportTypes when not provided", () => {
+    const station = new Station(new StationId("S1"), new StationName("Xàtiva"), location);
+
+    expect(station.transportTypes).toEqual([]);
   });
 
   it("should create a station via factory method", () => {
-    const station = Station.create("S1", "Xàtiva", location);
+    const station = Station.create("S1", "Xàtiva", location, [TransportType.METRO]);
 
     expect(station.id.value).toBe("S1");
     expect(station.name.value).toBe("Xàtiva");
+  });
+
+  it("should default to empty transportTypes via factory when not provided", () => {
+    const station = Station.create("S1", "Xàtiva", location);
+
+    expect(station.transportTypes).toEqual([]);
+  });
+
+  it("should support multiple transport types for intermodal stations", () => {
+    const station = Station.create("S1", "Xàtiva", location, [
+      TransportType.METRO,
+      TransportType.TRAM,
+    ]);
+
+    expect(station.transportTypes).toEqual([TransportType.METRO, TransportType.TRAM]);
   });
 
   it("should throw on empty id via factory", () => {
@@ -31,8 +56,10 @@ describe("Station", () => {
   });
 
   it("should be equal to another station with the same id", () => {
-    const a = Station.create("S1", "Xàtiva", location);
-    const b = Station.create("S1", "Different Name", new StationLocation(0, 0));
+    const a = Station.create("S1", "Xàtiva", location, [TransportType.METRO]);
+    const b = Station.create("S1", "Different Name", new StationLocation(0, 0), [
+      TransportType.TRAM,
+    ]);
 
     expect(a.equals(b)).toBe(true);
   });

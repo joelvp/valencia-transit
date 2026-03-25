@@ -5,6 +5,7 @@ import { StationRepositoryDrizzle } from "./StationRepositoryDrizzle";
 import { StationId } from "@/core/domain/station/StationId";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
+import { TransportType } from "@/core/domain/shared/TransportType";
 import { stations } from "../schema";
 import { StationMother } from "./mothers/StationMother";
 
@@ -122,7 +123,7 @@ describe("StationRepositoryDrizzle", () => {
   });
 
   it("should insert station and allow retrieval after save", async () => {
-    const station = Station.create("ST3", "Alameda", new StationLocation(39.48, -0.36));
+    const station = Station.create("ST3", "Alameda", new StationLocation(39.48, -0.36), [TransportType.METRO]);
 
     await repo.save(station, FEED_ID);
 
@@ -133,7 +134,7 @@ describe("StationRepositoryDrizzle", () => {
   });
 
   it("should upsert without error when saving an already-existing station", async () => {
-    const station = Station.create("ST1", "Colón Updated", new StationLocation(39.47, -0.37));
+    const station = Station.create("ST1", "Colón Updated", new StationLocation(39.47, -0.37), [TransportType.METRO]);
 
     await repo.save(station, FEED_ID);
 
@@ -166,8 +167,8 @@ describe("StationRepositoryDrizzle", () => {
     it("should save all stations and make them retrievable", async () => {
       await clearTables(container.db, "stations");
 
-      const stationA = Station.create("SA1", "Àngel Guimerà", new StationLocation(39.47, -0.38));
-      const stationB = Station.create("SA2", "Trànsit", new StationLocation(39.46, -0.37));
+      const stationA = Station.create("SA1", "Àngel Guimerà", new StationLocation(39.47, -0.38), [TransportType.METRO]);
+      const stationB = Station.create("SA2", "Trànsit", new StationLocation(39.46, -0.37), [TransportType.METRO]);
 
       await repo.saveAll([stationA, stationB], FEED_ID);
 

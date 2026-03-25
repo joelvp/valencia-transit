@@ -33,7 +33,7 @@ describe("LineRepositoryDrizzle", () => {
 
     await container.db.insert(lines).values([
       LineMother.row(),
-      LineMother.row({ id: "L2", name: "Línia 2", shortName: "2" }),
+      LineMother.row({ id: "L2", name: "Línia 2" }),
     ]);
 
     await container.db.insert(lineStations).values([
@@ -64,14 +64,14 @@ describe("LineRepositoryDrizzle", () => {
   });
 
   it("should return lines connecting both stations", async () => {
-    const result = await repo.findByStations(new StationId("ST1"), new StationId("ST2"));
+    const result = await repo.findByStationIds(new StationId("ST1"), new StationId("ST2"));
 
     expect(result.length).toBe(1);
     expect(result[0]!.id.value).toBe("L1");
   });
 
   it("should return empty array when no line connects the given stations", async () => {
-    const result = await repo.findByStations(new StationId("ST1"), new StationId("ST3"));
+    const result = await repo.findByStationIds(new StationId("ST1"), new StationId("ST3"));
 
     expect(result).toEqual([]);
   });
@@ -87,35 +87,6 @@ describe("LineRepositoryDrizzle", () => {
     });
   });
 
-  it("should insert line with stops and allow retrieval after save", async () => {
-    const line = new Line(
-      new LineId("L3"),
-      new LineName("Línia 3"),
-      [new LineStop(new StationId("ST1"), 1), new LineStop(new StationId("ST3"), 2)],
-    );
-
-    await repo.save(line, FEED_ID);
-
-    const result = await repo.findById(new LineId("L3"));
-    expect(result).not.toBeNull();
-    expect(result!.id.value).toBe("L3");
-    expect(result!.stops.length).toBe(2);
-  });
-
-  it("should upsert without error when saving an already-existing line", async () => {
-    const line = new Line(
-      new LineId("L1"),
-      new LineName("Línia 1 Updated"),
-      [new LineStop(new StationId("ST1"), 1)],
-    );
-
-    await repo.save(line, FEED_ID);
-
-    const result = await repo.findById(new LineId("L1"));
-    expect(result).not.toBeNull();
-    expect(result!.name.value).toBe("Línia 1 Updated");
-  });
-
   it("should remove all lines and their stops for the given feedId", async () => {
     await repo.deleteByFeedId(FEED_ID);
 
@@ -129,7 +100,7 @@ describe("LineRepositoryDrizzle", () => {
       StationMother.row({ id: "STO1", feedId: OTHER_FEED, name: "Other Station", latitude: 39.5, longitude: -0.4 }),
     ]);
     await container.db.insert(lines).values([
-      LineMother.row({ id: "LO1", feedId: OTHER_FEED, name: "Other Line", shortName: "O" }),
+      LineMother.row({ id: "LO1", feedId: OTHER_FEED, name: "Other Line" }),
     ]);
 
     await repo.deleteByFeedId(FEED_ID);
@@ -139,7 +110,7 @@ describe("LineRepositoryDrizzle", () => {
     expect(rows[0]!.feedId).toBe(OTHER_FEED);
   });
 
-  describe("saveAll", () => {
+  describe("saveMany", () => {
     it("should save all lines with their stops and make them retrievable", async () => {
       await clearTables(container.db, "line_stations", "lines", "stations");
 
@@ -160,7 +131,7 @@ describe("LineRepositoryDrizzle", () => {
         [new LineStop(new StationId("SA2"), 1), new LineStop(new StationId("SA3"), 2)],
       );
 
-      await repo.saveAll([lineA, lineB], FEED_ID);
+      await repo.saveMany([lineA, lineB], FEED_ID);
 
       const resultA = await repo.findById(new LineId("LA1"));
       expect(resultA).not.toBeNull();
@@ -175,7 +146,7 @@ describe("LineRepositoryDrizzle", () => {
     });
 
     it("should handle empty array without error", async () => {
-      await expect(repo.saveAll([], FEED_ID)).resolves.toBeUndefined();
+      await expect(repo.saveMany([], FEED_ID)).resolves.toBeUndefined();
 
       const result = await repo.findAll();
       expect(result.length).toBe(2); // pre-seeded rows still present

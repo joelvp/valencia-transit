@@ -6,11 +6,12 @@ import { LineName } from "@/core/domain/line/LineName";
 import { LineColor } from "@/core/domain/line/LineColor";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { StationId } from "@/core/domain/station/StationId";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 describe("LineMapper", () => {
   describe("toDomain", () => {
     it("should convert a DB row with multiple stops to a Line domain entity", () => {
-      const row = { id: "line-1", name: "Línia 1", color: "DA291C" };
+      const row = { id: "line-1", name: "Línia 1", color: "DA291C", transportType: "metro" };
       const lineStationRows = [
         { stationId: "station-1", sequence: 1 },
         { stationId: "station-2", sequence: 2 },
@@ -22,6 +23,7 @@ describe("LineMapper", () => {
       expect(line.id.value).toBe("line-1");
       expect(line.name.value).toBe("Línia 1");
       expect(line.color?.value).toBe("DA291C");
+      expect(line.transportType.value).toBe("metro");
       expect(line.stops).toHaveLength(3);
       expect(line.stops[0]!.stationId.value).toBe("station-1");
       expect(line.stops[0]!.sequence).toBe(1);
@@ -30,7 +32,7 @@ describe("LineMapper", () => {
     });
 
     it("should return a Line instance", () => {
-      const row = { id: "line-1", name: "Línia 1", color: null };
+      const row = { id: "line-1", name: "Línia 1", color: null, transportType: "metro" };
       const lineStationRows = [{ stationId: "station-1", sequence: 1 }];
 
       const line = LineMapper.toDomain(row, lineStationRows);
@@ -39,7 +41,7 @@ describe("LineMapper", () => {
     });
 
     it("should handle null color", () => {
-      const row = { id: "line-1", name: "Línia 1", color: null };
+      const row = { id: "line-1", name: "Línia 1", color: null, transportType: "metro" };
 
       const line = LineMapper.toDomain(row, []);
 
@@ -47,7 +49,7 @@ describe("LineMapper", () => {
     });
 
     it("should handle empty stops array", () => {
-      const row = { id: "line-1", name: "Línia 1", color: null };
+      const row = { id: "line-1", name: "Línia 1", color: null, transportType: "metro" };
 
       const line = LineMapper.toDomain(row, []);
 
@@ -66,6 +68,7 @@ describe("LineMapper", () => {
         new LineName("Línia 1"),
         stops,
         new LineColor("DA291C"),
+        TransportType.METRO,
       );
 
       const result = LineMapper.toPersistence(line, "metrovalencia");
@@ -73,7 +76,6 @@ describe("LineMapper", () => {
       expect(result.line.id).toBe("line-1");
       expect(result.line.feedId).toBe("metrovalencia");
       expect(result.line.name).toBe("Línia 1");
-      expect(result.line.shortName).toBeNull();
       expect(result.line.transportType).toBe("metro");
       expect(result.line.color).toBe("DA291C");
 
@@ -106,6 +108,7 @@ describe("LineMapper", () => {
         new LineName("Línia 1"),
         stops,
         new LineColor("FFA500"),
+        TransportType.TRAM,
       );
 
       const { line: lineRow, lineStations } = LineMapper.toPersistence(original, "metrovalencia");
@@ -114,6 +117,7 @@ describe("LineMapper", () => {
       expect(restored.id.value).toBe(original.id.value);
       expect(restored.name.value).toBe(original.name.value);
       expect(restored.color?.value).toBe(original.color?.value);
+      expect(restored.transportType.value).toBe(original.transportType.value);
       expect(restored.stops).toHaveLength(original.stops.length);
       expect(restored.stops[0]!.stationId.value).toBe(original.stops[0]!.stationId.value);
       expect(restored.stops[1]!.sequence).toBe(original.stops[1]!.sequence);

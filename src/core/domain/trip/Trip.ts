@@ -1,5 +1,5 @@
 import type { TripId } from "./TripId.ts";
-import type { LineId } from "../line/LineId.ts";
+import type { RouteId } from "../route/RouteId.ts";
 import type { ScheduleId } from "../schedule/ScheduleId.ts";
 import type { PassingTime } from "./PassingTime.ts";
 import type { StationId } from "../station/StationId.ts";
@@ -8,7 +8,7 @@ import type { TimeOfDay } from "../shared/TimeOfDay.ts";
 export class Trip {
   constructor(
     readonly id: TripId,
-    readonly lineId: LineId,
+    readonly routeId: RouteId,
     readonly scheduleId: ScheduleId,
     readonly passingTimes: PassingTime[],
     readonly headsign: string | null = null,

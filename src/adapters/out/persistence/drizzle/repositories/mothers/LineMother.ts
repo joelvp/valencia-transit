@@ -2,13 +2,14 @@ import { Line } from "@/core/domain/line/Line";
 import { LineId } from "@/core/domain/line/LineId";
 import { LineName } from "@/core/domain/line/LineName";
 import type { LineStop } from "@/core/domain/line/LineStop";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 type LineRow = {
   id: string;
   feedId: string;
   name: string;
-  shortName: string;
   transportType: string;
+  color?: string | null;
 };
 
 type LineStopRow = {
@@ -24,6 +25,8 @@ export class LineMother {
       new LineId(overrides.id ?? "L1"),
       new LineName(overrides.name ?? "Línia 1"),
       overrides.stops ?? [],
+      null,
+      TransportType.METRO,
     );
   }
 
@@ -32,7 +35,6 @@ export class LineMother {
       id: "L1",
       feedId: "metrovalencia",
       name: "Línia 1",
-      shortName: "1",
       transportType: "metro",
       ...overrides,
     };

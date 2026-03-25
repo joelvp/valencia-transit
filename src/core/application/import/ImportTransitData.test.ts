@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { ImportTransitData } from "./ImportTransitData.ts";
 import type { StationRepository } from "../../domain/station/StationRepository.ts";
+import type { RouteRepository } from "../../domain/route/RouteRepository.ts";
 import type { LineRepository } from "../../domain/line/LineRepository.ts";
 import type { ScheduleRepository } from "../../domain/schedule/ScheduleRepository.ts";
 import type { TripRepository } from "../../domain/trip/TripRepository.ts";
@@ -11,9 +12,10 @@ import { Station } from "../../domain/station/Station.ts";
 import { StationId } from "../../domain/station/StationId.ts";
 import { StationName } from "../../domain/station/StationName.ts";
 import { StationLocation } from "../../domain/station/StationLocation.ts";
-import { Line } from "../../domain/line/Line.ts";
+import { Route } from "../../domain/route/Route.ts";
+import { RouteId } from "../../domain/route/RouteId.ts";
 import { LineId } from "../../domain/line/LineId.ts";
-import { LineName } from "../../domain/line/LineName.ts";
+import { TransportType } from "../../domain/shared/TransportType.ts";
 import { Schedule } from "../../domain/schedule/Schedule.ts";
 import { ScheduleId } from "../../domain/schedule/ScheduleId.ts";
 import { Weekdays } from "../../domain/schedule/Weekdays.ts";
@@ -26,22 +28,29 @@ function makeGtfsData(): GtfsData {
     new StationId("S1"),
     new StationName("Xàtiva"),
     new StationLocation(39.47, -0.37),
+    [TransportType.METRO],
   );
   const s2 = new Station(
     new StationId("S2"),
     new StationName("Colón"),
     new StationLocation(39.47, -0.36),
+    [TransportType.METRO],
   );
-  const line = new Line(new LineId("L1"), new LineName("Metro 1"), []);
+  const route = new Route(new RouteId("V1-1-3"), new LineId("1"), [], TransportType.METRO);
   const schedule = new Schedule(
     new ScheduleId("SC1"),
     new Weekdays(true, true, true, true, true, false, false),
     new DateRange("2026-01-01", "2026-12-31"),
     [],
   );
-  const trip = new Trip(new TripId("T1"), new LineId("L1"), new ScheduleId("SC1"), []);
+  const trip = new Trip(new TripId("T1"), new RouteId("V1-1-3"), new ScheduleId("SC1"), []);
 
-  return { stations: [s1, s2], lines: [line], schedules: [schedule], trips: [trip] };
+  return {
+    stations: [s1, s2],
+    routes: [route],
+    schedules: [schedule],
+    trips: [trip],
+  };
 }
 
 function makeMocks() {
@@ -53,14 +62,17 @@ function makeMocks() {
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
+    updateTransportTypes: mock(() => Promise.resolve()),
+  };
+  const routeRepository: RouteRepository = {
+    findLineIdsByRouteIds: mock(() => Promise.resolve(new Map())),
+    saveMany: mock(() => Promise.resolve()),
+    deleteByFeedId: mock(() => Promise.resolve()),
   };
   const lineRepository: LineRepository = {
-    findById: mock(() => Promise.resolve(null)),
-    findByStations: mock(() => Promise.resolve([])),
-    findByStationId: mock(() => Promise.resolve([])),
     findAll: mock(() => Promise.resolve([])),
-    save: mock(() => Promise.resolve()),
-    saveAll: mock(() => Promise.resolve()),
+    findByStationIds: mock(() => Promise.resolve([])),
+    saveMany: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const scheduleRepository: ScheduleRepository = {
@@ -71,7 +83,7 @@ function makeMocks() {
     deleteByFeedId: mock(() => Promise.resolve()),
   };
   const tripRepository: TripRepository = {
-    findByLineAndSchedule: mock(() => Promise.resolve([])),
+    findByRouteAndSchedule: mock(() => Promise.resolve([])),
     findDeparturesFromStation: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
@@ -88,6 +100,7 @@ function makeMocks() {
 
   return {
     stationRepository,
+    routeRepository,
     lineRepository,
     scheduleRepository,
     tripRepository,
@@ -101,6 +114,7 @@ describe("ImportTransitData", () => {
     const mocks = makeMocks();
     const useCase = new ImportTransitData(
       mocks.stationRepository,
+      mocks.routeRepository,
       mocks.lineRepository,
       mocks.scheduleRepository,
       mocks.tripRepository,
@@ -113,16 +127,18 @@ describe("ImportTransitData", () => {
     expect(result).toEqual({
       feedId: "feed-2026",
       stationsImported: 2,
+      routesImported: 1,
       linesImported: 1,
       schedulesImported: 1,
       tripsImported: 1,
     });
   });
 
-  it("should call deleteByFeedId on all 4 repositories before saving", async () => {
+  it("should call deleteByFeedId on all repositories before saving", async () => {
     const mocks = makeMocks();
     const useCase = new ImportTransitData(
       mocks.stationRepository,
+      mocks.routeRepository,
       mocks.lineRepository,
       mocks.scheduleRepository,
       mocks.tripRepository,
@@ -132,13 +148,15 @@ describe("ImportTransitData", () => {
     await useCase.execute(makeGtfsData(), "feed-2026");
 
     expect(mocks.stationRepository.deleteByFeedId).toHaveBeenCalledWith("feed-2026");
+    expect(mocks.routeRepository.deleteByFeedId).toHaveBeenCalledWith("feed-2026");
     expect(mocks.lineRepository.deleteByFeedId).toHaveBeenCalledWith("feed-2026");
     expect(mocks.scheduleRepository.deleteByFeedId).toHaveBeenCalledWith("feed-2026");
     expect(mocks.tripRepository.deleteByFeedId).toHaveBeenCalledWith("feed-2026");
 
-    // Each saveAll must come after deleteByFeedId — verify bulk save was called
+    // Each save must come after deleteByFeedId — verify bulk save was called
     expect(mocks.stationRepository.saveAll).toHaveBeenCalledTimes(1);
-    expect(mocks.lineRepository.saveAll).toHaveBeenCalledTimes(1);
+    expect(mocks.routeRepository.saveMany).toHaveBeenCalledTimes(1);
+    expect(mocks.lineRepository.saveMany).toHaveBeenCalledTimes(1);
     expect(mocks.scheduleRepository.saveAll).toHaveBeenCalledTimes(1);
     expect(mocks.tripRepository.saveAll).toHaveBeenCalledTimes(1);
   });
@@ -147,6 +165,7 @@ describe("ImportTransitData", () => {
     const mocks = makeMocks();
     const useCase = new ImportTransitData(
       mocks.stationRepository,
+      mocks.routeRepository,
       mocks.lineRepository,
       mocks.scheduleRepository,
       mocks.tripRepository,
@@ -164,6 +183,7 @@ describe("ImportTransitData", () => {
     const mocks = makeMocks();
     const useCase = new ImportTransitData(
       mocks.stationRepository,
+      mocks.routeRepository,
       mocks.lineRepository,
       mocks.scheduleRepository,
       mocks.tripRepository,

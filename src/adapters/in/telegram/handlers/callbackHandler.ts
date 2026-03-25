@@ -34,6 +34,7 @@ export function callbackHandler(useCase: SearchNextDepartures) {
             result.origin.name.value,
             result.destination.name.value,
             result.firstTomorrow,
+            result.routeLineName,
           ),
           { parse_mode: "HTML" },
         );
@@ -47,6 +48,8 @@ export function callbackHandler(useCase: SearchNextDepartures) {
           result.data.origin.name.value,
           result.data.destination.name.value,
           result.data.departures,
+          result.data.firstTomorrow,
+          result.data.routeLineName,
         ),
         { parse_mode: "HTML" },
       );

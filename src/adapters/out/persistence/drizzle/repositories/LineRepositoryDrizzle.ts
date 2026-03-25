@@ -2,7 +2,6 @@ import { eq, and, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { Line } from "@/core/domain/line/Line";
-import type { LineId } from "@/core/domain/line/LineId";
 import type { StationId } from "@/core/domain/station/StationId";
 import { LineMapper } from "@/adapters/out/persistence/drizzle/mappers/LineMapper";
 import { lines, lineStations } from "@/adapters/out/persistence/drizzle/schema";
@@ -12,7 +11,7 @@ import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
 export class LineRepositoryDrizzle implements LineRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
 
-  async findById(id: LineId): Promise<Line | null> {
+  async findById(id: { value: string }): Promise<Line | null> {
     const lineRows = await this.db.select().from(lines).where(eq(lines.id, id.value));
     if (!lineRows[0]) return null;
 
@@ -25,7 +24,23 @@ export class LineRepositoryDrizzle implements LineRepository {
     return LineMapper.toDomain(lineRow, stopRows);
   }
 
-  async findByStations(origin: StationId, destination: StationId): Promise<Line[]> {
+  async findAll(): Promise<Line[]> {
+    const lineRows = await this.db.select().from(lines);
+
+    return Promise.all(
+      lineRows.map(async (lineRow) => {
+        const stopRows = await this.db
+          .select()
+          .from(lineStations)
+          .where(
+            and(eq(lineStations.lineId, lineRow.id), eq(lineStations.feedId, lineRow.feedId)),
+          );
+        return LineMapper.toDomain(lineRow, stopRows);
+      }),
+    );
+  }
+
+  async findByStationIds(origin: StationId, destination: StationId): Promise<Line[]> {
     const originRows = await this.db
       .select({ lineId: lineStations.lineId, feedId: lineStations.feedId })
       .from(lineStations)
@@ -63,72 +78,8 @@ export class LineRepositoryDrizzle implements LineRepository {
     );
   }
 
-  async findByStationId(stationId: StationId): Promise<Line[]> {
-    const stopRows = await this.db
-      .select({ lineId: lineStations.lineId, feedId: lineStations.feedId })
-      .from(lineStations)
-      .where(eq(lineStations.stationId, stationId.value));
-
-    if (stopRows.length === 0) return [];
-
-    const lineIds = [...new Set(stopRows.map((r) => r.lineId))];
-    const lineRows = await this.db.select().from(lines).where(inArray(lines.id, lineIds));
-
-    return Promise.all(
-      lineRows.map(async (lineRow) => {
-        const lineStopRows = await this.db
-          .select()
-          .from(lineStations)
-          .where(
-            and(eq(lineStations.lineId, lineRow.id), eq(lineStations.feedId, lineRow.feedId)),
-          );
-        return LineMapper.toDomain(lineRow, lineStopRows);
-      }),
-    );
-  }
-
-  async findAll(): Promise<Line[]> {
-    const lineRows = await this.db.select().from(lines);
-
-    return Promise.all(
-      lineRows.map(async (lineRow) => {
-        const stopRows = await this.db
-          .select()
-          .from(lineStations)
-          .where(
-            and(eq(lineStations.lineId, lineRow.id), eq(lineStations.feedId, lineRow.feedId)),
-          );
-        return LineMapper.toDomain(lineRow, stopRows);
-      }),
-    );
-  }
-
-  async save(line: Line, feedId: string): Promise<void> {
-    const { line: lineRow, lineStations: stopRows } = LineMapper.toPersistence(line, feedId);
-    await this.db
-      .insert(lines)
-      .values(lineRow)
-      .onConflictDoUpdate({
-        target: [lines.id, lines.feedId],
-        set: {
-          name: lineRow.name,
-          shortName: lineRow.shortName,
-          transportType: lineRow.transportType,
-        },
-      });
-
-    if (stopRows.length > 0) {
-      await this.db
-        .insert(lineStations)
-        .values(stopRows)
-        .onConflictDoUpdate({
-          target: [lineStations.lineId, lineStations.stationId, lineStations.feedId],
-          set: { sequence: lineStations.sequence },
-        });
-    }
-  }
-
-  async saveAll(lineList: Line[], feedId: string): Promise<void> {
+  async saveMany(lineList: Line[], feedId: string): Promise<void> {
+    if (lineList.length === 0) return;
     const allLineRows = [];
     const allStopRows = [];
     for (const line of lineList) {

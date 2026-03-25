@@ -1,11 +1,11 @@
 import type { Station } from "../station/Station.ts";
-import type { Line } from "../line/Line.ts";
+import type { Route } from "../route/Route.ts";
 import type { Schedule } from "../schedule/Schedule.ts";
 import type { Trip } from "../trip/Trip.ts";
 
-export interface GtfsData {
+export type GtfsData = {
   stations: Station[];
-  lines: Line[];
+  routes: Route[];
   schedules: Schedule[];
   trips: Trip[];
-}
+};

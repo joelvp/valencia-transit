@@ -1,12 +1,11 @@
 import AdmZip from "adm-zip";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
-import { Line } from "@/core/domain/line/Line";
-import { LineId } from "@/core/domain/line/LineId";
-import { LineName } from "@/core/domain/line/LineName";
-import { LineColor } from "@/core/domain/line/LineColor";
-import { LineStop } from "@/core/domain/line/LineStop";
+import { Route } from "@/core/domain/route/Route";
+import { RouteId } from "@/core/domain/route/RouteId";
+import { RouteStation } from "@/core/domain/route/RouteStation";
 import { StationId } from "@/core/domain/station/StationId";
+import { LineId } from "@/core/domain/line/LineId";
 import { Schedule } from "@/core/domain/schedule/Schedule";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { Weekdays } from "@/core/domain/schedule/Weekdays";
@@ -16,6 +15,7 @@ import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
 import { PassingTime } from "@/core/domain/trip/PassingTime";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
+import { TransportType } from "@/core/domain/shared/TransportType";
 import type { GtfsData } from "@/core/domain/shared/GtfsData";
 
 export type { GtfsData };
@@ -79,7 +79,6 @@ export class GtfsParser {
 
     const getText = (name: string): string => zip.readAsText(name);
 
-    const stations = this.parseStations(parseCsv(getText("stops.txt")));
     const schedules = this.parseSchedules(
       parseCsv(getText("calendar.txt")),
       parseCsv(getText("calendar_dates.txt")),
@@ -87,18 +86,19 @@ export class GtfsParser {
     const stopTimesRows = parseCsv(getText("stop_times.txt"));
     const routeRows = parseCsv(getText("routes.txt"));
     const tripRows = parseCsv(getText("trips.txt"));
-    const canonicalRouteIds = this.computeCanonicalRouteIds(routeRows, tripRows);
-    const lines = this.parseLines(routeRows, tripRows, stopTimesRows, canonicalRouteIds);
-    const trips = this.parseTrips(tripRows, stopTimesRows, canonicalRouteIds);
+    const stations = this.parseStations(parseCsv(getText("stops.txt")));
+    const routes = this.parseRoutes(routeRows, tripRows, stopTimesRows);
+    const trips = this.parseTrips(tripRows, stopTimesRows);
 
-    return { stations, lines, schedules, trips };
+    return { stations, routes, schedules, trips };
   }
 
   private parseStations(rows: CsvRow[]): Station[] {
     return rows.map((row) => {
+      const stopId = row["stop_id"]!;
       const lat = parseFloat(row["stop_lat"]!);
       const lon = parseFloat(row["stop_lon"]!);
-      return Station.create(row["stop_id"]!, row["stop_name"]!, new StationLocation(lat, lon));
+      return Station.create(stopId, row["stop_name"]!, new StationLocation(lat, lon));
     });
   }
 
@@ -135,111 +135,48 @@ export class GtfsParser {
     });
   }
 
-  private computeCanonicalRouteIds(routeRows: CsvRow[], tripRows: CsvRow[]): Set<string> {
-    // Count trips per route_id
-    const tripCountByRoute = new Map<string, number>();
-    for (const trip of tripRows) {
-      const routeId = trip["route_id"]!;
-      tripCountByRoute.set(routeId, (tripCountByRoute.get(routeId) ?? 0) + 1);
-    }
-
-    // Find max trip count per route_short_name group
-    const maxTripsByShortName = new Map<string, number>();
-    for (const row of routeRows) {
-      const shortName = row["route_short_name"] || row["route_id"]!;
-      const count = tripCountByRoute.get(row["route_id"]!) ?? 0;
-      const current = maxTripsByShortName.get(shortName) ?? 0;
-      if (count > current) maxTripsByShortName.set(shortName, count);
-    }
-
-    // A route is canonical if it has >= 15% of the max trips for its short name group
-    const canonicalRouteIds = new Set<string>();
-    for (const row of routeRows) {
-      const shortName = row["route_short_name"] || row["route_id"]!;
-      const count = tripCountByRoute.get(row["route_id"]!) ?? 0;
-      const max = maxTripsByShortName.get(shortName) ?? 0;
-      if (max === 0 || count >= max * 0.15) {
-        canonicalRouteIds.add(row["route_id"]!);
-      }
-    }
-
-    return canonicalRouteIds;
-  }
-
-  private parseLines(
-    routeRows: CsvRow[],
-    tripRows: CsvRow[],
-    stopTimesRows: CsvRow[],
-    canonicalRouteIds: Set<string>,
-  ): Line[] {
-    // Build stop_times grouped by trip_id
-    const stopTimesByTrip = new Map<string, CsvRow[]>();
+  private parseRoutes(routeRows: CsvRow[], tripRows: CsvRow[], stopTimesRows: CsvRow[]): Route[] {
+    // Build stop_ids by trip
+    const stopsByTrip = new Map<string, Set<string>>();
     for (const row of stopTimesRows) {
       const tripId = row["trip_id"]!;
-      if (!stopTimesByTrip.has(tripId)) {
-        stopTimesByTrip.set(tripId, []);
-      }
-      stopTimesByTrip.get(tripId)!.push(row);
+      if (!stopsByTrip.has(tripId)) stopsByTrip.set(tripId, new Set());
+      stopsByTrip.get(tripId)!.add(row["stop_id"]!);
     }
 
-    // Build route name and color maps
-    const routeNameMap = new Map<string, string>();
-    const routeColorMap = new Map<string, string>();
-    for (const row of routeRows) {
-      const name = row["route_short_name"] || row["route_long_name"] || row["route_id"]!;
-      routeNameMap.set(row["route_id"]!, name);
-      const colorHex = row["route_color"]?.trim();
-      if (colorHex) {
-        routeColorMap.set(row["route_id"]!, colorHex);
-      }
-    }
-
-    // Group trips by route_id (direction encoded in route_id for MetroValencia)
-    const lineMap = new Map<string, { routeId: string; stopRows: CsvRow[] }>();
+    // Build trips by route
+    const tripsByRoute = new Map<string, string[]>();
     for (const trip of tripRows) {
       const routeId = trip["route_id"]!;
-      if (!canonicalRouteIds.has(routeId)) continue;
-      if (!lineMap.has(routeId)) {
-        lineMap.set(routeId, { routeId, stopRows: [] });
-      }
-      const entry = lineMap.get(routeId)!;
-      const tripStops = stopTimesByTrip.get(trip["trip_id"]!) ?? [];
-      entry.stopRows.push(...tripStops);
+      if (!tripsByRoute.has(routeId)) tripsByRoute.set(routeId, []);
+      tripsByRoute.get(routeId)!.push(trip["trip_id"]!);
     }
 
-    const lines: Line[] = [];
-    for (const [routeId, { stopRows }] of lineMap) {
-      const lineId = new LineId(routeId);
-      const name = routeNameMap.get(routeId) ?? routeId;
+    // short_name per route (used as lineId)
+    const shortNameByRoute = new Map<string, string>();
+    for (const row of routeRows) {
+      shortNameByRoute.set(row["route_id"]!, row["route_short_name"] || row["route_id"]!);
+    }
 
-      // Dedupe stops by stationId, keep lowest sequence seen
-      const seqByStation = new Map<string, number>();
-      for (const row of stopRows) {
-        const stationId = row["stop_id"]!;
-        const seq = parseInt(row["stop_sequence"]!, 10);
-        const existing = seqByStation.get(stationId);
-        if (existing === undefined || seq < existing) {
-          seqByStation.set(stationId, seq);
+    const result: Route[] = [];
+    for (const row of routeRows) {
+      const routeId = row["route_id"]!;
+      const lineId = new LineId(shortNameByRoute.get(routeId)!);
+      const tripIds = tripsByRoute.get(routeId) ?? [];
+      const stationSet = new Set<string>();
+      for (const tripId of tripIds) {
+        for (const stopId of stopsByTrip.get(tripId) ?? []) {
+          stationSet.add(stopId);
         }
       }
-
-      const stops: LineStop[] = Array.from(seqByStation.entries())
-        .sort((a, b) => a[1] - b[1])
-        .map(([stationId, sequence]) => new LineStop(new StationId(stationId), sequence));
-
-      const colorHex = routeColorMap.get(routeId);
-      const color = colorHex ? new LineColor(colorHex) : null;
-      lines.push(new Line(lineId, new LineName(name), stops, color));
+      const stations = [...stationSet].map((sid) => new RouteStation(new StationId(sid)));
+      const transportType = TransportType.fromGtfsRouteType(row["route_type"] ?? "1");
+      result.push(new Route(new RouteId(routeId), lineId, stations, transportType));
     }
-
-    return lines;
+    return result;
   }
 
-  private parseTrips(
-    tripRows: CsvRow[],
-    stopTimesRows: CsvRow[],
-    canonicalRouteIds: Set<string>,
-  ): Trip[] {
+  private parseTrips(tripRows: CsvRow[], stopTimesRows: CsvRow[]): Trip[] {
     // Group stop_times by trip_id
     const stopTimesByTrip = new Map<string, CsvRow[]>();
     for (const row of stopTimesRows) {
@@ -250,33 +187,30 @@ export class GtfsParser {
       stopTimesByTrip.get(tripId)!.push(row);
     }
 
-    return tripRows
-      .filter((row) => canonicalRouteIds.has(row["route_id"]!))
-      .map((row) => {
-        const tripId = row["trip_id"]!;
-        const routeId = row["route_id"]!;
-        const lineId = new LineId(routeId);
+    return tripRows.map((row) => {
+      const tripId = row["trip_id"]!;
+      const routeId = row["route_id"]!;
 
-        const stopRows = (stopTimesByTrip.get(tripId) ?? []).sort(
-          (a, b) => parseInt(a["stop_sequence"]!, 10) - parseInt(b["stop_sequence"]!, 10),
-        );
+      const stopRows = (stopTimesByTrip.get(tripId) ?? []).sort(
+        (a, b) => parseInt(a["stop_sequence"]!, 10) - parseInt(b["stop_sequence"]!, 10),
+      );
 
-        const passingTimes: PassingTime[] = stopRows.map((st) => {
-          const stationId = new StationId(st["stop_id"]!);
-          const arrivalTime = new TimeOfDay(st["arrival_time"]!);
-          const departureTime = new TimeOfDay(st["departure_time"]!);
-          const sequence = parseInt(st["stop_sequence"]!, 10);
-          return new PassingTime(stationId, arrivalTime, departureTime, sequence);
-        });
-
-        const headsign = row["trip_headsign"] ?? null;
-        return new Trip(
-          new TripId(tripId),
-          lineId,
-          new ScheduleId(row["service_id"]!),
-          passingTimes,
-          headsign,
-        );
+      const passingTimes: PassingTime[] = stopRows.map((st) => {
+        const stationId = new StationId(st["stop_id"]!);
+        const arrivalTime = new TimeOfDay(st["arrival_time"]!);
+        const departureTime = new TimeOfDay(st["departure_time"]!);
+        const sequence = parseInt(st["stop_sequence"]!, 10);
+        return new PassingTime(stationId, arrivalTime, departureTime, sequence);
       });
+
+      const headsign = row["trip_headsign"] ?? null;
+      return new Trip(
+        new TripId(tripId),
+        new RouteId(routeId),
+        new ScheduleId(row["service_id"]!),
+        passingTimes,
+        headsign,
+      );
+    });
   }
 }

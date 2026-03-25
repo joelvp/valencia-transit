@@ -8,7 +8,7 @@ export interface Translations {
   nextDepartures: string;
   disclaimer: string;
   noMoreToday: (origin: string, dest: string) => string;
-  firstTomorrow: (time: string, line: string) => string;
+  firstTomorrow: (time: string) => string;
   // Stations
   stationsHeader: string;
   noStations: string;
@@ -46,7 +46,7 @@ const es: Translations = {
   nextDepartures: "Próximas salidas:",
   disclaimer: "ℹ️ Horarios planificados. Los tiempos reales pueden variar.",
   noMoreToday: (o, d) => `No hay más salidas hoy de ${o} a ${d}.`,
-  firstTomorrow: (time, line) => `🌅 Primera salida mañana: <b>${time}</b> — ${line}`,
+  firstTomorrow: (time) => `🌅 Primera salida mañana: <b>${time}</b>`,
   stationsHeader: "🚉 <b>Estaciones disponibles:</b>",
   noStations: "ℹ️ No hay estaciones disponibles.",
   disambiguation: (field, names) => {
@@ -81,7 +81,7 @@ const val: Translations = {
   nextDepartures: "Pròximes eixides:",
   disclaimer: "ℹ️ Horaris planificats. Els temps reals poden variar.",
   noMoreToday: (o, d) => `No hi ha més eixides hui de ${o} a ${d}.`,
-  firstTomorrow: (time, line) => `🌅 Primera eixida demà: <b>${time}</b> — ${line}`,
+  firstTomorrow: (time) => `🌅 Primera eixida demà: <b>${time}</b>`,
   stationsHeader: "🚉 <b>Estacions disponibles:</b>",
   noStations: "ℹ️ No hi ha estacions disponibles.",
   disambiguation: (field, names) => {

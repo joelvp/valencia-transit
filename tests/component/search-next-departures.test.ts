@@ -6,6 +6,7 @@ import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import {
   stations,
+  routes,
   lines,
   lineStations,
   schedules,
@@ -34,7 +35,7 @@ describe("SearchNextDepartures Component Test", () => {
         name: "Colón",
         latitude: 39.4682,
         longitude: -0.3765,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST2",
@@ -42,20 +43,20 @@ describe("SearchNextDepartures Component Test", () => {
         name: "Xàtiva",
         latitude: 39.4676,
         longitude: -0.3789,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
     ]);
 
-    // Lines: L1 (ST1→ST2), L2 (ST2→ST1)
+    // Lines (commercial): must be inserted before routes due to FK
     await container.db.insert(lines).values([
-      { id: "L1", feedId: FEED_ID, name: "Línea 1 Anada", shortName: "1", transportType: "metro" },
-      {
-        id: "L2",
-        feedId: FEED_ID,
-        name: "Línea 1 Tornada",
-        shortName: "1",
-        transportType: "metro",
-      },
+      { id: "L1", feedId: FEED_ID, name: "Línea 1 Anada", transportType: "metro" },
+      { id: "L2", feedId: FEED_ID, name: "Línea 1 Tornada", transportType: "metro" },
+    ]);
+
+    // Routes (operational): one per direction, linked to their commercial line
+    await container.db.insert(routes).values([
+      { id: "L1", feedId: FEED_ID, transportType: "metro", lineId: "L1" },
+      { id: "L2", feedId: FEED_ID, transportType: "metro", lineId: "L2" },
     ]);
 
     await container.db.insert(lineStations).values([
@@ -87,10 +88,10 @@ describe("SearchNextDepartures Component Test", () => {
       .insert(scheduleExceptions)
       .values([{ scheduleId: "WD", feedId: FEED_ID, date: "2024-06-03", isActive: true }]);
 
-    // Trips: T1 on L1/WD headsign "Xàtiva", T2 on L2/WD headsign "Colón"
+    // Trips: T1 on route L1/WD headsign "Xàtiva", T2 on route L2/WD headsign "Colón"
     await container.db.insert(trips).values([
-      { id: "T1", feedId: FEED_ID, lineId: "L1", scheduleId: "WD", headsign: "Xàtiva" },
-      { id: "T2", feedId: FEED_ID, lineId: "L2", scheduleId: "WD", headsign: "Colón" },
+      { id: "T1", feedId: FEED_ID, routeId: "L1", scheduleId: "WD", headsign: "Xàtiva" },
+      { id: "T2", feedId: FEED_ID, routeId: "L2", scheduleId: "WD", headsign: "Colón" },
     ]);
 
     // Passing times: T1 ST1(06:00)→ST2(06:05), T2 ST2(06:10)→ST1(06:15)
@@ -142,6 +143,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 
@@ -161,6 +163,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 
@@ -180,6 +183,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 
@@ -195,6 +199,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 

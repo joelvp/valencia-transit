@@ -10,9 +10,12 @@ import { Line } from "../../domain/line/Line.ts";
 import { LineId } from "../../domain/line/LineId.ts";
 import { LineName } from "../../domain/line/LineName.ts";
 import { LineStop } from "../../domain/line/LineStop.ts";
+import { TransportType } from "../../domain/shared/TransportType.ts";
 
 function makeStation(id: string, name = "Station"): Station {
-  return new Station(new StationId(id), new StationName(name), new StationLocation(39.47, -0.37));
+  return new Station(new StationId(id), new StationName(name), new StationLocation(39.47, -0.37), [
+    TransportType.METRO,
+  ]);
 }
 
 function makeLine(id: string, stationIds: string[]): Line {
@@ -29,17 +32,15 @@ function makeStationRepo(stations: Station[]): StationRepository {
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
+    updateTransportTypes: mock(() => Promise.resolve()),
   };
 }
 
 function makeLineRepo(lines: Line[]): LineRepository {
   return {
     findAll: mock(() => Promise.resolve(lines)),
-    findById: mock(() => Promise.resolve(null)),
-    findByStations: mock(() => Promise.resolve([])),
-    findByStationId: mock(() => Promise.resolve([])),
-    save: mock(() => Promise.resolve()),
-    saveAll: mock(() => Promise.resolve()),
+    findByStationIds: mock(() => Promise.resolve([])),
+    saveMany: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
 }

@@ -1,13 +1,13 @@
 import { Trip } from "@/core/domain/trip/Trip";
 import { TripId } from "@/core/domain/trip/TripId";
-import { LineId } from "@/core/domain/line/LineId";
+import { RouteId } from "@/core/domain/route/RouteId";
 import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import type { PassingTime } from "@/core/domain/trip/PassingTime";
 
 type TripRow = {
   id: string;
   feedId: string;
-  lineId: string;
+  routeId: string;
   scheduleId: string;
   headsign: string | null;
 };
@@ -23,11 +23,11 @@ type PassingTimeRow = {
 
 export class TripMother {
   static create(
-    overrides: Partial<{ id: string; lineId: string; scheduleId: string; passingTimes: PassingTime[] }> = {},
+    overrides: Partial<{ id: string; routeId: string; scheduleId: string; passingTimes: PassingTime[] }> = {},
   ): Trip {
     return new Trip(
       new TripId(overrides.id ?? "TR1"),
-      new LineId(overrides.lineId ?? "L1"),
+      new RouteId(overrides.routeId ?? "R1"),
       new ScheduleId(overrides.scheduleId ?? "SC1"),
       overrides.passingTimes ?? [],
     );
@@ -37,7 +37,7 @@ export class TripMother {
     return {
       id: "TR1",
       feedId: "metrovalencia",
-      lineId: "L1",
+      routeId: "R1",
       scheduleId: "SC1",
       headsign: "Colón",
       ...overrides,

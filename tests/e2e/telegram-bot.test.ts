@@ -7,6 +7,7 @@ import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { clearDatabase } from "../helpers/db";
 import {
   stations,
+  routes,
   lines,
   lineStations,
   schedules,
@@ -57,6 +58,7 @@ describe("TelegramBot E2E", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
     const listStationsWithLines = new ListStationsWithLines(
@@ -99,7 +101,7 @@ describe("TelegramBot E2E", () => {
         name: "Colón",
         latitude: 39.4682,
         longitude: -0.3765,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST2",
@@ -107,7 +109,7 @@ describe("TelegramBot E2E", () => {
         name: "Xàtiva",
         latitude: 39.4676,
         longitude: -0.3789,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST3",
@@ -115,7 +117,7 @@ describe("TelegramBot E2E", () => {
         name: "Àngel Guimerà",
         latitude: 39.4661,
         longitude: -0.381,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST1b",
@@ -123,35 +125,26 @@ describe("TelegramBot E2E", () => {
         name: "Colón",
         latitude: 39.4683,
         longitude: -0.3766,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
     ]);
 
-    // Lines: L1 (ST2→ST1), L2 (ST1→ST2)
-    await container.db.insert(lines).values([
-      {
-        id: "L1",
-        feedId: FEED_ID,
-        name: "1",
-        shortName: "1",
-        transportType: "metro",
-        color: "FEC601",
-      },
-      {
-        id: "L2",
-        feedId: FEED_ID,
-        name: "1",
-        shortName: "1",
-        transportType: "metro",
-        color: "FEC601",
-      },
+    // Lines (commercial): one commercial line, two operational routes (one per direction)
+    await container.db
+      .insert(lines)
+      .values([
+        { id: "1", feedId: FEED_ID, name: "Línia 1", transportType: "metro", color: "FEC601" },
+      ]);
+
+    // Routes (operational): one per direction, linked to commercial line "1"
+    await container.db.insert(routes).values([
+      { id: "R1", feedId: FEED_ID, transportType: "metro", lineId: "1" },
+      { id: "R2", feedId: FEED_ID, transportType: "metro", lineId: "1" },
     ]);
 
     await container.db.insert(lineStations).values([
-      { lineId: "L1", stationId: "ST2", feedId: FEED_ID, sequence: 1 },
-      { lineId: "L1", stationId: "ST1", feedId: FEED_ID, sequence: 2 },
-      { lineId: "L2", stationId: "ST1", feedId: FEED_ID, sequence: 1 },
-      { lineId: "L2", stationId: "ST2", feedId: FEED_ID, sequence: 2 },
+      { lineId: "1", stationId: "ST2", feedId: FEED_ID, sequence: 1 },
+      { lineId: "1", stationId: "ST1", feedId: FEED_ID, sequence: 2 },
     ]);
 
     // Schedule: active every day, wide date range
@@ -177,10 +170,10 @@ describe("TelegramBot E2E", () => {
       .insert(scheduleExceptions)
       .values([{ scheduleId: "WD", feedId: FEED_ID, date: today, isActive: true }]);
 
-    // Trips: T1 on L1 (Xàtiva→Colón), T2 on L2 (Colón→Xàtiva)
+    // Trips: T1 on route R1 (Xàtiva→Colón), T2 on route R2 (Colón→Xàtiva)
     await container.db.insert(trips).values([
-      { id: "T1", feedId: FEED_ID, lineId: "L1", scheduleId: "WD", headsign: "Colón" },
-      { id: "T2", feedId: FEED_ID, lineId: "L2", scheduleId: "WD", headsign: "Xàtiva" },
+      { id: "T1", feedId: FEED_ID, routeId: "R1", scheduleId: "WD", headsign: "Colón" },
+      { id: "T2", feedId: FEED_ID, routeId: "R2", scheduleId: "WD", headsign: "Xàtiva" },
     ]);
 
     // Passing times using GTFS next-day notation (25:xx) so they are always "next"

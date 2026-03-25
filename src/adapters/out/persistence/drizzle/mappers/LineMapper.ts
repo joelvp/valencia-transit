@@ -4,11 +4,13 @@ import { LineName } from "@/core/domain/line/LineName";
 import { LineColor } from "@/core/domain/line/LineColor";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { StationId } from "@/core/domain/station/StationId";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 type LineRow = {
   id: string;
   name: string;
   color: string | null;
+  transportType: string;
 };
 
 type LineStationRow = {
@@ -20,7 +22,6 @@ type LineInsert = {
   id: string;
   feedId: string;
   name: string;
-  shortName: string | null;
   transportType: string;
   color: string | null;
 };
@@ -44,7 +45,8 @@ export const LineMapper = {
     );
 
     const color = row.color ? new LineColor(row.color) : null;
-    return new Line(new LineId(row.id), new LineName(row.name), stops, color);
+    const transportType = new TransportType(row.transportType);
+    return new Line(new LineId(row.id), new LineName(row.name), stops, color, transportType);
   },
 
   toPersistence(line: Line, feedId: string): LinePersistenceResult {
@@ -52,8 +54,7 @@ export const LineMapper = {
       id: line.id.value,
       feedId,
       name: line.name.value,
-      shortName: null,
-      transportType: "metro",
+      transportType: line.transportType.value,
       color: line.color?.value ?? null,
     };
 

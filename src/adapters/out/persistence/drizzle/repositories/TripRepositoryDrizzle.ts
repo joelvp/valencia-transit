@@ -2,7 +2,7 @@ import { eq, and, gt, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { Trip } from "@/core/domain/trip/Trip";
-import type { LineId } from "@/core/domain/line/LineId";
+import type { RouteId } from "@/core/domain/route/RouteId";
 import type { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import type { StationId } from "@/core/domain/station/StationId";
 import type { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
@@ -14,23 +14,26 @@ import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
 export class TripRepositoryDrizzle implements TripRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
 
-  async findByLineAndSchedule(lineId: LineId, scheduleId: ScheduleId): Promise<Trip[]> {
+  async findByRouteAndSchedule(routeId: RouteId, scheduleId: ScheduleId): Promise<Trip[]> {
     const tripRows = await this.db
       .select()
       .from(trips)
-      .where(and(eq(trips.lineId, lineId.value), eq(trips.scheduleId, scheduleId.value)));
+      .where(and(eq(trips.routeId, routeId.value), eq(trips.scheduleId, scheduleId.value)));
 
-    return Promise.all(
-      tripRows.map(async (tripRow) => {
-        const passingTimeRows = await this.db
-          .select()
-          .from(passingTimes)
-          .where(
-            and(eq(passingTimes.tripId, tripRow.id), eq(passingTimes.feedId, tripRow.feedId)),
-          );
-        return TripMapper.toDomain(tripRow, passingTimeRows);
-      }),
-    );
+    if (tripRows.length === 0) return [];
+
+    const allPassingTimeRows = await this.db
+      .select()
+      .from(passingTimes)
+      .where(inArray(passingTimes.tripId, tripRows.map((r) => r.id)));
+
+    const ptByTrip = new Map<string, typeof allPassingTimeRows>();
+    for (const pt of allPassingTimeRows) {
+      if (!ptByTrip.has(pt.tripId)) ptByTrip.set(pt.tripId, []);
+      ptByTrip.get(pt.tripId)!.push(pt);
+    }
+
+    return tripRows.map((row) => TripMapper.toDomain(row, ptByTrip.get(row.id) ?? []));
   }
 
   async findDeparturesFromStation(
@@ -61,17 +64,18 @@ export class TripRepositoryDrizzle implements TripRepository {
       .from(trips)
       .where(and(inArray(trips.id, tripIds), inArray(trips.scheduleId, scheduleIdValues)));
 
-    return Promise.all(
-      tripRows.map(async (tripRow) => {
-        const passingTimeRows = await this.db
-          .select()
-          .from(passingTimes)
-          .where(
-            and(eq(passingTimes.tripId, tripRow.id), eq(passingTimes.feedId, tripRow.feedId)),
-          );
-        return TripMapper.toDomain(tripRow, passingTimeRows);
-      }),
-    );
+    const allPassingTimeRows = await this.db
+      .select()
+      .from(passingTimes)
+      .where(inArray(passingTimes.tripId, tripRows.map((r) => r.id)));
+
+    const ptByTrip = new Map<string, typeof allPassingTimeRows>();
+    for (const pt of allPassingTimeRows) {
+      if (!ptByTrip.has(pt.tripId)) ptByTrip.set(pt.tripId, []);
+      ptByTrip.get(pt.tripId)!.push(pt);
+    }
+
+    return tripRows.map((row) => TripMapper.toDomain(row, ptByTrip.get(row.id) ?? []));
   }
 
   async save(trip: Trip, feedId: string): Promise<void> {
@@ -83,7 +87,7 @@ export class TripRepositoryDrizzle implements TripRepository {
       .onConflictDoUpdate({
         target: [trips.id, trips.feedId],
         set: {
-          lineId: tripRow.lineId,
+          routeId: tripRow.routeId,
           scheduleId: tripRow.scheduleId,
           headsign: tripRow.headsign,
         },

@@ -1,6 +1,7 @@
 import { createContainer } from "@/adapters/container";
 import { GtfsParser } from "@/adapters/out/transit-data/GtfsParser";
 import { ImportTransitData } from "@/core/application/import/ImportTransitData";
+import { BuildLines } from "@/core/domain/line/BuildLines";
 
 const OPERATOR_ALIASES: Array<{ pattern: RegExp; feedId: string }> = [
   { pattern: /metro.?valencia/i, feedId: "metrovalencia" },
@@ -41,8 +42,10 @@ async function main() {
     console.log("Parsing GTFS file...");
     const parser = new GtfsParser();
     const gtfsData = parser.parse(zipPath);
+    const lines = BuildLines.fromRoutesAndTrips(gtfsData.routes, gtfsData.trips);
     console.log(`  - Stations: ${gtfsData.stations.length}`);
-    console.log(`  - Lines: ${gtfsData.lines.length}`);
+    console.log(`  - Routes: ${gtfsData.routes.length}`);
+    console.log(`  - Lines: ${lines.length}`);
     console.log(`  - Schedules: ${gtfsData.schedules.length}`);
     console.log(`  - Trips: ${gtfsData.trips.length}`);
     console.log("");
@@ -51,6 +54,7 @@ async function main() {
     console.log("Importing data into database...");
     const importUseCase = new ImportTransitData(
       container.stationRepository,
+      container.routeRepository,
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
@@ -64,6 +68,7 @@ async function main() {
     console.log("=== Import Summary ===");
     console.log(`Feed ID: ${summary.feedId}`);
     console.log(`Stations imported: ${summary.stationsImported}`);
+    console.log(`Routes imported: ${summary.routesImported}`);
     console.log(`Lines imported: ${summary.linesImported}`);
     console.log(`Schedules imported: ${summary.schedulesImported}`);
     console.log(`Trips imported: ${summary.tripsImported}`);

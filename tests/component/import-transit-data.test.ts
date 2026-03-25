@@ -91,7 +91,6 @@ describe("ImportTransitData Component Test", () => {
     const gtfsData = parser.parse(tempPath);
 
     expect(gtfsData.stations).toHaveLength(2);
-    expect(gtfsData.lines).toHaveLength(1); // 1 route_id = 1 line
     expect(gtfsData.schedules).toHaveLength(1);
     expect(gtfsData.trips).toHaveLength(2);
 
@@ -112,6 +111,7 @@ describe("ImportTransitData Component Test", () => {
     // Import using real use case (no mocks)
     const importUseCase = new ImportTransitData(
       container.stationRepository,
+      container.routeRepository,
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
@@ -152,6 +152,7 @@ describe("ImportTransitData Component Test", () => {
     const gtfsData = parser.parse(tempPath);
     const importUseCase = new ImportTransitData(
       container.stationRepository,
+      container.routeRepository,
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,

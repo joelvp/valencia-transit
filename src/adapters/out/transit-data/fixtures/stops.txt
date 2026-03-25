@@ -1,4 +1,4 @@
 stop_id,stop_name,stop_lat,stop_lon
-S1,Estació del Nord,39.4699,-0.3763
-S2,Xàtiva,39.4658,-0.3773
-S3,Àngel Guimerà,39.4681,-0.3834
+1,Estació del Nord,39.4699,-0.3763
+2,Xàtiva,39.4658,-0.3773
+3,Àngel Guimerà,39.4681,-0.3834
