@@ -3,6 +3,9 @@ import { callbackHandler } from "./callbackHandler";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStationsResult } from "@/core/application/query/GetLineStations";
 
+const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+const mockEventBus = { publish: mock(() => Promise.resolve()) };
+
 function makeStation(name: string) {
   return { name: { value: name }, id: { value: name.toLowerCase() } };
 }
@@ -90,7 +93,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith("Xàtiva", "Colón", expect.any(Date));
@@ -102,7 +110,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|d|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith("Colón", "Xàtiva", expect.any(Date));
@@ -114,7 +127,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
@@ -134,7 +152,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
@@ -153,7 +176,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|X|Colón");
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
@@ -171,7 +199,12 @@ describe("callbackHandler", () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
 
     const ctx = makeCtx("bad_data");
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
@@ -184,7 +217,12 @@ describe("callbackHandler", () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
 
     const ctx = makeCtx(undefined);
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
@@ -198,7 +236,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("d|o|Xàtiva|Colón");
-    const handler = callbackHandler(mockUseCase as never, makeNoopGetLineStations() as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      makeNoopGetLineStations() as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(ctx.editMessageText).not.toHaveBeenCalled();
@@ -214,7 +257,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("li|3");
-    const handler = callbackHandler(mockUseCase as never, mockGetLineStations as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      mockGetLineStations as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(mockGetLineStations.execute).toHaveBeenCalledWith("3");
@@ -234,7 +282,12 @@ describe("callbackHandler", () => {
     };
 
     const ctx = makeCtx("li|unknown");
-    const handler = callbackHandler(mockUseCase as never, mockGetLineStations as never);
+    const handler = callbackHandler(
+      mockUseCase as never,
+      mockGetLineStations as never,
+      mockUserRepository,
+      mockEventBus,
+    );
     await handler(ctx as never);
 
     expect(mockGetLineStations.execute).toHaveBeenCalledWith("unknown");

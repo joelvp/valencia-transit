@@ -1,6 +1,10 @@
 import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
+import type { UserRepository } from "@/core/domain/user/UserRepository";
+import type { EventBus } from "@/core/domain/event/EventBus";
+import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
+import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
 import { getT } from "@/adapters/in/telegram/languageStore";
 import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
 import {
@@ -9,12 +13,28 @@ import {
 } from "@/adapters/in/telegram/handlers/disambiguation";
 import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegram/lineEmoji";
 
-export function callbackHandler(useCase: SearchNextDepartures, getLineStations: GetLineStations) {
+export function callbackHandler(
+  useCase: SearchNextDepartures,
+  getLineStations: GetLineStations,
+  userRepository: UserRepository,
+  eventBus: EventBus,
+) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(chatId);
     const data = ctx.callbackQuery?.data;
     if (!data) return;
+
+    const traceId = String(ctx.chat?.id ?? ctx.from?.id ?? 0);
+
+    if (ctx.from) {
+      await userRepository.upsert({
+        chatId: ctx.from.id,
+        username: ctx.from.username,
+        firstName: ctx.from.first_name,
+        lastName: ctx.from.last_name,
+      });
+    }
 
     // Handle line stations callback
     if (data.startsWith("li|")) {
@@ -48,6 +68,7 @@ export function callbackHandler(useCase: SearchNextDepartures, getLineStations: 
         parse_mode: "HTML",
         reply_markup: { inline_keyboard: locationButtons },
       });
+      await eventBus.publish(new LineStationsViewed(result.line.id.value), traceId);
       return;
     }
 
@@ -62,6 +83,7 @@ export function callbackHandler(useCase: SearchNextDepartures, getLineStations: 
       }
       await ctx.answerCallbackQuery();
       await ctx.replyWithLocation(lat, lon);
+      await eventBus.publish(new StationLocationRequested(lat, lon), traceId);
       return;
     }
 

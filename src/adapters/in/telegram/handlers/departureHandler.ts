@@ -1,5 +1,6 @@
 import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
+import type { UserRepository } from "@/core/domain/user/UserRepository";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
@@ -11,7 +12,7 @@ import {
   buildDisambiguationKeyboard,
 } from "@/adapters/in/telegram/handlers/disambiguation";
 
-export function departureHandler(useCase: SearchNextDepartures) {
+export function departureHandler(useCase: SearchNextDepartures, userRepository: UserRepository) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(chatId);
@@ -31,8 +32,10 @@ export function departureHandler(useCase: SearchNextDepartures) {
 
     const { originName, destinationName } = parsed;
 
+    const traceId = String(chatId);
+
     try {
-      const result = await useCase.execute(originName, destinationName, new Date());
+      const result = await useCase.execute(originName, destinationName, new Date(), traceId);
 
       if (result.type === "disambiguation") {
         await ctx.reply(formatDisambiguation(t, result.field, result.candidates), {
@@ -43,6 +46,14 @@ export function departureHandler(useCase: SearchNextDepartures) {
             result.otherName,
           ),
         });
+        if (ctx.from) {
+          await userRepository.upsert({
+            chatId: ctx.from.id,
+            username: ctx.from.username,
+            firstName: ctx.from.first_name,
+            lastName: ctx.from.last_name,
+          });
+        }
         return;
       }
 
@@ -57,6 +68,14 @@ export function departureHandler(useCase: SearchNextDepartures) {
           ),
           { parse_mode: "HTML" },
         );
+        if (ctx.from) {
+          await userRepository.upsert({
+            chatId: ctx.from.id,
+            username: ctx.from.username,
+            firstName: ctx.from.first_name,
+            lastName: ctx.from.last_name,
+          });
+        }
         return;
       }
 
@@ -71,6 +90,14 @@ export function departureHandler(useCase: SearchNextDepartures) {
         ),
         { parse_mode: "HTML" },
       );
+      if (ctx.from) {
+        await userRepository.upsert({
+          chatId: ctx.from.id,
+          username: ctx.from.username,
+          firstName: ctx.from.first_name,
+          lastName: ctx.from.last_name,
+        });
+      }
     } catch (err) {
       if (err instanceof StationNotFoundError) {
         const match = /^Station not found: "(.+)"$/.exec(err.message);

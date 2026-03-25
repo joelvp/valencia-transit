@@ -10,6 +10,7 @@ import {
   serial,
   timestamp,
   jsonb,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 // Stations and Bus Stops (generalized as 'stations' to match domain aggregate)
@@ -199,6 +200,16 @@ export const datasetVersions = pgTable("dataset_versions", {
   validityEnd: date("validity_end", { mode: "string" }),
   status: text("status").notNull(), // 'success', 'failed'
   errorMessage: text("error_message"),
+});
+
+// Users: Telegram users who have interacted with the bot
+export const users = pgTable("users", {
+  chatId: bigint("chat_id", { mode: "number" }).primaryKey(),
+  username: text("username"),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name"),
+  firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
 });
 
 // Event Store: append-only log of all domain events

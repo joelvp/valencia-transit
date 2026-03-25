@@ -1,6 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
 import { helpHandler } from "./helpHandler";
 
+const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+const mockEventBus = { publish: mock(() => Promise.resolve()) };
+
 function makeCtx() {
   return {
     message: { text: "/help" },
@@ -11,7 +14,7 @@ function makeCtx() {
 describe("helpHandler", () => {
   it("should reply with help text listing all commands", async () => {
     const ctx = makeCtx();
-    const handler = helpHandler();
+    const handler = helpHandler(mockUserRepository, mockEventBus);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
@@ -24,7 +27,7 @@ describe("helpHandler", () => {
 
   it("should work when called for /start command", async () => {
     const ctx = { message: { text: "/start" }, reply: mock(() => Promise.resolve()) };
-    const handler = helpHandler();
+    const handler = helpHandler(mockUserRepository, mockEventBus);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);

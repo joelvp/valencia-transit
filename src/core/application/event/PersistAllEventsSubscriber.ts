@@ -5,7 +5,7 @@ import type { DomainEvent } from "@/core/domain/event/DomainEvent.ts";
 export class PersistAllEventsSubscriber implements EventSubscriber {
   constructor(private readonly repository: DomainEventRepository) {}
 
-  async handle(event: DomainEvent): Promise<void> {
-    await this.repository.save(event);
+  async handle(event: DomainEvent, traceId?: string): Promise<void> {
+    await this.repository.save(event, traceId);
   }
 }

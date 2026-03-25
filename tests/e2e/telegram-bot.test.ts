@@ -83,6 +83,8 @@ describe("TelegramBot E2E", () => {
       searchNextDepartures,
       listLines,
       getLineStations,
+      container.userRepository,
+      container.eventBus,
       { botInfo: fakeBotInfo },
     );
 

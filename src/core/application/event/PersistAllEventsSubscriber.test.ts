@@ -21,7 +21,17 @@ describe("PersistAllEventsSubscriber", () => {
     await subscriber.handle(event);
 
     expect(repository.save).toHaveBeenCalledTimes(1);
-    expect(repository.save).toHaveBeenCalledWith(event);
+    expect(repository.save).toHaveBeenCalledWith(event, undefined);
+  });
+
+  it("should forward traceId to repository.save", async () => {
+    const repository = makeMockRepository();
+    const subscriber = new PersistAllEventsSubscriber(repository);
+    const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
+
+    await subscriber.handle(event, "trace-abc");
+
+    expect(repository.save).toHaveBeenCalledWith(event, "trace-abc");
   });
 
   it("should work for any DomainEvent subclass", async () => {
@@ -31,6 +41,6 @@ describe("PersistAllEventsSubscriber", () => {
 
     await subscriber.handle(event);
 
-    expect(repository.save).toHaveBeenCalledWith(event);
+    expect(repository.save).toHaveBeenCalledWith(event, undefined);
   });
 });

@@ -3,6 +3,8 @@ import type { Update, UserFromGetMe } from "grammy/types";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { ListLines } from "@/core/application/query/ListLines";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
+import type { UserRepository } from "@/core/domain/user/UserRepository";
+import type { EventBus } from "@/core/domain/event/EventBus";
 import { departureHandler } from "@/adapters/in/telegram/handlers/departureHandler";
 import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
@@ -23,6 +25,8 @@ export class TelegramBot {
     private readonly searchNextDepartures: SearchNextDepartures,
     private readonly listLines: ListLines,
     private readonly getLineStations: GetLineStations,
+    private readonly userRepository: UserRepository,
+    private readonly eventBus: EventBus,
     options: TelegramBotOptions = {},
   ) {
     this.bot = new Bot(token ?? "fake-token", { botInfo: options.botInfo });
@@ -31,17 +35,31 @@ export class TelegramBot {
       console.error("[TelegramBot] Unhandled error:", err.error);
     });
 
-    this.bot.command(["salida", "eixida"], departureHandler(this.searchNextDepartures));
-    this.bot.command(["s", "e"], departureHandler(this.searchNextDepartures));
-    this.bot.command(["lineas", "linies"], lineHandler(this.listLines));
-    this.bot.command("help", helpHandler());
-    this.bot.command("start", helpHandler());
-    this.bot.command("idioma", languageHandler(this.setCommandsForChat.bind(this)));
+    this.bot.command(
+      ["salida", "eixida"],
+      departureHandler(this.searchNextDepartures, this.userRepository),
+    );
+    this.bot.command(["s", "e"], departureHandler(this.searchNextDepartures, this.userRepository));
+    this.bot.command(
+      ["lineas", "linies"],
+      lineHandler(this.listLines, this.userRepository, this.eventBus),
+    );
+    this.bot.command("help", helpHandler(this.userRepository, this.eventBus));
+    this.bot.command("start", helpHandler(this.userRepository, this.eventBus));
+    this.bot.command(
+      "idioma",
+      languageHandler(this.setCommandsForChat.bind(this), this.userRepository, this.eventBus),
+    );
     this.bot.on(
       "callback_query:data",
-      callbackHandler(this.searchNextDepartures, this.getLineStations),
+      callbackHandler(
+        this.searchNextDepartures,
+        this.getLineStations,
+        this.userRepository,
+        this.eventBus,
+      ),
     );
-    this.bot.on("message:text", departureHandler(this.searchNextDepartures));
+    this.bot.on("message:text", departureHandler(this.searchNextDepartures, this.userRepository));
   }
 
   async handleUpdate(update: Update): Promise<void> {
