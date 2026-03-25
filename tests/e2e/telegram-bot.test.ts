@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test"
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createContainer, type Container } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
-import { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
 import { ListLines } from "@/core/application/query/ListLines";
 import { GetLineStations } from "@/core/application/query/GetLineStations";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
@@ -63,10 +62,6 @@ describe("TelegramBot E2E", () => {
       container.routeRepository,
       container.eventBus,
     );
-    const listStationsWithLines = new ListStationsWithLines(
-      container.stationRepository,
-      container.lineRepository,
-    );
     const listLines = new ListLines(container.lineRepository, container.stationRepository);
     const getLineStations = new GetLineStations(
       container.lineRepository,
@@ -86,7 +81,6 @@ describe("TelegramBot E2E", () => {
     bot = new TelegramBot(
       "fake-token-for-testing",
       searchNextDepartures,
-      listStationsWithLines,
       listLines,
       getLineStations,
       { botInfo: fakeBotInfo },
@@ -263,31 +257,13 @@ describe("TelegramBot E2E", () => {
     expect(replies[0]!).toContain("Uso:");
   });
 
-  it("should reply with station list with lines for /paradas", async () => {
-    await bot.handleUpdate(makeCommandUpdate("/paradas"));
-
-    expect(replies).toHaveLength(1);
-    const reply = replies[0]!;
-
-    // All distinct station names present
-    expect(reply).toContain("Xàtiva");
-    expect(reply).toContain("Àngel Guimerà");
-
-    // Colón has lines — deduped by name ("1"), shown as L1
-    expect(reply).toContain("Colón  🟡 L1");
-
-    // No duplicates: "Colón" appears exactly once (ST1 and ST1b merged by name)
-    const colonOccurrences = reply.split("Colón  🟡").length - 1;
-    expect(colonOccurrences).toBe(1);
-  });
-
   it("should reply with help text for /help", async () => {
     await bot.handleUpdate(makeCommandUpdate("/help"));
 
     expect(replies).toHaveLength(1);
     const reply = replies[0]!;
     expect(reply).toContain("/salida");
-    expect(reply).toContain("/paradas");
+    expect(reply).toContain("/lineas");
   });
 
   it("should reply with same departures for free-text 'Xàtiva - Colón' as for /salida command", async () => {

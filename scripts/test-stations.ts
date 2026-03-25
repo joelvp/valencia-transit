@@ -1,29 +1,24 @@
 #!/usr/bin/env bun
 /**
- * Local test script for ListStationsWithLines use case.
+ * Local test script for ListLines use case.
  *
  * Usage:
  *   bun run scripts/test-stations.ts
  */
 
 import { createContainer } from "@/adapters/container";
-import { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
-import { lineNumberToEmoji, lineNumberToName } from "@/adapters/in/telegram/lineEmoji";
+import { ListLines } from "@/core/application/query/ListLines";
+import { lineNumberToEmoji } from "@/adapters/in/telegram/lineEmoji";
 
 const container = createContainer();
 
-const useCase = new ListStationsWithLines(container.stationRepository, container.lineRepository);
+const useCase = new ListLines(container.lineRepository, container.stationRepository);
 const result = await useCase.execute();
 
-console.log("\n🚉 Estaciones disponibles:\n");
-for (const { station, lines } of result) {
-  const lineLabels = lines
-    .map((l) => {
-      const num = l.id.value;
-      return `${lineNumberToEmoji(num)} ${lineNumberToName(num)}`;
-    })
-    .join(" · ");
-  console.log(lineLabels ? `${station.name.value}  ${lineLabels}` : station.name.value);
+console.log("\n🚉 Líneas disponibles:\n");
+for (const { line, terminalFrom, terminalTo } of result) {
+  const emoji = lineNumberToEmoji(line.id.value);
+  console.log(`${emoji} L${line.id.value}: ${terminalFrom} → ${terminalTo}`);
 }
 
 await container.dispose();

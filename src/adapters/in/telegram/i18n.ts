@@ -30,7 +30,6 @@ export interface Translations {
   lineStationsTitle: (lineName: string, from: string, to: string) => string;
   errLineNotFound: string;
   // Command menu descriptions
-  cmdParadas: string;
   cmdLineas: string;
   cmdIdioma: string;
   cmdHelp: string;
@@ -44,7 +43,7 @@ const es: Translations = {
     "Comandos disponibles:",
     "/salida &lt;origen&gt; - &lt;destino&gt; — Próximas salidas entre dos estaciones",
     "/s &lt;origen&gt; - &lt;destino&gt; — Atajo para /salida",
-    "/paradas — Listar estaciones",
+    "/lineas — Ver líneas y paradas",
     "/idioma es | val — Cambiar idioma",
     "/help — Mostrar esta ayuda",
   ].join("\n"),
@@ -69,7 +68,6 @@ const es: Translations = {
   linesTitle: "Selecciona una línea:",
   lineStationsTitle: (lineName, from, to) => `Paradas de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línea no encontrada",
-  cmdParadas: "Listar estaciones",
   cmdLineas: "Ver líneas disponibles",
   cmdIdioma: "Cambiar idioma: /idioma es | val",
   cmdHelp: "Ayuda",
@@ -83,7 +81,7 @@ const val: Translations = {
     "Ordres disponibles:",
     "/eixida &lt;origen&gt; - &lt;destí&gt; — Pròximes eixides entre dos estacions",
     "/e &lt;origen&gt; - &lt;destí&gt; — Drecera per a /eixida",
-    "/parades — Llistar estacions",
+    "/linies — Veure línies i parades",
     "/idioma es | val — Canviar idioma",
     "/help — Mostrar aquesta ajuda",
   ].join("\n"),
@@ -108,7 +106,6 @@ const val: Translations = {
   linesTitle: "Selecciona una línia:",
   lineStationsTitle: (lineName, from, to) => `Parades de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línia no trobada",
-  cmdParadas: "Llistar estacions",
   cmdLineas: "Veure línies disponibles",
   cmdIdioma: "Canviar idioma: /idioma es | val",
   cmdHelp: "Ajuda i informació",

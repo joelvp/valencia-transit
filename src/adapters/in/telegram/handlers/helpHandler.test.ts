@@ -18,7 +18,7 @@ describe("helpHandler", () => {
     const response = (ctx.reply.mock.calls[0] as unknown as [string])[0];
     expect(response).toContain("/salida");
     expect(response).toContain("/s");
-    expect(response).toContain("/paradas");
+    expect(response).toContain("/lineas");
     expect(response).toContain("/help");
   });
 

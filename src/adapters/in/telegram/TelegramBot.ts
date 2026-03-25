@@ -1,11 +1,9 @@
 import { Bot } from "grammy";
 import type { Update, UserFromGetMe } from "grammy/types";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
-import type { ListStationsWithLines } from "@/core/application/query/ListStationsWithLines";
 import type { ListLines } from "@/core/application/query/ListLines";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
 import { departureHandler } from "@/adapters/in/telegram/handlers/departureHandler";
-import { stationHandler } from "@/adapters/in/telegram/handlers/stationHandler";
 import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
@@ -23,7 +21,6 @@ export class TelegramBot {
   constructor(
     private readonly token: string | undefined,
     private readonly searchNextDepartures: SearchNextDepartures,
-    private readonly listStationsWithLines: ListStationsWithLines,
     private readonly listLines: ListLines,
     private readonly getLineStations: GetLineStations,
     options: TelegramBotOptions = {},
@@ -36,7 +33,6 @@ export class TelegramBot {
 
     this.bot.command(["salida", "eixida"], departureHandler(this.searchNextDepartures));
     this.bot.command(["s", "e"], departureHandler(this.searchNextDepartures));
-    this.bot.command(["paradas", "parades"], stationHandler(this.listStationsWithLines));
     this.bot.command(["lineas", "linies"], lineHandler(this.listLines));
     this.bot.command("help", helpHandler());
     this.bot.command("start", helpHandler());
@@ -72,7 +68,6 @@ export class TelegramBot {
     const t = translations[lang];
     const isVal = lang === "val";
     return [
-      { command: isVal ? "parades" : "paradas", description: t.cmdParadas },
       { command: isVal ? "linies" : "lineas", description: t.cmdLineas },
       { command: "help", description: t.cmdHelp },
     ];
