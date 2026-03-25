@@ -38,8 +38,31 @@ export function callbackHandler(useCase: SearchNextDepartures, getLineStations: 
       const to = result.stations[result.stations.length - 1]?.name ?? "";
       const header = `${transportEmoji} ${colorEmoji} <b>L${result.line.id.value}: ${from} → ${to}</b>`;
       const stationLines = result.stations.map((s, i) => `${i + 1}. ${s.name}`).join("\n");
+      const locationButtons = result.stations.map((s) => [
+        {
+          text: `📍 ${s.name}`,
+          callback_data: `loc|${s.latitude.toFixed(6)}|${s.longitude.toFixed(6)}`,
+        },
+      ]);
 
-      await ctx.reply(`${header}\n\n${stationLines}`, { parse_mode: "HTML" });
+      await ctx.reply(`${header}\n\n${stationLines}`, {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: locationButtons },
+      });
+      return;
+    }
+
+    // Handle location callback
+    if (data.startsWith("loc|")) {
+      const parts = data.split("|");
+      const lat = parseFloat(parts[1] ?? "");
+      const lon = parseFloat(parts[2] ?? "");
+      if (isNaN(lat) || isNaN(lon)) {
+        await ctx.answerCallbackQuery({ text: t.errInvalidData });
+        return;
+      }
+      await ctx.answerCallbackQuery();
+      await ctx.replyWithLocation(lat, lon);
       return;
     }
 

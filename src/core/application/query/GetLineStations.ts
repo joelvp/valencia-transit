@@ -5,6 +5,8 @@ import type { StationRepository } from "../../domain/station/StationRepository.t
 export interface LineStation {
   name: string;
   sequence: number;
+  latitude: number;
+  longitude: number;
 }
 
 export interface GetLineStationsResult {
@@ -27,16 +29,25 @@ export class GetLineStations {
     const line = lines.find((l) => l.id.value === lineId);
     if (!line) return null;
 
-    const stationNames = new Map<string, string>();
+    const stationMap = new Map<string, { name: string; latitude: number; longitude: number }>();
     for (const station of stations) {
-      stationNames.set(station.id.value, station.name.value);
+      stationMap.set(station.id.value, {
+        name: station.name.value,
+        latitude: station.location.latitude,
+        longitude: station.location.longitude,
+      });
     }
 
     const lineStations: LineStation[] = line.stops
-      .map((stop) => ({
-        name: stationNames.get(stop.stationId.value) ?? stop.stationId.value,
-        sequence: stop.sequence,
-      }))
+      .map((stop) => {
+        const info = stationMap.get(stop.stationId.value);
+        return {
+          name: info?.name ?? stop.stationId.value,
+          sequence: stop.sequence,
+          latitude: info?.latitude ?? 0,
+          longitude: info?.longitude ?? 0,
+        };
+      })
       .sort((a, b) => a.sequence - b.sequence);
 
     return { line, stations: lineStations };
