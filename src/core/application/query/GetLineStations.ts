@@ -3,6 +3,7 @@ import type { LineRepository } from "../../domain/line/LineRepository.ts";
 import type { StationRepository } from "../../domain/station/StationRepository.ts";
 
 export interface LineStation {
+  id: string;
   name: string;
   sequence: number;
   latitude: number;
@@ -42,6 +43,7 @@ export class GetLineStations {
       .map((stop) => {
         const info = stationMap.get(stop.stationId.value);
         return {
+          id: stop.stationId.value,
           name: info?.name ?? stop.stationId.value,
           sequence: stop.sequence,
           latitude: info?.latitude ?? 0,

@@ -60,7 +60,7 @@ export function callbackHandler(
       const locationButtons = result.stations.map((s, i) => [
         {
           text: `${i + 1}. ${s.name}`,
-          callback_data: `loc|${s.latitude.toFixed(6)}|${s.longitude.toFixed(6)}`,
+          callback_data: `loc|${s.id}|${s.latitude.toFixed(6)}|${s.longitude.toFixed(6)}`,
         },
       ]);
 
@@ -75,15 +75,16 @@ export function callbackHandler(
     // Handle location callback
     if (data.startsWith("loc|")) {
       const parts = data.split("|");
-      const lat = parseFloat(parts[1] ?? "");
-      const lon = parseFloat(parts[2] ?? "");
-      if (isNaN(lat) || isNaN(lon)) {
+      const stationId = parts[1] ?? "";
+      const lat = parseFloat(parts[2] ?? "");
+      const lon = parseFloat(parts[3] ?? "");
+      if (!stationId || isNaN(lat) || isNaN(lon)) {
         await ctx.answerCallbackQuery({ text: t.errInvalidData });
         return;
       }
       await ctx.answerCallbackQuery();
       await ctx.replyWithLocation(lat, lon);
-      await eventBus.publish(new StationLocationRequested(lat, lon), traceId);
+      await eventBus.publish(new StationLocationRequested(stationId), traceId);
       return;
     }
 
