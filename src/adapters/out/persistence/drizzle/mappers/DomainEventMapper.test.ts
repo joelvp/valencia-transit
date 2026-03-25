@@ -61,6 +61,15 @@ describe("DomainEventMapper", () => {
       expect(result.traceId).toBeNull();
     });
 
+    it("should read traceId from event.traceId", () => {
+      const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
+      event.traceId = "trace-xyz";
+
+      const result = DomainEventMapper.toPersistence(event);
+
+      expect(result.traceId).toBe("trace-xyz");
+    });
+
     it("should map aggregateId and aggregateType from DatasetImported feedId", () => {
       const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
 

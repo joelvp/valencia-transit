@@ -23,7 +23,7 @@ describe("InMemoryEventBus", () => {
     await bus.publish(event);
 
     expect(handleMock).toHaveBeenCalledTimes(1);
-    expect(handleMock).toHaveBeenCalledWith(event, undefined);
+    expect(handleMock).toHaveBeenCalledWith(event);
   });
 
   it("should call all subscribers when multiple are registered", async () => {
@@ -47,23 +47,25 @@ describe("InMemoryEventBus", () => {
     expect(calls).toEqual([1, 2]);
   });
 
-  it("should forward traceId to subscribers", async () => {
+  it("should pass event with traceId set to subscribers", async () => {
     const handleMock = mock(() => Promise.resolve());
     const subscriber: EventSubscriber = { handle: handleMock };
     const bus = new InMemoryEventBus([subscriber]);
     const event = makeEvent();
+    event.traceId = "trace-123";
 
-    await bus.publish(event, "trace-123");
+    await bus.publish(event);
 
-    expect(handleMock).toHaveBeenCalledWith(event, "trace-123");
+    expect(handleMock).toHaveBeenCalledWith(event);
+    expect(event.traceId).toBe("trace-123");
   });
 
-  it("should propagate an error thrown by a subscriber", async () => {
+  it("should resolve even when a subscriber throws", async () => {
     const subscriber: EventSubscriber = {
       handle: mock(() => Promise.reject(new Error("subscriber failed"))),
     };
     const bus = new InMemoryEventBus([subscriber]);
 
-    await expect(bus.publish(makeEvent())).rejects.toThrow("subscriber failed");
+    await expect(bus.publish(makeEvent())).resolves.toBeUndefined();
   });
 });

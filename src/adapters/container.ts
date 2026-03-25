@@ -3,7 +3,6 @@ import type { Secrets } from "@/config/env";
 import { createSqlConnection } from "@/config/database";
 import { createDatabase } from "@/adapters/out/persistence/drizzle/db";
 import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
-import type { Sql } from "postgres";
 import { StationRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/StationRepositoryDrizzle";
 import { LineRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/LineRepositoryDrizzle";
 import { RouteRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/RouteRepositoryDrizzle";
@@ -31,7 +30,6 @@ export interface Container {
   userRepository: UserRepository;
   eventBus: EventBus;
   db: AppDatabase;
-  sql: Sql;
   dispose(): Promise<void>;
 }
 
@@ -61,7 +59,6 @@ export function createContainer(): Container {
     userRepository,
     eventBus,
     db,
-    sql,
     dispose: () => sql.end(),
   };
 }

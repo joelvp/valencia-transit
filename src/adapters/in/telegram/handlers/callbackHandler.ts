@@ -68,7 +68,9 @@ export function callbackHandler(
         parse_mode: "HTML",
         reply_markup: { inline_keyboard: locationButtons },
       });
-      await eventBus.publish(new LineStationsViewed(result.line.id.value), traceId);
+      const lineStationsViewedEvent = new LineStationsViewed(result.line.id.value);
+      lineStationsViewedEvent.traceId = traceId;
+      void eventBus.publish(lineStationsViewedEvent);
       return;
     }
 
@@ -84,7 +86,9 @@ export function callbackHandler(
       }
       await ctx.answerCallbackQuery();
       await ctx.replyWithLocation(lat, lon);
-      await eventBus.publish(new StationLocationRequested(stationId), traceId);
+      const stationLocationRequestedEvent = new StationLocationRequested(stationId);
+      stationLocationRequestedEvent.traceId = traceId;
+      void eventBus.publish(stationLocationRequestedEvent);
       return;
     }
 

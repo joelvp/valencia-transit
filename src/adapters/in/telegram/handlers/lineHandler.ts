@@ -36,7 +36,9 @@ export function lineHandler(
         firstName: ctx.from.first_name,
         lastName: ctx.from.last_name,
       });
-      await eventBus.publish(new LinesBrowsed(), traceId);
+      const linesBrowsedEvent = new LinesBrowsed();
+      linesBrowsedEvent.traceId = traceId;
+      void eventBus.publish(linesBrowsedEvent);
     }
   };
 }
