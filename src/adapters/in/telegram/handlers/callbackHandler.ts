@@ -2,6 +2,10 @@ import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import { getT } from "@/adapters/in/telegram/languageStore";
 import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
+import {
+  formatDisambiguation,
+  buildDisambiguationKeyboard,
+} from "@/adapters/in/telegram/handlers/disambiguation";
 
 export function callbackHandler(useCase: SearchNextDepartures) {
   return async (ctx: Context): Promise<void> => {
@@ -22,7 +26,15 @@ export function callbackHandler(useCase: SearchNextDepartures) {
       const result = await useCase.execute(originName, destinationName, new Date());
 
       if (result.type === "disambiguation") {
-        await ctx.answerCallbackQuery({ text: t.errStillAmbiguous });
+        await ctx.answerCallbackQuery();
+        await ctx.editMessageText(formatDisambiguation(t, result.field, result.candidates), {
+          parse_mode: "HTML",
+          reply_markup: buildDisambiguationKeyboard(
+            result.field,
+            result.candidates,
+            result.otherName,
+          ),
+        });
         return;
       }
 
@@ -68,7 +80,7 @@ function parseCallbackData(data: string): { originName: string; destinationName:
   if (field === "o") {
     return { originName: parts[2]!, destinationName: parts[3]! };
   } else if (field === "d") {
-    return { originName: parts[2]!, destinationName: parts[3]! };
+    return { originName: parts[3]!, destinationName: parts[2]! };
   }
 
   return null;

@@ -1,0 +1,26 @@
+import { InlineKeyboard } from "grammy";
+import type { Station } from "@/core/domain/station/Station";
+import type { Translations } from "@/adapters/in/telegram/i18n";
+
+export function formatDisambiguation(
+  t: Translations,
+  field: "origin" | "destination",
+  candidates: Station[],
+): string {
+  const names = candidates.map((c) => c.name.value).join(", ");
+  return t.disambiguation(field, names);
+}
+
+export function buildDisambiguationKeyboard(
+  field: "origin" | "destination",
+  candidates: Station[],
+  otherName: string,
+): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  for (const candidate of candidates) {
+    const f = field === "origin" ? "o" : "d";
+    const data = `d|${f}|${candidate.name.value}|${otherName}`;
+    keyboard.text(candidate.name.value, data.slice(0, 64)).row();
+  }
+  return keyboard;
+}

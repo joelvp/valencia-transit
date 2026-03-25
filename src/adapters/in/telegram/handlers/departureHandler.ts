@@ -1,14 +1,15 @@
 import type { Context } from "grammy";
-import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
-import type { Station } from "@/core/domain/station/Station";
-import type { Translations } from "@/adapters/in/telegram/i18n";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/languageStore";
 import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
+import {
+  formatDisambiguation,
+  buildDisambiguationKeyboard,
+} from "@/adapters/in/telegram/handlers/disambiguation";
 
 export function departureHandler(useCase: SearchNextDepartures) {
   return async (ctx: Context): Promise<void> => {
@@ -101,27 +102,4 @@ function parseStations(args: string): { originName: string; destinationName: str
   const spaceIdx = args.indexOf(" ");
   if (spaceIdx === -1) return null;
   return { originName: args.slice(0, spaceIdx), destinationName: args.slice(spaceIdx + 1) };
-}
-
-function formatDisambiguation(
-  t: Translations,
-  field: "origin" | "destination",
-  candidates: Station[],
-): string {
-  const names = candidates.map((c) => c.name.value).join(", ");
-  return t.disambiguation(field, names);
-}
-
-function buildDisambiguationKeyboard(
-  field: "origin" | "destination",
-  candidates: Station[],
-  otherName: string,
-): InlineKeyboard {
-  const keyboard = new InlineKeyboard();
-  for (const candidate of candidates) {
-    const f = field === "origin" ? "o" : "d";
-    const data = `d|${f}|${candidate.name.value}|${otherName}`;
-    keyboard.text(candidate.name.value, data.slice(0, 64)).row();
-  }
-  return keyboard;
 }
