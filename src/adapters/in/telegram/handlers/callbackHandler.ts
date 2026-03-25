@@ -37,15 +37,14 @@ export function callbackHandler(useCase: SearchNextDepartures, getLineStations: 
       const from = result.stations[0]?.name ?? "";
       const to = result.stations[result.stations.length - 1]?.name ?? "";
       const header = `${transportEmoji} ${colorEmoji} <b>L${result.line.id.value}: ${from} → ${to}</b>`;
-      const stationLines = result.stations.map((s, i) => `${i + 1}. ${s.name}`).join("\n");
-      const locationButtons = result.stations.map((s) => [
+      const locationButtons = result.stations.map((s, i) => [
         {
-          text: `📍 ${s.name}`,
+          text: `${i + 1}. ${s.name}`,
           callback_data: `loc|${s.latitude.toFixed(6)}|${s.longitude.toFixed(6)}`,
         },
       ]);
 
-      await ctx.reply(`${header}\n\n${stationLines}`, {
+      await ctx.reply(header, {
         parse_mode: "HTML",
         reply_markup: { inline_keyboard: locationButtons },
       });
