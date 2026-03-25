@@ -10,6 +10,7 @@ const searchNextDepartures = new SearchNextDepartures(
   container.lineRepository,
   container.scheduleRepository,
   container.tripRepository,
+  container.routeRepository,
   container.eventBus,
 );
 const listStationsWithLines = new ListStationsWithLines(

@@ -58,6 +58,7 @@ describe("TelegramBot E2E", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
     const listStationsWithLines = new ListStationsWithLines(
@@ -100,7 +101,7 @@ describe("TelegramBot E2E", () => {
         name: "Colón",
         latitude: 39.4682,
         longitude: -0.3765,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST2",
@@ -108,7 +109,7 @@ describe("TelegramBot E2E", () => {
         name: "Xàtiva",
         latitude: 39.4676,
         longitude: -0.3789,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST3",
@@ -116,7 +117,7 @@ describe("TelegramBot E2E", () => {
         name: "Àngel Guimerà",
         latitude: 39.4661,
         longitude: -0.381,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST1b",
@@ -124,20 +125,20 @@ describe("TelegramBot E2E", () => {
         name: "Colón",
         latitude: 39.4683,
         longitude: -0.3766,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
     ]);
 
-    // Routes (operational): one per direction
-    await container.db.insert(routes).values([
-      { id: "L1", feedId: FEED_ID, transportType: "metro" },
-      { id: "L2", feedId: FEED_ID, transportType: "metro" },
-    ]);
-
-    // Lines (commercial): Trip.routeId matches Line.id for SearchNextDepartures filter
+    // Lines (commercial): must be inserted before routes due to FK
     await container.db.insert(lines).values([
       { id: "L1", feedId: FEED_ID, name: "1", transportType: "metro", color: "FEC601" },
       { id: "L2", feedId: FEED_ID, name: "1", transportType: "metro", color: "FEC601" },
+    ]);
+
+    // Routes (operational): one per direction, linked to their commercial line
+    await container.db.insert(routes).values([
+      { id: "L1", feedId: FEED_ID, transportType: "metro", lineId: "L1" },
+      { id: "L2", feedId: FEED_ID, transportType: "metro", lineId: "L2" },
     ]);
 
     await container.db.insert(lineStations).values([

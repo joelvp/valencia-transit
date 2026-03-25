@@ -50,6 +50,20 @@
       "when": 1742852604000,
       "tag": "0006_route_line_refactor",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774398962286,
+      "tag": "0007_add_route_line_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774429459047,
+      "tag": "0008_transport_types_array",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { describe, it, expect, mock } from "bun:test";
 import { SearchNextDepartures } from "./SearchNextDepartures.ts";
 import type { StationRepository } from "../../domain/station/StationRepository.ts";
 import type { LineRepository } from "../../domain/line/LineRepository.ts";
+import type { RouteRepository } from "../../domain/route/RouteRepository.ts";
 import type { ScheduleRepository } from "../../domain/schedule/ScheduleRepository.ts";
 import type { TripRepository } from "../../domain/trip/TripRepository.ts";
 import type { EventBus } from "../../domain/event/EventBus.ts";
@@ -35,17 +36,14 @@ const lineId = new LineId("L3");
 const routeId = new RouteId("L3");
 const scheduleId = new ScheduleId("SC1");
 
-const origin = new Station(
-  originId,
-  new StationName("Xàtiva"),
-  new StationLocation(39.47, -0.37),
+const origin = new Station(originId, new StationName("Xàtiva"), new StationLocation(39.47, -0.37), [
   TransportType.METRO,
-);
+]);
 const destination = new Station(
   destId,
   new StationName("Colón"),
   new StationLocation(39.48, -0.36),
-  TransportType.METRO,
+  [TransportType.METRO],
 );
 
 const line = new Line(lineId, new LineName("L3"), [
@@ -87,6 +85,7 @@ function makeRepos(
 ): {
   stationRepo: StationRepository;
   lineRepo: LineRepository;
+  routeRepo: RouteRepository;
   scheduleRepo: ScheduleRepository;
   tripRepo: TripRepository;
   eventBus: EventBus;
@@ -99,10 +98,17 @@ function makeRepos(
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
+    updateTransportTypes: mock(() => Promise.resolve()),
   };
   const lineRepo: LineRepository = {
     findByStationIds: mock(overrides.findByStationIds ?? (() => Promise.resolve([line]))),
     findAll: mock(() => Promise.resolve([])),
+    saveMany: mock(() => Promise.resolve()),
+    deleteByFeedId: mock(() => Promise.resolve()),
+  };
+  // routeId and lineId share value "L3" in tests — mock maps routeId → lineId directly
+  const routeRepo: RouteRepository = {
+    findLineIdsByRouteIds: mock(() => Promise.resolve(new Map([["L3", "L3"]]))),
     saveMany: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };
@@ -125,12 +131,12 @@ function makeRepos(
   const eventBus: EventBus = {
     publish: mock(() => Promise.resolve()),
   };
-  return { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus };
+  return { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus };
 }
 
 describe("SearchNextDepartures", () => {
   it("should return departures for a valid origin and destination", async () => {
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
     });
@@ -140,6 +146,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -155,7 +162,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should publish a DepartureSearched event", async () => {
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
     });
@@ -165,6 +172,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     await useCase.execute("Xàtiva", "Colón", now);
@@ -173,7 +181,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should fall back to searchByName when findByName returns null", async () => {
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: () => Promise.resolve(null),
       searchByName: (query) =>
         Promise.resolve(query === "Xàtiva" ? [origin] : query === "Colón" ? [destination] : []),
@@ -184,6 +192,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -195,7 +204,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should throw StationNotFoundError when station cannot be resolved", async () => {
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: () => Promise.resolve(null),
       searchByName: () => Promise.resolve([]),
     });
@@ -205,6 +214,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     expect(useCase.execute("Unknown", "Colón", now)).rejects.toBeInstanceOf(StationNotFoundError);
@@ -215,10 +225,10 @@ describe("SearchNextDepartures", () => {
       new StationId("S3"),
       new StationName("Àngel Guimerà"),
       new StationLocation(39.46, -0.38),
-      TransportType.METRO,
+      [TransportType.METRO],
     );
 
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: () => Promise.resolve(null),
       searchByName: () => Promise.resolve([origin, destination, station3]),
     });
@@ -228,6 +238,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -244,10 +255,10 @@ describe("SearchNextDepartures", () => {
       new StationId("S3"),
       new StationName("Àngel Guimerà"),
       new StationLocation(39.46, -0.38),
-      TransportType.METRO,
+      [TransportType.METRO],
     );
 
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) => Promise.resolve(name === "Xàtiva" ? origin : null),
       searchByName: () => Promise.resolve([destination, station3]),
     });
@@ -257,6 +268,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -269,7 +281,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should throw NoConnectionError when no connecting lines found", async () => {
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findByStationIds: () => Promise.resolve([]),
@@ -280,13 +292,14 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(NoConnectionError);
   });
 
   it("should throw NoActiveServiceError when no schedules active", async () => {
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findActiveOn: () => Promise.resolve([]),
@@ -297,6 +310,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(NoActiveServiceError);
@@ -328,7 +342,7 @@ describe("SearchNextDepartures", () => {
         ),
     );
 
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findDeparturesFromStation: () => Promise.resolve(manyTrips),
@@ -339,6 +353,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
       3,
     );
@@ -363,7 +378,7 @@ describe("SearchNextDepartures", () => {
       "Direction A",
     );
 
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findDeparturesFromStation: (stationId, after) => {
@@ -378,6 +393,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     const result = await useCase.execute("Xàtiva", "Colón", lateNow);
@@ -398,7 +414,7 @@ describe("SearchNextDepartures", () => {
       new LineStop(originId, 7), // origin appears later
     ]);
 
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findByStationIds: () => Promise.resolve([lineWithMergedSeqs]),
@@ -409,6 +425,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     // trip has correct passing_times: origin seq=1, dest seq=2
@@ -439,7 +456,7 @@ describe("SearchNextDepartures", () => {
       "Direction A",
     );
 
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findByStationIds: () => Promise.resolve([lineWithColor]),
@@ -454,6 +471,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     const result = await useCase.execute("Xàtiva", "Colón", lateNow);
@@ -467,7 +485,7 @@ describe("SearchNextDepartures", () => {
   it("should return no_more_today with null firstTomorrow when no service tomorrow", async () => {
     const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
 
-    const { stationRepo, lineRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findDeparturesFromStation: () => Promise.resolve([]),
@@ -483,6 +501,7 @@ describe("SearchNextDepartures", () => {
       lineRepo,
       scheduleRepo,
       tripRepo,
+      routeRepo,
       eventBus,
     );
     const result = await useCase.execute("Xàtiva", "Colón", lateNow);

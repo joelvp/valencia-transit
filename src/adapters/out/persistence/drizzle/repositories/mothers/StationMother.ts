@@ -8,7 +8,7 @@ type StationRow = {
   name: string;
   latitude: number;
   longitude: number;
-  transportType: string;
+  transportTypes: string[] | null;
 };
 
 export class StationMother {
@@ -17,7 +17,7 @@ export class StationMother {
       overrides.id ?? "ST1",
       overrides.name ?? "Colón",
       new StationLocation(overrides.lat ?? 39.47, overrides.lng ?? -0.37),
-      TransportType.METRO,
+      [TransportType.METRO],
     );
   }
 
@@ -28,7 +28,7 @@ export class StationMother {
       name: "Colón",
       latitude: 39.47,
       longitude: -0.37,
-      transportType: "metro",
+      transportTypes: ["metro"],
       ...overrides,
     };
   }

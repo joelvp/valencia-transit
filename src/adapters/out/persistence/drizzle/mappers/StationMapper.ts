@@ -7,7 +7,7 @@ type StationRow = {
   name: string;
   latitude: number;
   longitude: number;
-  transportType: string;
+  transportTypes: string[] | null;
 };
 
 type StationInsert = {
@@ -16,23 +16,25 @@ type StationInsert = {
   name: string;
   latitude: number;
   longitude: number;
-  transportType: string;
+  transportTypes: string[] | null;
 };
 
 export const StationMapper = {
   toDomain(row: StationRow): Station {
     const location = new StationLocation(row.latitude, row.longitude);
-    return Station.create(row.id, row.name, location, new TransportType(row.transportType));
+    const transportTypes = (row.transportTypes ?? []).map((s) => new TransportType(s));
+    return Station.create(row.id, row.name, location, transportTypes);
   },
 
   toPersistence(station: Station, feedId: string): StationInsert {
+    const types = station.transportTypes.map((t) => t.value);
     return {
       id: station.id.value,
       feedId,
       name: station.name.value,
       latitude: station.location.latitude,
       longitude: station.location.longitude,
-      transportType: station.transportType.value,
+      transportTypes: types.length > 0 ? types : null,
     };
   },
 };

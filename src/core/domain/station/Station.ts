@@ -8,16 +8,16 @@ export class Station {
     readonly id: StationId,
     readonly name: StationName,
     readonly location: StationLocation,
-    readonly transportType: TransportType,
+    readonly transportTypes: TransportType[] = [],
   ) {}
 
   static create(
     id: string,
     name: string,
     location: StationLocation,
-    transportType: TransportType,
+    transportTypes: TransportType[] = [],
   ): Station {
-    return new Station(new StationId(id), new StationName(name), location, transportType);
+    return new Station(new StationId(id), new StationName(name), location, transportTypes);
   }
 
   equals(other: Station): boolean {

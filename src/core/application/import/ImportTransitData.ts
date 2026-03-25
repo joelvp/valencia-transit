@@ -7,6 +7,7 @@ import type { EventBus } from "../../domain/event/EventBus.ts";
 import type { GtfsData } from "../../domain/shared/GtfsData.ts";
 import { DatasetImported } from "../../domain/event/DatasetImported.ts";
 import { BuildLines } from "../../domain/line/BuildLines.ts";
+import { TransportType } from "../../domain/shared/TransportType.ts";
 
 export interface ImportSummary {
   feedId: string;
@@ -33,12 +34,11 @@ export class ImportTransitData {
     const lines = BuildLines.fromRoutesAndTrips(data.routes, data.trips);
 
     // Delete in FK-safe order:
-    // passing_times → line_stations → trips → route_stations → routes → lines → schedule_exceptions → schedules → stations
-    // (cascade handles child tables, but explicit order for readability)
+    // trips (cascades passing_times) → routes (cascades route_stations, refs lines) → lines (cascades line_stations) → schedules → stations
     console.log(`[import] Clearing existing data...`);
-    await this.tripRepository.deleteByFeedId(feedId); // cascades passing_times + line_stations via trips FK? No — line_stations refs lines, not trips
-    await this.lineRepository.deleteByFeedId(feedId); // cascades line_stations
-    await this.routeRepository.deleteByFeedId(feedId); // cascades route_stations
+    await this.tripRepository.deleteByFeedId(feedId);
+    await this.routeRepository.deleteByFeedId(feedId);
+    await this.lineRepository.deleteByFeedId(feedId);
     await this.scheduleRepository.deleteByFeedId(feedId);
     await this.stationRepository.deleteByFeedId(feedId);
 
@@ -63,6 +63,24 @@ export class ImportTransitData {
     console.log(`[import] Importing ${data.trips.length} trips...`);
     await this.tripRepository.saveAll(data.trips, feedId);
     console.log(`[import] Trips done.`);
+
+    // Post-process: derive station transport types from lines
+    console.log(`[import] Updating station transport types from lines...`);
+    const transportTypesByStation = new Map<string, TransportType[]>();
+    for (const line of lines) {
+      for (const stop of line.stops) {
+        const sid = stop.stationId.value;
+        if (!transportTypesByStation.has(sid)) {
+          transportTypesByStation.set(sid, []);
+        }
+        const types = transportTypesByStation.get(sid)!;
+        if (!types.some((t) => t.equals(line.transportType))) {
+          types.push(line.transportType);
+        }
+      }
+    }
+    await this.stationRepository.updateTransportTypes(transportTypesByStation, feedId);
+    console.log(`[import] Station transport types updated.`);
 
     await this.eventBus.publish(
       new DatasetImported(

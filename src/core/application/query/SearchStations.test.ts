@@ -8,12 +8,9 @@ import { StationLocation } from "../../domain/station/StationLocation.ts";
 import { TransportType } from "../../domain/shared/TransportType.ts";
 
 function makeStation(id: string, name: string): Station {
-  return new Station(
-    new StationId(id),
-    new StationName(name),
-    new StationLocation(39.47, -0.37),
+  return new Station(new StationId(id), new StationName(name), new StationLocation(39.47, -0.37), [
     TransportType.METRO,
-  );
+  ]);
 }
 
 describe("SearchStations", () => {
@@ -27,6 +24,7 @@ describe("SearchStations", () => {
       save: mock(() => Promise.resolve()),
       saveAll: mock(() => Promise.resolve()),
       deleteByFeedId: mock(() => Promise.resolve()),
+      updateTransportTypes: mock(() => Promise.resolve()),
     };
 
     const useCase = new SearchStations(mockRepo);
@@ -45,6 +43,7 @@ describe("SearchStations", () => {
       save: mock(() => Promise.resolve()),
       saveAll: mock(() => Promise.resolve()),
       deleteByFeedId: mock(() => Promise.resolve()),
+      updateTransportTypes: mock(() => Promise.resolve()),
     };
 
     const useCase = new SearchStations(mockRepo);

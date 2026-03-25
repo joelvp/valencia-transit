@@ -46,6 +46,16 @@ You are the Delivery and Persistence specialist for Valencia Transit. You handle
 | New repository implementation | `new-repository` |
 | GTFS import or ETL pipeline | `gtfs-import` |
 
+## Migration Rules — CRITICAL
+
+> **NEVER write migration SQL files by hand.** Always follow this sequence:
+> 1. Edit `schema.ts`
+> 2. Run `bun run db:generate` — this creates the SQL file, updates `_journal.json`, and writes the snapshot in `drizzle/meta/`
+> 3. Run `bun run db:migrate` to apply
+>
+> Manually created SQL files won't have a snapshot and will be silently skipped by `db:migrate`.
+> If the column already exists in the local DB (e.g. applied manually), edit the generated SQL to use `IF NOT EXISTS` / `DROP CONSTRAINT IF EXISTS` before migrating.
+
 ## Key Rules
 - Schema is domain-driven, NOT GTFS-mirrored
 - All domain tables use composite PKs: `(id, feedId)`

@@ -28,13 +28,13 @@ function makeGtfsData(): GtfsData {
     new StationId("S1"),
     new StationName("Xàtiva"),
     new StationLocation(39.47, -0.37),
-    TransportType.METRO,
+    [TransportType.METRO],
   );
   const s2 = new Station(
     new StationId("S2"),
     new StationName("Colón"),
     new StationLocation(39.47, -0.36),
-    TransportType.METRO,
+    [TransportType.METRO],
   );
   const route = new Route(new RouteId("V1-1-3"), new LineId("1"), [], TransportType.METRO);
   const schedule = new Schedule(
@@ -62,8 +62,10 @@ function makeMocks() {
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
+    updateTransportTypes: mock(() => Promise.resolve()),
   };
   const routeRepository: RouteRepository = {
+    findLineIdsByRouteIds: mock(() => Promise.resolve(new Map())),
     saveMany: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),
   };

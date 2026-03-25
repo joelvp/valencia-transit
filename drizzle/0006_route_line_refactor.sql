@@ -38,10 +38,8 @@ TRUNCATE TABLE "lines";
 ALTER TABLE "lines" DROP COLUMN IF EXISTS "short_name";
 
 --> statement-breakpoint
--- 5. Alter line_stations: drop direction column, add simplified PK (line_id, station_id, feed_id)
+-- 5. Alter line_stations: drop direction column (PK already simplified in 0003)
 ALTER TABLE "line_stations" DROP COLUMN IF EXISTS "direction";
---> statement-breakpoint
-ALTER TABLE "line_stations" ADD CONSTRAINT "line_stations_line_id_station_id_feed_id_pk" PRIMARY KEY ("line_id", "station_id", "feed_id");
 
 --> statement-breakpoint
 -- 6. Alter trips: rename line_id → route_id, drop direction column

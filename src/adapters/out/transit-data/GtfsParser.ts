@@ -86,57 +86,20 @@ export class GtfsParser {
     const stopTimesRows = parseCsv(getText("stop_times.txt"));
     const routeRows = parseCsv(getText("routes.txt"));
     const tripRows = parseCsv(getText("trips.txt"));
-    const transportByStation = this.buildTransportByStation(routeRows, tripRows, stopTimesRows);
-    const stations = this.parseStations(parseCsv(getText("stops.txt")), transportByStation);
+    const stations = this.parseStations(parseCsv(getText("stops.txt")));
     const routes = this.parseRoutes(routeRows, tripRows, stopTimesRows);
     const trips = this.parseTrips(tripRows, stopTimesRows);
 
     return { stations, routes, schedules, trips };
   }
 
-  private parseStations(rows: CsvRow[], transportByStation: Map<string, TransportType>): Station[] {
+  private parseStations(rows: CsvRow[]): Station[] {
     return rows.map((row) => {
       const stopId = row["stop_id"]!;
       const lat = parseFloat(row["stop_lat"]!);
       const lon = parseFloat(row["stop_lon"]!);
-      const transportType = transportByStation.get(stopId) ?? TransportType.METRO;
-      return Station.create(
-        stopId,
-        row["stop_name"]!,
-        new StationLocation(lat, lon),
-        transportType,
-      );
+      return Station.create(stopId, row["stop_name"]!, new StationLocation(lat, lon));
     });
-  }
-
-  private buildTransportByStation(
-    routeRows: CsvRow[],
-    tripRows: CsvRow[],
-    stopTimesRows: CsvRow[],
-  ): Map<string, TransportType> {
-    const routeTransport = new Map<string, TransportType>();
-    for (const row of routeRows) {
-      routeTransport.set(
-        row["route_id"]!,
-        TransportType.fromGtfsRouteType(row["route_type"] ?? "1"),
-      );
-    }
-
-    const tripRoute = new Map<string, string>();
-    for (const row of tripRows) {
-      tripRoute.set(row["trip_id"]!, row["route_id"]!);
-    }
-
-    const result = new Map<string, TransportType>();
-    for (const row of stopTimesRows) {
-      const tripId = row["trip_id"]!;
-      const routeId = tripRoute.get(tripId);
-      if (routeId) {
-        const transport = routeTransport.get(routeId) ?? TransportType.METRO;
-        result.set(row["stop_id"]!, transport);
-      }
-    }
-    return result;
   }
 
   private parseSchedules(calendarRows: CsvRow[], calendarDatesRows: CsvRow[]): Schedule[] {

@@ -29,7 +29,10 @@ This compares `schema.ts` with the last snapshot and generates SQL migration fil
 
 ### 3. Review generated SQL
 
-Check the generated files in `drizzle/` directory. **Never manually edit generated SQL files.**
+Check the generated files in `drizzle/` directory.
+
+> ⚠️ **NEVER create migration SQL files manually.** Always use `bun run db:generate`.
+> Manual SQL files won't have a snapshot in `drizzle/meta/` and won't be tracked in `_journal.json`, causing `bun run db:migrate` to silently skip them even though the file exists on disk.
 
 ### 4. Apply migration
 

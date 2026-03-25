@@ -35,7 +35,7 @@ describe("SearchNextDepartures Component Test", () => {
         name: "Colón",
         latitude: 39.4682,
         longitude: -0.3765,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
       {
         id: "ST2",
@@ -43,22 +43,20 @@ describe("SearchNextDepartures Component Test", () => {
         name: "Xàtiva",
         latitude: 39.4676,
         longitude: -0.3789,
-        transportType: "metro",
+        transportTypes: ["metro"],
       },
     ]);
 
-    // Routes (operational): one per direction
-    await container.db.insert(routes).values([
-      { id: "L1", feedId: FEED_ID, transportType: "metro" },
-      { id: "L2", feedId: FEED_ID, transportType: "metro" },
-    ]);
-
-    // Lines (commercial): SearchNextDepartures uses line IDs to filter trips.
-    // Trip.routeId must match Line.id for the filter to work.
-    // We use "L1" / "L2" as both line IDs and route IDs in this test.
+    // Lines (commercial): must be inserted before routes due to FK
     await container.db.insert(lines).values([
       { id: "L1", feedId: FEED_ID, name: "Línea 1 Anada", transportType: "metro" },
       { id: "L2", feedId: FEED_ID, name: "Línea 1 Tornada", transportType: "metro" },
+    ]);
+
+    // Routes (operational): one per direction, linked to their commercial line
+    await container.db.insert(routes).values([
+      { id: "L1", feedId: FEED_ID, transportType: "metro", lineId: "L1" },
+      { id: "L2", feedId: FEED_ID, transportType: "metro", lineId: "L2" },
     ]);
 
     await container.db.insert(lineStations).values([
@@ -145,6 +143,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 
@@ -164,6 +163,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 
@@ -183,6 +183,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 
@@ -198,6 +199,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.lineRepository,
       container.scheduleRepository,
       container.tripRepository,
+      container.routeRepository,
       container.eventBus,
     );
 

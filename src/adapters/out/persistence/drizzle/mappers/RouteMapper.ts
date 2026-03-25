@@ -8,6 +8,7 @@ import { TransportType } from "@/core/domain/shared/TransportType.ts";
 type RouteRow = {
   id: string;
   transportType: string;
+  lineId: string | null;
 };
 
 type RouteStationRow = {
@@ -18,6 +19,7 @@ type RouteInsert = {
   id: string;
   feedId: string;
   transportType: string;
+  lineId: string | null;
 };
 
 type RouteStationInsert = {
@@ -35,7 +37,7 @@ export const RouteMapper = {
   toDomain(row: RouteRow, lineId: string, stationRows: RouteStationRow[]): Route {
     return new Route(
       new RouteId(row.id),
-      new LineId(lineId),
+      new LineId(row.lineId ?? lineId),
       stationRows.map((s) => new RouteStation(new StationId(s.stationId))),
       new TransportType(row.transportType),
     );
@@ -47,6 +49,7 @@ export const RouteMapper = {
         id: route.id.value,
         feedId,
         transportType: route.transportType.value,
+        lineId: route.lineId.value,
       },
       stations: route.stations.map((s) => ({
         routeId: route.id.value,

@@ -21,44 +21,10 @@ export const stations = pgTable(
     name: text("name").notNull(), // GTFS stop_name
     latitude: real("latitude").notNull(), // GTFS stop_lat
     longitude: real("longitude").notNull(), // GTFS stop_lon
-    transportType: text("transport_type").notNull(), // 'metro', 'bus', 'tram', 'train'
+    transportTypes: text("transport_types").array(), // nullable — populated by post-process after import
   },
   (t) => ({
     pk: primaryKey({ columns: [t.id, t.feedId] }),
-  }),
-);
-
-// Routes (operational unit — one per GTFS route_id)
-export const routes = pgTable(
-  "routes",
-  {
-    id: text("id").notNull(), // GTFS route_id ("V4-114-98")
-    feedId: text("feed_id").notNull(),
-    transportType: text("transport_type").notNull(),
-  },
-  (t) => ({
-    pk: primaryKey({ columns: [t.id, t.feedId] }),
-  }),
-);
-
-// Junction table: which stations belong to which route (unordered)
-export const routeStations = pgTable(
-  "route_stations",
-  {
-    routeId: text("route_id").notNull(),
-    stationId: text("station_id").notNull(),
-    feedId: text("feed_id").notNull(),
-  },
-  (t) => ({
-    pk: primaryKey({ columns: [t.routeId, t.stationId, t.feedId] }),
-    routeFk: foreignKey({
-      columns: [t.routeId, t.feedId],
-      foreignColumns: [routes.id, routes.feedId],
-    }).onDelete("cascade"),
-    stationFk: foreignKey({
-      columns: [t.stationId, t.feedId],
-      foreignColumns: [stations.id, stations.feedId],
-    }).onDelete("cascade"),
   }),
 );
 
@@ -91,6 +57,45 @@ export const lineStations = pgTable(
     lineFk: foreignKey({
       columns: [t.lineId, t.feedId],
       foreignColumns: [lines.id, lines.feedId],
+    }).onDelete("cascade"),
+    stationFk: foreignKey({
+      columns: [t.stationId, t.feedId],
+      foreignColumns: [stations.id, stations.feedId],
+    }).onDelete("cascade"),
+  }),
+);
+
+// Routes (operational unit — one per GTFS route_id)
+export const routes = pgTable(
+  "routes",
+  {
+    id: text("id").notNull(), // GTFS route_id ("V4-114-98")
+    feedId: text("feed_id").notNull(),
+    transportType: text("transport_type").notNull(),
+    lineId: text("line_id"), // route_short_name → FK to lines
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.id, t.feedId] }),
+    lineFk: foreignKey({
+      columns: [t.lineId, t.feedId],
+      foreignColumns: [lines.id, lines.feedId],
+    }).onDelete("set null"),
+  }),
+);
+
+// Junction table: which stations belong to which route (unordered)
+export const routeStations = pgTable(
+  "route_stations",
+  {
+    routeId: text("route_id").notNull(),
+    stationId: text("station_id").notNull(),
+    feedId: text("feed_id").notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.routeId, t.stationId, t.feedId] }),
+    routeFk: foreignKey({
+      columns: [t.routeId, t.feedId],
+      foreignColumns: [routes.id, routes.feedId],
     }).onDelete("cascade"),
     stationFk: foreignKey({
       columns: [t.stationId, t.feedId],

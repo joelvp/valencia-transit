@@ -1,8 +1,9 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { Station } from "@/core/domain/station/Station";
 import type { StationId } from "@/core/domain/station/StationId";
+import type { TransportType } from "@/core/domain/shared/TransportType";
 import { StationMapper } from "@/adapters/out/persistence/drizzle/mappers/StationMapper";
 import { stations } from "@/adapters/out/persistence/drizzle/schema";
 import type * as schema from "@/adapters/out/persistence/drizzle/schema";
@@ -27,9 +28,9 @@ export class StationRepositoryDrizzle implements StationRepository {
       name: string;
       latitude: number;
       longitude: number;
-      transportType: string;
+      transportTypes: string[] | null;
     }>(sql`
-      SELECT id, name, latitude, longitude, transport_type AS "transportType"
+      SELECT id, name, latitude, longitude, transport_types AS "transportTypes"
       FROM stations
       WHERE name % ${query}::text OR name ILIKE ${"%" + query + "%"}
       ORDER BY similarity(name, ${query}::text) DESC
@@ -54,7 +55,7 @@ export class StationRepositoryDrizzle implements StationRepository {
           name: row.name,
           latitude: row.latitude,
           longitude: row.longitude,
-          transportType: row.transportType,
+          transportTypes: row.transportTypes,
         },
       });
   }
@@ -66,5 +67,19 @@ export class StationRepositoryDrizzle implements StationRepository {
 
   async deleteByFeedId(feedId: string): Promise<void> {
     await this.db.delete(stations).where(eq(stations.feedId, feedId));
+  }
+
+  async updateTransportTypes(
+    transportTypesByStation: Map<string, TransportType[]>,
+    feedId: string,
+  ): Promise<void> {
+    if (transportTypesByStation.size === 0) return;
+
+    for (const [stationId, types] of transportTypesByStation) {
+      await this.db
+        .update(stations)
+        .set({ transportTypes: types.map((t) => t.value) })
+        .where(and(eq(stations.id, stationId), eq(stations.feedId, feedId)));
+    }
   }
 }

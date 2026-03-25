@@ -9,6 +9,19 @@ import { LineColor } from "./LineColor.ts";
 import { TransportType } from "../shared/TransportType.ts";
 
 export class BuildLines {
+  private static readonly LINE_TRANSPORT_TYPES: Record<string, TransportType> = {
+    "1": TransportType.METRO,
+    "2": TransportType.METRO,
+    "3": TransportType.METRO,
+    "4": TransportType.TRAM,
+    "5": TransportType.METRO,
+    "6": TransportType.TRAM,
+    "7": TransportType.METRO,
+    "8": TransportType.TRAM,
+    "9": TransportType.METRO,
+    "10": TransportType.TRAM,
+  };
+
   private static readonly LINE_COLORS: Record<string, string> = {
     "1": "FEC601",
     "2": "E60096",
@@ -143,7 +156,7 @@ export class BuildLines {
       const lineName = new LineName(`Línia ${lineIdValue}`);
       const colorHex = BuildLines.LINE_COLORS[lineIdValue];
       const lineColor = colorHex ? new LineColor(colorHex) : null;
-      const transportType = lineRoutes[0]?.transportType ?? TransportType.METRO;
+      const transportType = BuildLines.LINE_TRANSPORT_TYPES[lineId.value] ?? TransportType.METRO;
 
       lines.push(new Line(lineId, lineName, lineStops, lineColor, transportType));
     }
