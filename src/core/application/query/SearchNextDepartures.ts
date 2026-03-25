@@ -157,10 +157,13 @@ export class SearchNextDepartures {
     departures.sort((a, b) => a.departureTime.minutesUntilFrom(b.departureTime));
     const topDepartures = departures.slice(0, this.maxDepartures);
 
-    await this.eventBus.publish(
-      new DepartureSearched(origin.id.value, destination.id.value, topDepartures.length),
-      traceId,
+    const departureSearchedEvent = new DepartureSearched(
+      origin.id.value,
+      destination.id.value,
+      topDepartures.length,
     );
+    departureSearchedEvent.traceId = traceId;
+    void this.eventBus.publish(departureSearchedEvent);
 
     const firstTomorrow =
       topDepartures.length < this.maxDepartures

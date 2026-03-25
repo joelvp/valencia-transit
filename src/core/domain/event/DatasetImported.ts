@@ -11,6 +11,6 @@ export class DatasetImported extends DomainEvent {
     readonly schedulesCount: number,
     readonly tripsCount: number,
   ) {
-    super();
+    super(feedId, "feed");
   }
 }

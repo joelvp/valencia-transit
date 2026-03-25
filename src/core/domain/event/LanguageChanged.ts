@@ -4,7 +4,10 @@ import { DomainEventType } from "./DomainEventType.ts";
 export class LanguageChanged extends DomainEvent {
   readonly eventName = DomainEventType.LANGUAGE_CHANGED;
 
-  constructor(readonly lang: string) {
-    super();
+  constructor(
+    readonly lang: string,
+    readonly chatId: string,
+  ) {
+    super(chatId, "user");
   }
 }

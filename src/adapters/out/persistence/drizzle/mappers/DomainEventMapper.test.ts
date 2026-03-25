@@ -61,27 +61,22 @@ describe("DomainEventMapper", () => {
       expect(result.traceId).toBeNull();
     });
 
-    it("should set aggregateId and aggregateType to null when not set on event", () => {
+    it("should read traceId from event.traceId", () => {
+      const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
+      event.traceId = "trace-xyz";
+
+      const result = DomainEventMapper.toPersistence(event);
+
+      expect(result.traceId).toBe("trace-xyz");
+    });
+
+    it("should map aggregateId and aggregateType from DatasetImported feedId", () => {
       const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
 
       const result = DomainEventMapper.toPersistence(event);
 
-      expect(result.aggregateId).toBeNull();
-      expect(result.aggregateType).toBeNull();
-    });
-
-    it("should map aggregateId and aggregateType when set on event", () => {
-      class EventWithAggregate extends DatasetImported {
-        override readonly aggregateId = "feed-123";
-        override readonly aggregateType = "Dataset";
-      }
-
-      const event = new EventWithAggregate("feed-123", 5, 2, 3, 50);
-
-      const result = DomainEventMapper.toPersistence(event);
-
-      expect(result.aggregateId).toBe("feed-123");
-      expect(result.aggregateType).toBe("Dataset");
+      expect(result.aggregateId).toBe("metrovalencia");
+      expect(result.aggregateType).toBe("feed");
     });
   });
 });

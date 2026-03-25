@@ -39,9 +39,9 @@ function makeGetLineStationsResult(lineId: string): GetLineStationsResult {
   return {
     line: { id: { value: lineId } } as GetLineStationsResult["line"],
     stations: [
-      { name: "Rafelbunyol", sequence: 1, latitude: 39.59, longitude: -0.34 },
-      { name: "Almàssera", sequence: 2, latitude: 39.52, longitude: -0.35 },
-      { name: "Aeroport", sequence: 3, latitude: 39.48, longitude: -0.43 },
+      { id: "ST1", name: "Rafelbunyol", sequence: 1, latitude: 39.59, longitude: -0.34 },
+      { id: "ST2", name: "Almàssera", sequence: 2, latitude: 39.52, longitude: -0.35 },
+      { id: "ST3", name: "Aeroport", sequence: 3, latitude: 39.48, longitude: -0.43 },
     ],
   };
 }

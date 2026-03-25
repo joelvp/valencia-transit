@@ -11,8 +11,8 @@ import type * as schema from "@/adapters/out/persistence/drizzle/schema";
 export class DomainEventRepositoryDrizzle implements DomainEventRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
 
-  async save(event: DomainEvent, traceId?: string): Promise<void> {
-    const data = DomainEventMapper.toPersistence(event, traceId);
+  async save(event: DomainEvent): Promise<void> {
+    const data = DomainEventMapper.toPersistence(event);
     await this.db.insert(domainEvents).values(data);
   }
 

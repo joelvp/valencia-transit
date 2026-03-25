@@ -60,7 +60,7 @@ export function callbackHandler(
       const locationButtons = result.stations.map((s, i) => [
         {
           text: `${i + 1}. ${s.name}`,
-          callback_data: `loc|${s.latitude.toFixed(6)}|${s.longitude.toFixed(6)}`,
+          callback_data: `loc|${s.id}|${s.latitude.toFixed(6)}|${s.longitude.toFixed(6)}`,
         },
       ]);
 
@@ -68,22 +68,27 @@ export function callbackHandler(
         parse_mode: "HTML",
         reply_markup: { inline_keyboard: locationButtons },
       });
-      await eventBus.publish(new LineStationsViewed(result.line.id.value), traceId);
+      const lineStationsViewedEvent = new LineStationsViewed(result.line.id.value);
+      lineStationsViewedEvent.traceId = traceId;
+      void eventBus.publish(lineStationsViewedEvent);
       return;
     }
 
     // Handle location callback
     if (data.startsWith("loc|")) {
       const parts = data.split("|");
-      const lat = parseFloat(parts[1] ?? "");
-      const lon = parseFloat(parts[2] ?? "");
-      if (isNaN(lat) || isNaN(lon)) {
+      const stationId = parts[1] ?? "";
+      const lat = parseFloat(parts[2] ?? "");
+      const lon = parseFloat(parts[3] ?? "");
+      if (!stationId || isNaN(lat) || isNaN(lon)) {
         await ctx.answerCallbackQuery({ text: t.errInvalidData });
         return;
       }
       await ctx.answerCallbackQuery();
       await ctx.replyWithLocation(lat, lon);
-      await eventBus.publish(new StationLocationRequested(lat, lon), traceId);
+      const stationLocationRequestedEvent = new StationLocationRequested(stationId);
+      stationLocationRequestedEvent.traceId = traceId;
+      void eventBus.publish(stationLocationRequestedEvent);
       return;
     }
 

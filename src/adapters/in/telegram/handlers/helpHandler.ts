@@ -17,7 +17,9 @@ export function helpHandler(userRepository: UserRepository, eventBus: EventBus) 
         firstName: ctx.from.first_name,
         lastName: ctx.from.last_name,
       });
-      await eventBus.publish(new HelpRequested(), traceId);
+      const helpRequestedEvent = new HelpRequested();
+      helpRequestedEvent.traceId = traceId;
+      void eventBus.publish(helpRequestedEvent);
     }
   };
 }
