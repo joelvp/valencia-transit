@@ -38,7 +38,7 @@ export function languageHandler(
         firstName: ctx.from.first_name,
         lastName: ctx.from.last_name,
       });
-      await eventBus.publish(new LanguageChanged(arg), traceId);
+      await eventBus.publish(new LanguageChanged(arg, traceId), traceId);
     }
   };
 }
