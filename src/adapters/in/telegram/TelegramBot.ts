@@ -11,6 +11,7 @@ import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
 import { translations, type Lang } from "@/adapters/in/telegram/i18n";
+import { logger } from "@/config/logger";
 
 export interface TelegramBotOptions {
   /** Pre-set bot info to skip the `getMe` network call. Useful in tests. */
@@ -32,7 +33,7 @@ export class TelegramBot {
     this.bot = new Bot(token ?? "fake-token", { botInfo: options.botInfo });
 
     this.bot.catch((err) => {
-      console.error("[TelegramBot] Unhandled error:", err.error);
+      logger.error({ err: err.error }, "Unhandled bot error");
     });
 
     this.bot.command(
@@ -71,8 +72,8 @@ export class TelegramBot {
       throw new Error("BOT_TOKEN is required to start the Telegram bot");
     }
 
-    console.log("[TelegramBot] Starting bot...");
     await this.bot.api.setMyCommands(this.buildCommands("es"));
+    logger.info("Bot started");
     await this.bot.start();
   }
 
