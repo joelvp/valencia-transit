@@ -73,9 +73,10 @@ describe("StationRepositoryDrizzle", () => {
     expect(result).toEqual([]);
   });
 
-  describe("searchByName — fuzzy (pg_trgm)", () => {
+  describe("searchByName — Fuse.js in-memory", () => {
     beforeEach(async () => {
       await clearTables(container.db, "stations");
+      repo = new StationRepositoryDrizzle(container.db);
       await container.db.insert(stations).values([
         StationMother.row({ id: "ST1", name: "Colón" }),
         StationMother.row({ id: "ST2", name: "Xàtiva", longitude: -0.38 }),
@@ -83,14 +84,21 @@ describe("StationRepositoryDrizzle", () => {
       ]);
     });
 
-    it("should find Xàtiva when querying Xativa (accent-insensitive via trigram)", async () => {
-      const result = await repo.searchByName("Xativa");
+    it("should find Xàtiva when querying xativa (accent-insensitive)", async () => {
+      const result = await repo.searchByName("xativa");
 
       expect(result.length).toBeGreaterThan(0);
       expect(result[0]!.id.value).toBe("ST2");
     });
 
-    it("should find Nou d'Octubre when querying nou octubre (partial match with apostrophe)", async () => {
+    it("should find Xàtiva when querying xatifa (typo tolerance)", async () => {
+      const result = await repo.searchByName("xatifa");
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]!.id.value).toBe("ST2");
+    });
+
+    it("should find Nou d'Octubre when querying nou octubre (partial match, ignores apostrophe)", async () => {
       const result = await repo.searchByName("nou octubre");
 
       expect(result.length).toBeGreaterThan(0);
@@ -106,11 +114,21 @@ describe("StationRepositoryDrizzle", () => {
       expect(ids).toContain("ST1");
     });
 
-    it("should return results ordered by relevance with best match first", async () => {
-      const result = await repo.searchByName("Xativa");
+    it("should return no more than 5 results", async () => {
+      await clearTables(container.db, "stations");
+      repo = new StationRepositoryDrizzle(container.db);
+      await container.db.insert(stations).values([
+        StationMother.row({ id: "S1", name: "Colón", longitude: -0.37 }),
+        StationMother.row({ id: "S2", name: "Colón Nord", longitude: -0.38 }),
+        StationMother.row({ id: "S3", name: "Colón Sud", longitude: -0.39 }),
+        StationMother.row({ id: "S4", name: "Colón Est", longitude: -0.40 }),
+        StationMother.row({ id: "S5", name: "Colón Oest", longitude: -0.41 }),
+        StationMother.row({ id: "S6", name: "Colón Centre", longitude: -0.42 }),
+      ]);
 
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]!.id.value).toBe("ST2");
+      const result = await repo.searchByName("colon");
+
+      expect(result.length).toBeLessThanOrEqual(5);
     });
   });
 

@@ -3,6 +3,7 @@ import { clearConversationState } from "@/adapters/in/telegram/conversationStore
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createContainer, type Container } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
+import { FindStation } from "@/core/application/query/FindStation";
 import { ListLines } from "@/core/application/query/ListLines";
 import { GetLineStations } from "@/core/application/query/GetLineStations";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
@@ -63,6 +64,7 @@ describe("TelegramBot E2E", () => {
       container.routeRepository,
       container.eventBus,
     );
+    const findStation = new FindStation(container.stationRepository);
     const listLines = new ListLines(container.lineRepository, container.stationRepository);
     const getLineStations = new GetLineStations(
       container.lineRepository,
@@ -82,6 +84,7 @@ describe("TelegramBot E2E", () => {
     bot = new TelegramBot(
       "fake-token-for-testing",
       searchNextDepartures,
+      findStation,
       listLines,
       getLineStations,
       container.userRepository,

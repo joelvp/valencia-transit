@@ -1,5 +1,7 @@
 import type { Context } from "grammy";
+import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
+import type { FindStation } from "@/core/application/query/FindStation";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
@@ -15,7 +17,11 @@ import { formatDepartures, formatNoMoreToday } from "./formatters";
 import { logger } from "@/config/logger";
 import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 
-export function departureHandler(useCase: SearchNextDepartures, userRepository: UserRepository) {
+export function departureHandler(
+  useCase: SearchNextDepartures,
+  userRepository: UserRepository,
+  findStation: FindStation,
+) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(chatId);
@@ -25,11 +31,9 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
 
     // No-args command invocation → start conversational flow
     if (isCommand && !args) {
+      clearConversationState(chatId);
       setConversationState(chatId, { step: "awaiting_origin" });
-      await ctx.reply(t.askOrigin, {
-        parse_mode: "HTML",
-        reply_markup: { force_reply: true },
-      });
+      await ctx.reply(`${t.askOrigin}\n\n${t.cancelHint}`);
       return;
     }
 
@@ -38,17 +42,68 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
       const state = getConversationState(chatId);
 
       if (state?.step === "awaiting_origin") {
-        const origin = text.trim();
-        setConversationState(chatId, { step: "awaiting_destination", origin });
-        await ctx.reply(t.askDestination, { reply_markup: { force_reply: true } });
+        const input = text.trim();
+        const result = await findStation.execute(input);
+
+        if (result.type === "not_found") {
+          await ctx.reply(t.stationNotFoundInFlow(input));
+          return;
+        }
+
+        if (result.type === "disambiguation") {
+          const keyboard = new InlineKeyboard();
+          for (const candidate of result.candidates) {
+            keyboard.text(candidate.name, `sw|o|${candidate.name}`.slice(0, 64)).row();
+          }
+          await ctx.reply(formatDisambiguation(t, "origin", result.candidates as never), {
+            parse_mode: "HTML",
+            reply_markup: keyboard,
+          });
+          return;
+        }
+
+        // unique
+        setConversationState(chatId, {
+          step: "awaiting_destination",
+          originName: result.stationName,
+        });
+        await ctx.reply(t.askDestination);
         return;
       }
 
       if (state?.step === "awaiting_destination") {
-        const { origin } = state;
-        const destination = text.trim();
+        const input = text.trim();
+        const result = await findStation.execute(input);
+
+        if (result.type === "not_found") {
+          await ctx.reply(t.stationNotFoundInFlow(input));
+          return;
+        }
+
+        if (result.type === "disambiguation") {
+          const keyboard = new InlineKeyboard();
+          for (const candidate of result.candidates) {
+            const data = `sw|d|${candidate.name}|${state.originName}`;
+            keyboard.text(candidate.name, data.slice(0, 64)).row();
+          }
+          await ctx.reply(formatDisambiguation(t, "destination", result.candidates as never), {
+            parse_mode: "HTML",
+            reply_markup: keyboard,
+          });
+          return;
+        }
+
+        // unique
         clearConversationState(chatId);
-        await executeSearch(ctx, useCase, userRepository, t, chatId, origin, destination);
+        await executeSearch(
+          ctx,
+          useCase,
+          userRepository,
+          t,
+          chatId,
+          state.originName,
+          result.stationName,
+        );
         return;
       }
 

@@ -6,6 +6,10 @@ import type { EventBus } from "@/core/domain/event/EventBus";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
 import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
 import { getT } from "@/adapters/in/telegram/languageStore";
+import {
+  setConversationState,
+  clearConversationState,
+} from "@/adapters/in/telegram/conversationStore";
 import { formatDepartures, formatNoMoreToday } from "./formatters";
 import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegram/lineEmoji";
@@ -111,6 +115,91 @@ export function callbackHandler(
         { chatId, stationId, durationMs: Date.now() - start },
         "Station location requested",
       );
+      return;
+    }
+
+    // Handle salida wizard callbacks
+    if (data.startsWith("sw|")) {
+      const parts = data.split("|");
+      const subType = parts[1];
+
+      if (subType === "o") {
+        // sw|o|StationName — origin resolved, ask for destination
+        const stationName = parts[2];
+        if (!stationName) {
+          await ctx.answerCallbackQuery({ text: t.errInvalidData });
+          return;
+        }
+        setConversationState(chatId, { step: "awaiting_destination", originName: stationName });
+        await ctx.answerCallbackQuery();
+        await ctx.editMessageText(t.askDestination);
+        return;
+      }
+
+      if (subType === "d") {
+        // sw|d|StationName|OriginName — destination resolved, execute search
+        const destinationName = parts[2];
+        const originName = parts[3];
+        if (!destinationName || !originName) {
+          await ctx.answerCallbackQuery({ text: t.errInvalidData });
+          return;
+        }
+        clearConversationState(chatId);
+        try {
+          const result = await useCase.execute(originName, destinationName, new Date());
+
+          if (result.type === "disambiguation") {
+            await ctx.answerCallbackQuery();
+            await ctx.editMessageText(formatDisambiguation(t, result.field, result.candidates), {
+              parse_mode: "HTML",
+              reply_markup: buildDisambiguationKeyboard(
+                result.field,
+                result.candidates,
+                result.otherName,
+              ),
+            });
+            return;
+          }
+
+          if (result.type === "no_more_today") {
+            await ctx.answerCallbackQuery();
+            await ctx.editMessageText(
+              formatNoMoreToday(
+                t,
+                result.origin.name.value,
+                result.destination.name.value,
+                result.firstTomorrow,
+                result.routeLineName,
+              ),
+              { parse_mode: "HTML" },
+            );
+            return;
+          }
+
+          await ctx.answerCallbackQuery();
+          await ctx.editMessageText(
+            formatDepartures(
+              t,
+              result.data.origin.name.value,
+              result.data.destination.name.value,
+              result.data.departures,
+              result.data.firstTomorrow,
+              result.data.routeLineName,
+            ),
+            { parse_mode: "HTML" },
+          );
+          logger.info(
+            { chatId, durationMs: Date.now() - start, results: result.data.departures.length },
+            "Wizard callback departure search — success",
+          );
+        } catch (err) {
+          logger.error({ chatId, err }, "Wizard callback departure search — unexpected error");
+          await ctx.answerCallbackQuery({ text: t.errUnknown });
+        }
+        return;
+      }
+
+      await ctx.answerCallbackQuery({ text: t.errInvalidData });
       return;
     }
 

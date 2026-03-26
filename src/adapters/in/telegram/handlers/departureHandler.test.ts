@@ -5,12 +5,24 @@ import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnec
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
+import type { FindStationResult } from "@/core/application/query/FindStation";
 import {
+  getConversationState,
   setConversationState,
   clearConversationState,
 } from "@/adapters/in/telegram/conversationStore";
 
 const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+
+const notFoundResult: FindStationResult = { type: "not_found" };
+
+function makeUnique(name: string): FindStationResult {
+  return { type: "unique", stationName: name };
+}
+
+function makeDisambig(names: string[]): FindStationResult {
+  return { type: "disambiguation", candidates: names.map((name) => ({ name })) };
+}
 
 let chatIdCounter = 1000;
 
@@ -81,9 +93,14 @@ describe("departureHandler", () => {
         ),
       ),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith(
@@ -111,9 +128,14 @@ describe("departureHandler", () => {
         ),
       ),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -131,9 +153,14 @@ describe("departureHandler", () => {
         ),
       ),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -150,9 +177,14 @@ describe("departureHandler", () => {
         ),
       ),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -166,9 +198,14 @@ describe("departureHandler", () => {
         Promise.resolve(makeDepartureResult("Xàtiva", "Colón", [makeDeparture(14, 23, "3", 4)])),
       ),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
@@ -179,9 +216,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.resolve(makeDepartureResult("Àngel Guimerà", "Colón"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Àngel Guimerà - Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith(
@@ -196,9 +238,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.resolve(makeDepartureResult("Àngel Guimerà", "Colón"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Àngel Guimerà a Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith(
@@ -211,54 +258,148 @@ describe("departureHandler", () => {
 
   it("should start conversational flow when /salida called with no args", async () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
     const ctx = makeCtx("/salida");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
-    const callArgs = ctx.reply.mock.calls[0] as unknown[];
-    const response = callArgs[0] as string;
-    const opts = callArgs[1] as { parse_mode: string; reply_markup: { force_reply: boolean } };
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
     expect(response).toContain("Desde dónde");
-    expect(opts.reply_markup.force_reply).toBe(true);
+    expect(response).toContain("cancelar");
   });
 
   it("should reply with usage hint when only one word provided (command with single arg)", async () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
     const ctx = makeCtx("/salida Xàtiva");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
     expect(response).toContain("Valencia Transit Bot");
   });
 
-  it("should ask for destination when text received in awaiting_origin state", async () => {
+  it("should reply stationNotFoundInFlow and stay in awaiting_origin when station not found", async () => {
     const chatId = 1500;
     setConversationState(chatId, { step: "awaiting_origin" });
 
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
-    const ctx = makeCtx("Xàtiva", chatId);
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
+    const ctx = makeCtx("Desconocida", chatId);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
+    await handler(ctx as never);
+
+    expect(mockUseCase.execute).not.toHaveBeenCalled();
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("No conozco ninguna estación");
+    expect(response).toContain("cancelar");
+    // State should still be awaiting_origin
+    expect(getConversationState(chatId)?.step).toBe("awaiting_origin");
+  });
+
+  it("should reply with disambiguation keyboard in awaiting_origin when multiple stations found", async () => {
+    const chatId = 1501;
+    setConversationState(chatId, { step: "awaiting_origin" });
+
+    const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockFindStation = {
+      execute: mock(() => Promise.resolve(makeDisambig(["Xàtiva", "Xúquer"]))),
+    };
+
+    const ctx = makeCtx("X", chatId);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
     const response = callArgs[0] as string;
-    const opts = callArgs[1] as { reply_markup: { force_reply: boolean } };
-    expect(response).toContain("Hasta dónde");
-    expect(opts.reply_markup.force_reply).toBe(true);
+    const opts = callArgs[1] as { reply_markup: unknown };
+    expect(response).toContain("Varias estaciones encontradas");
+    expect(opts.reply_markup).toBeDefined();
+    // State should still be awaiting_origin
+    expect(getConversationState(chatId)?.step).toBe("awaiting_origin");
   });
 
-  it("should execute search when text received in awaiting_destination state", async () => {
-    const chatId = 1501;
-    setConversationState(chatId, { step: "awaiting_destination", origin: "Xàtiva" });
+  it("should set awaiting_destination and reply askDestination when unique station found in awaiting_origin", async () => {
+    const chatId = 1502;
+    setConversationState(chatId, { step: "awaiting_origin" });
+
+    const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockFindStation = { execute: mock(() => Promise.resolve(makeUnique("Xàtiva"))) };
+
+    const ctx = makeCtx("Xàtiva", chatId);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
+    await handler(ctx as never);
+
+    expect(mockUseCase.execute).not.toHaveBeenCalled();
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("Hasta dónde");
+    const state = getConversationState(chatId);
+    expect(state?.step).toBe("awaiting_destination");
+    if (state?.step === "awaiting_destination") {
+      expect(state.originName).toBe("Xàtiva");
+    }
+  });
+
+  it("should ask for destination when text received in awaiting_origin state (legacy check)", async () => {
+    const chatId = 1503;
+    setConversationState(chatId, { step: "awaiting_origin" });
+
+    const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockFindStation = { execute: mock(() => Promise.resolve(makeUnique("Xàtiva"))) };
+
+    const ctx = makeCtx("Xàtiva", chatId);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
+    await handler(ctx as never);
+
+    expect(mockUseCase.execute).not.toHaveBeenCalled();
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("Hasta dónde");
+  });
+
+  it("should execute search when unique station received in awaiting_destination state", async () => {
+    const chatId = 1504;
+    setConversationState(chatId, { step: "awaiting_destination", originName: "Xàtiva" });
 
     const mockUseCase = {
       execute: mock(() => Promise.resolve(makeDepartureResult("Xàtiva", "Colón"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(makeUnique("Colón"))) };
+
     const ctx = makeCtx("Colón", chatId);
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledWith(
@@ -269,15 +410,42 @@ describe("departureHandler", () => {
     );
   });
 
+  it("should reply stationNotFoundInFlow and stay in awaiting_destination when station not found", async () => {
+    const chatId = 1505;
+    setConversationState(chatId, { step: "awaiting_destination", originName: "Xàtiva" });
+
+    const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
+    const ctx = makeCtx("Desconocida", chatId);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
+    await handler(ctx as never);
+
+    expect(mockUseCase.execute).not.toHaveBeenCalled();
+    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
+    expect(response).toContain("No conozco ninguna estación");
+    expect(getConversationState(chatId)?.step).toBe("awaiting_destination");
+  });
+
   it("should clear conversation state after search from awaiting_destination", async () => {
-    const chatId = 1502;
-    setConversationState(chatId, { step: "awaiting_destination", origin: "Xàtiva" });
+    const chatId = 1506;
+    setConversationState(chatId, { step: "awaiting_destination", originName: "Xàtiva" });
 
     const mockUseCase = {
       execute: mock(() => Promise.resolve(makeDepartureResult("Xàtiva", "Colón"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(makeUnique("Colón"))) };
+
     const ctx = makeCtx("Colón", chatId);
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     // State should be cleared — a second single-word free-text message shows help, not a search
@@ -287,14 +455,20 @@ describe("departureHandler", () => {
   });
 
   it("should clear conversation state even when search throws an error", async () => {
-    const chatId = 1503;
-    setConversationState(chatId, { step: "awaiting_destination", origin: "Xàtiva" });
+    const chatId = 1507;
+    setConversationState(chatId, { step: "awaiting_destination", originName: "Xàtiva" });
 
     const mockUseCase = {
       execute: mock(() => Promise.reject(new StationNotFoundError("Colón"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(makeUnique("Colón"))) };
+
     const ctx = makeCtx("Colón", chatId);
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     // State cleared — second single-word free-text shows help, not another search
@@ -307,8 +481,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.reject(new StationNotFoundError("Unknwon"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
     const ctx = makeCtx("/salida Unknwon Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ Estación no encontrada: Unknwon");
@@ -318,8 +498,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.reject(new StationsNotConnectedError("Xàtiva", "Colón"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ No hay conexión entre Xàtiva y Colón");
@@ -329,8 +515,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.reject(new NoServiceError("Xàtiva", "Colón"))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ No hay servicio activo en este momento");
@@ -340,14 +532,20 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.reject(new NoActiveServiceError(new Date()))),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
+
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledWith("❌ No hay servicio activo en este momento");
   });
 
-  it("should show disambiguation keyboard when multiple matches", async () => {
+  it("should show disambiguation keyboard when multiple matches (command path)", async () => {
     const disambigResult: SearchResult = {
       type: "disambiguation",
       field: "origin",
@@ -358,9 +556,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.resolve(disambigResult)),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida X Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
@@ -389,9 +592,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.resolve(noMoreResult)),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
@@ -413,9 +621,14 @@ describe("departureHandler", () => {
     const mockUseCase = {
       execute: mock(() => Promise.resolve(noMoreResult)),
     };
+    const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
     const ctx = makeCtx("/salida Xàtiva Colón");
-    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    const handler = departureHandler(
+      mockUseCase as never,
+      mockUserRepository,
+      mockFindStation as never,
+    );
     await handler(ctx as never);
 
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
