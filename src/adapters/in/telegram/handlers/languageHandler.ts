@@ -6,41 +6,48 @@ import { LanguageChanged } from "@/core/domain/event/LanguageChanged";
 import { translations } from "@/adapters/in/telegram/i18n";
 import { setLang, getLang } from "@/adapters/in/telegram/languageStore";
 
-const VALID_LANGS: Lang[] = ["es", "val"];
+export function languageHandler() {
+  return async (ctx: Context): Promise<void> => {
+    const chatId = ctx.chat?.id ?? 0;
+    const t = translations[getLang(chatId)];
+    await ctx.reply(t.langPickerText, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "🇪🇸 Castellano", callback_data: "lang|es" },
+            { text: "🍊 Valencià", callback_data: "lang|val" },
+          ],
+        ],
+      },
+    });
+  };
+}
 
-export function languageHandler(
+export async function handleLanguageCallback(
+  ctx: Context,
+  lang: Lang,
   setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
   userRepository: UserRepository,
   eventBus: EventBus,
-) {
-  return async (ctx: Context): Promise<void> => {
-    const chatId = ctx.chat?.id ?? 0;
-    const text = ctx.message?.text ?? "";
-    const arg = text
-      .trim()
-      .replace(/^\/\S+\s*/, "")
-      .toLowerCase() as Lang;
+): Promise<void> {
+  const chatId = ctx.chat?.id ?? 0;
+  setLang(chatId, lang);
+  await ctx.answerCallbackQuery();
+  await Promise.all([
+    ctx.editMessageText(translations[lang].langChanged),
+    setCommandsForChat(chatId, lang),
+  ]);
 
-    if (!VALID_LANGS.includes(arg)) {
-      const t = translations[getLang(chatId)];
-      await ctx.reply(t.langUnknown);
-      return;
-    }
-
-    setLang(chatId, arg);
-    await Promise.all([ctx.reply(translations[arg].langChanged), setCommandsForChat(chatId, arg)]);
-
-    if (ctx.from) {
-      const traceId = String(ctx.from.id);
-      await userRepository.upsert({
-        chatId: ctx.from.id,
-        username: ctx.from.username,
-        firstName: ctx.from.first_name,
-        lastName: ctx.from.last_name,
-      });
-      const languageChangedEvent = new LanguageChanged(arg, traceId);
-      languageChangedEvent.traceId = traceId;
-      void eventBus.publish(languageChangedEvent);
-    }
-  };
+  if (ctx.from) {
+    const traceId = String(ctx.from.id);
+    await userRepository.upsert({
+      chatId: ctx.from.id,
+      username: ctx.from.username,
+      firstName: ctx.from.first_name,
+      lastName: ctx.from.last_name,
+    });
+    const languageChangedEvent = new LanguageChanged(lang, traceId);
+    languageChangedEvent.traceId = traceId;
+    void eventBus.publish(languageChangedEvent);
+  }
 }

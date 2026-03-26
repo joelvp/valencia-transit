@@ -98,6 +98,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -115,6 +116,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -132,6 +134,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -157,6 +160,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -181,6 +185,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -204,6 +209,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -222,6 +228,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -241,6 +248,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -262,6 +270,7 @@ describe("callbackHandler", () => {
       mockGetLineStations as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
@@ -287,6 +296,7 @@ describe("callbackHandler", () => {
       mockGetLineStations as never,
       mockUserRepository,
       mockEventBus,
+      mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 

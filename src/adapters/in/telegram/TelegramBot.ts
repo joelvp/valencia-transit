@@ -75,10 +75,7 @@ export class TelegramBot {
     );
     this.bot.command("help", helpHandler(this.userRepository, this.eventBus));
     this.bot.command("start", helpHandler(this.userRepository, this.eventBus));
-    this.bot.command(
-      "idioma",
-      languageHandler(this.setCommandsForChat.bind(this), this.userRepository, this.eventBus),
-    );
+    this.bot.command("idioma", languageHandler());
     this.bot.on(
       "callback_query:data",
       callbackHandler(
@@ -86,6 +83,7 @@ export class TelegramBot {
         this.getLineStations,
         this.userRepository,
         this.eventBus,
+        this.setCommandsForChat.bind(this),
       ),
     );
     this.bot.on("message:text", departureHandler(this.searchNextDepartures, this.userRepository));
@@ -115,7 +113,9 @@ export class TelegramBot {
     const t = translations[lang];
     const isVal = lang === "val";
     return [
+      { command: isVal ? "eixida" : "salida", description: t.cmdSalida },
       { command: isVal ? "linies" : "lineas", description: t.cmdLineas },
+      { command: "idioma", description: t.cmdIdioma },
       { command: "help", description: t.cmdHelp },
     ];
   }

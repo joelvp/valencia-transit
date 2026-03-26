@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { clearConversationState } from "@/adapters/in/telegram/conversationStore";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createContainer, type Container } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
@@ -100,6 +101,7 @@ describe("TelegramBot E2E", () => {
   beforeEach(async () => {
     await clearDatabase(container.db);
     replies = [];
+    clearConversationState(1);
 
     // Stations: ST1 "Colón", ST2 "Xàtiva", ST3 "Àngel Guimerà"
     await container.db.insert(stations).values([
@@ -256,7 +258,7 @@ describe("TelegramBot E2E", () => {
     await bot.handleUpdate(makeCommandUpdate("/salida"));
 
     expect(replies).toHaveLength(1);
-    expect(replies[0]!).toContain("Uso:");
+    expect(replies[0]!).toContain("Desde dónde");
   });
 
   it("should reply with help text for /help", async () => {

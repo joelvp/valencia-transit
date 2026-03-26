@@ -20,6 +20,7 @@ export interface Translations {
   errNoService: string;
   errUnknown: string;
   // Language command
+  langPickerText: string;
   langChanged: string;
   langUnknown: string;
   // Callback errors
@@ -29,9 +30,13 @@ export interface Translations {
   linesTitle: string;
   lineStationsTitle: (lineName: string, from: string, to: string) => string;
   errLineNotFound: string;
+  // Conversational flow
+  askOrigin: string;
+  askDestination: string;
   // Rate limiting
   rateLimitExceeded: string;
   // Command menu descriptions
+  cmdSalida: string;
   cmdLineas: string;
   cmdIdioma: string;
   cmdHelp: string;
@@ -43,8 +48,7 @@ const es: Translations = {
     "🤖 <b>Valencia Transit Bot</b>",
     "",
     "Comandos disponibles:",
-    "/salida &lt;origen&gt; - &lt;destino&gt; — Próximas salidas entre dos estaciones",
-    "/s &lt;origen&gt; - &lt;destino&gt; — Atajo para /salida",
+    "/salida, /s &lt;origen&gt; - &lt;destino&gt; — Próximas salidas entre dos estaciones",
     "/lineas — Ver líneas y paradas",
     "/idioma es | val — Cambiar idioma",
     "/help — Mostrar esta ayuda",
@@ -63,6 +67,7 @@ const es: Translations = {
   errNoConn: (o, d) => `❌ No hay conexión entre ${o} y ${d}`,
   errNoService: "❌ No hay servicio activo en este momento",
   errUnknown: "❌ Error inesperado. Inténtalo de nuevo más tarde.",
+  langPickerText: "🌐 ¿A qué idioma quieres cambiar?",
   langChanged: "Idioma cambiado a Español 🇪🇸",
   langUnknown: "Idioma no reconocido. Usa /idioma es o /idioma val",
   errInvalidData: "Datos inválidos",
@@ -70,9 +75,12 @@ const es: Translations = {
   linesTitle: "Selecciona una línea:",
   lineStationsTitle: (lineName, from, to) => `Paradas de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línea no encontrada",
+  askOrigin: "🚊 ¿Desde dónde quieres salir?\n\nEjemplo: <code>Xàtiva</code>",
+  askDestination: "🚊 ¿Hasta dónde?",
   rateLimitExceeded: "⏳ Demasiados mensajes. Espera un momento.",
+  cmdSalida: "Próximas salidas entre dos estaciones",
   cmdLineas: "Ver líneas disponibles",
-  cmdIdioma: "Cambiar idioma: /idioma es | val",
+  cmdIdioma: "Cambiar idioma",
   cmdHelp: "Ayuda",
 };
 
@@ -82,8 +90,7 @@ const val: Translations = {
     "🤖 <b>Valencia Transit Bot</b>",
     "",
     "Ordres disponibles:",
-    "/eixida &lt;origen&gt; - &lt;destí&gt; — Pròximes eixides entre dos estacions",
-    "/e &lt;origen&gt; - &lt;destí&gt; — Drecera per a /eixida",
+    "/eixida, /e &lt;origen&gt; - &lt;destí&gt; — Pròximes eixides entre dos estacions",
     "/linies — Veure línies i parades",
     "/idioma es | val — Canviar idioma",
     "/help — Mostrar aquesta ajuda",
@@ -102,16 +109,20 @@ const val: Translations = {
   errNoConn: (o, d) => `❌ No hi ha connexió entre ${o} i ${d}`,
   errNoService: "❌ No hi ha servei actiu en aquest moment",
   errUnknown: "❌ Error inesperat. Torna-ho a intentar més tard.",
-  langChanged: "Idioma canviat a Valencià 🌸",
+  langPickerText: "🌐 A quin idioma vols canviar?",
+  langChanged: "Idioma canviat a Valencià 🍊",
   langUnknown: "Idioma no reconegut. Usa /idioma es o /idioma val",
   errInvalidData: "Dades invàlides",
   errStillAmbiguous: "Encara hi ha ambigüitat",
   linesTitle: "Selecciona una línia:",
   lineStationsTitle: (lineName, from, to) => `Parades de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línia no trobada",
+  askOrigin: "🚊 Des d'on vols eixir?\n\nExemple: <code>Xàtiva</code>",
+  askDestination: "🚊 Fins on?",
   rateLimitExceeded: "⏳ Massa missatges. Espera un moment.",
+  cmdSalida: "Pròximes eixides entre dos estacions",
   cmdLineas: "Veure línies disponibles",
-  cmdIdioma: "Canviar idioma: /idioma es | val",
+  cmdIdioma: "Canviar idioma",
   cmdHelp: "Ajuda i informació",
 };
 
