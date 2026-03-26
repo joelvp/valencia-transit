@@ -26,12 +26,16 @@ Run the full verification suite in order. All 4 steps must pass.
 3. **Lint**: Run `bun run lint`
    - Report any lint violations, especially hexagonal architecture violations
 
-4. **Tests**: Run `bun test`
+4. **Unit tests**: Run `bun test src/core src/adapters/out/persistence/drizzle/mappers`
    - Report pass/fail count and any failures
+
+5. **All tests**: Run `bun test`
+   - Report pass/fail count and any failures
+   - NOTE: `--coverage` is disabled due to a Bun segfault bug. Re-enable once fixed.
 
 ## Output
 
 Summarize results:
-- ✅ or ❌ for each step
+- ✅ or ❌ for each step (1 through 5)
 - Details only for failures
 - If all pass: "All checks passed."
