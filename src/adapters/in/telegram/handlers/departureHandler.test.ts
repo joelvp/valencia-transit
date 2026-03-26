@@ -1,15 +1,23 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { departureHandler } from "./departureHandler";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
+import {
+  setConversationState,
+  clearConversationState,
+} from "@/adapters/in/telegram/conversationStore";
 
 const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
 
-function makeCtx(text: string) {
+let chatIdCounter = 1000;
+
+function makeCtx(text: string, chatId?: number) {
+  const id = chatId ?? chatIdCounter++;
   return {
+    chat: { id },
     message: { text },
     reply: mock(() => Promise.resolve()),
   };
@@ -55,6 +63,13 @@ function makeDepartureResult(
 }
 
 describe("departureHandler", () => {
+  beforeEach(() => {
+    // Reset conversation state for a fresh chatId range each test
+    for (let i = 1000; i < 2000; i++) {
+      clearConversationState(i);
+    }
+  });
+
   it("should reply with formatted departures on happy path", async () => {
     const mockUseCase = {
       execute: mock(() =>
@@ -194,25 +209,98 @@ describe("departureHandler", () => {
     );
   });
 
-  it("should reply with usage hint when no arguments provided", async () => {
+  it("should start conversational flow when /salida called with no args", async () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
     const ctx = makeCtx("/salida");
     const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).not.toHaveBeenCalled();
-    const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
-    expect(response).toContain("Uso:");
+    const callArgs = ctx.reply.mock.calls[0] as unknown[];
+    const response = callArgs[0] as string;
+    const opts = callArgs[1] as { parse_mode: string; reply_markup: { force_reply: boolean } };
+    expect(response).toContain("Desde dónde");
+    expect(opts.reply_markup.force_reply).toBe(true);
   });
 
-  it("should reply with usage hint when only one word provided", async () => {
+  it("should reply with usage hint when only one word provided (command with single arg)", async () => {
     const mockUseCase = { execute: mock(() => Promise.resolve()) };
     const ctx = makeCtx("/salida Xàtiva");
     const handler = departureHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
-    expect(response).toContain("Uso:");
+    expect(response).toContain("Valencia Transit Bot");
+  });
+
+  it("should ask for destination when text received in awaiting_origin state", async () => {
+    const chatId = 1500;
+    setConversationState(chatId, { step: "awaiting_origin" });
+
+    const mockUseCase = { execute: mock(() => Promise.resolve()) };
+    const ctx = makeCtx("Xàtiva", chatId);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    await handler(ctx as never);
+
+    expect(mockUseCase.execute).not.toHaveBeenCalled();
+    const callArgs = ctx.reply.mock.calls[0] as unknown[];
+    const response = callArgs[0] as string;
+    const opts = callArgs[1] as { reply_markup: { force_reply: boolean } };
+    expect(response).toContain("Hasta dónde");
+    expect(opts.reply_markup.force_reply).toBe(true);
+  });
+
+  it("should execute search when text received in awaiting_destination state", async () => {
+    const chatId = 1501;
+    setConversationState(chatId, { step: "awaiting_destination", origin: "Xàtiva" });
+
+    const mockUseCase = {
+      execute: mock(() => Promise.resolve(makeDepartureResult("Xàtiva", "Colón"))),
+    };
+    const ctx = makeCtx("Colón", chatId);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    await handler(ctx as never);
+
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Xàtiva",
+      "Colón",
+      expect.any(Date),
+      expect.any(String),
+    );
+  });
+
+  it("should clear conversation state after search from awaiting_destination", async () => {
+    const chatId = 1502;
+    setConversationState(chatId, { step: "awaiting_destination", origin: "Xàtiva" });
+
+    const mockUseCase = {
+      execute: mock(() => Promise.resolve(makeDepartureResult("Xàtiva", "Colón"))),
+    };
+    const ctx = makeCtx("Colón", chatId);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    await handler(ctx as never);
+
+    // State should be cleared — a second single-word free-text message shows help, not a search
+    const ctx2 = makeCtx("something", chatId);
+    await handler(ctx2 as never);
+    expect(mockUseCase.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("should clear conversation state even when search throws an error", async () => {
+    const chatId = 1503;
+    setConversationState(chatId, { step: "awaiting_destination", origin: "Xàtiva" });
+
+    const mockUseCase = {
+      execute: mock(() => Promise.reject(new StationNotFoundError("Colón"))),
+    };
+    const ctx = makeCtx("Colón", chatId);
+    const handler = departureHandler(mockUseCase as never, mockUserRepository);
+    await handler(ctx as never);
+
+    // State cleared — second single-word free-text shows help, not another search
+    const ctx2 = makeCtx("something", chatId);
+    await handler(ctx2 as never);
+    expect(mockUseCase.execute).toHaveBeenCalledTimes(1);
   });
 
   it("should handle StationNotFoundError", async () => {

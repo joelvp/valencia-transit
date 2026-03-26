@@ -6,6 +6,11 @@ import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnec
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/languageStore";
+import {
+  getConversationState,
+  setConversationState,
+  clearConversationState,
+} from "@/adapters/in/telegram/conversationStore";
 import { formatDepartures, formatNoMoreToday } from "./formatters";
 import { logger } from "@/config/logger";
 import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
@@ -15,88 +20,123 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(chatId);
     const text = ctx.message?.text ?? "";
+    const isCommand = text.startsWith("/");
     const args = text.trim().replace(/^\/\S+\s*/, "");
 
-    if (!args) {
-      await ctx.reply(t.usage, { parse_mode: "HTML" });
+    // No-args command invocation → start conversational flow
+    if (isCommand && !args) {
+      setConversationState(chatId, { step: "awaiting_origin" });
+      await ctx.reply(t.askOrigin, {
+        parse_mode: "HTML",
+        reply_markup: { force_reply: true },
+      });
       return;
     }
 
+    // Free text: check for active conversation state first
+    if (!isCommand) {
+      const state = getConversationState(chatId);
+
+      if (state?.step === "awaiting_origin") {
+        const origin = text.trim();
+        setConversationState(chatId, { step: "awaiting_destination", origin });
+        await ctx.reply(t.askDestination, { reply_markup: { force_reply: true } });
+        return;
+      }
+
+      if (state?.step === "awaiting_destination") {
+        const { origin } = state;
+        const destination = text.trim();
+        clearConversationState(chatId);
+        await executeSearch(ctx, useCase, userRepository, t, chatId, origin, destination);
+        return;
+      }
+
+      // No active state and no command — show help for unrecognized text
+      const parsed = parseStations(text);
+      if (!parsed) {
+        await ctx.reply(t.helpText, { parse_mode: "HTML" });
+        return;
+      }
+
+      await executeSearch(
+        ctx,
+        useCase,
+        userRepository,
+        t,
+        chatId,
+        parsed.originName,
+        parsed.destinationName,
+      );
+      return;
+    }
+
+    // Command with arguments
     const parsed = parseStations(args);
     if (!parsed) {
-      await ctx.reply(t.usage, { parse_mode: "HTML" });
+      await ctx.reply(t.helpText, { parse_mode: "HTML" });
       return;
     }
 
-    const { originName, destinationName } = parsed;
+    await executeSearch(
+      ctx,
+      useCase,
+      userRepository,
+      t,
+      chatId,
+      parsed.originName,
+      parsed.destinationName,
+    );
+  };
+}
 
-    const traceId = String(chatId);
+async function executeSearch(
+  ctx: Context,
+  useCase: SearchNextDepartures,
+  userRepository: UserRepository,
+  t: ReturnType<typeof getT>,
+  chatId: number,
+  originName: string,
+  destinationName: string,
+): Promise<void> {
+  const traceId = String(chatId);
 
-    logger.info({ chatId, origin: originName, dest: destinationName }, "Departure search");
-    const start = Date.now();
+  logger.info({ chatId, origin: originName, dest: destinationName }, "Departure search");
+  const start = Date.now();
 
-    try {
-      const result = await useCase.execute(originName, destinationName, new Date(), traceId);
+  try {
+    const result = await useCase.execute(originName, destinationName, new Date(), traceId);
 
-      if (result.type === "disambiguation") {
-        logger.info(
-          { chatId, durationMs: Date.now() - start },
-          "Departure search — disambiguation",
-        );
-        await ctx.reply(formatDisambiguation(t, result.field, result.candidates), {
-          parse_mode: "HTML",
-          reply_markup: buildDisambiguationKeyboard(
-            result.field,
-            result.candidates,
-            result.otherName,
-          ),
+    if (result.type === "disambiguation") {
+      logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — disambiguation");
+      await ctx.reply(formatDisambiguation(t, result.field, result.candidates), {
+        parse_mode: "HTML",
+        reply_markup: buildDisambiguationKeyboard(
+          result.field,
+          result.candidates,
+          result.otherName,
+        ),
+      });
+      if (ctx.from) {
+        await userRepository.upsert({
+          chatId: ctx.from.id,
+          username: ctx.from.username,
+          firstName: ctx.from.first_name,
+          lastName: ctx.from.last_name,
         });
-        if (ctx.from) {
-          await userRepository.upsert({
-            chatId: ctx.from.id,
-            username: ctx.from.username,
-            firstName: ctx.from.first_name,
-            lastName: ctx.from.last_name,
-          });
-        }
-        return;
       }
+      return;
+    }
 
-      if (result.type === "no_more_today") {
-        logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — no more today");
-        await ctx.reply(
-          formatNoMoreToday(
-            t,
-            result.origin.name.value,
-            result.destination.name.value,
-            result.firstTomorrow,
-            result.routeLineName,
-          ),
-          { parse_mode: "HTML" },
-        );
-        if (ctx.from) {
-          await userRepository.upsert({
-            chatId: ctx.from.id,
-            username: ctx.from.username,
-            firstName: ctx.from.first_name,
-            lastName: ctx.from.last_name,
-          });
-        }
-        return;
-      }
-
-      logger.info(
-        { chatId, durationMs: Date.now() - start, results: result.data.departures.length },
-        "Departure search — success",
-      );
+    if (result.type === "no_more_today") {
+      logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — no more today");
       await ctx.reply(
-        formatDepartures(
+        formatNoMoreToday(
           t,
-          result.data.origin.name.value,
-          result.data.destination.name.value,
-          result.data.departures,
-          result.data.firstTomorrow,
-          result.data.routeLineName,
+          result.origin.name.value,
+          result.destination.name.value,
+          result.firstTomorrow,
+          result.routeLineName,
         ),
         { parse_mode: "HTML" },
       );
@@ -108,30 +148,55 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
           lastName: ctx.from.last_name,
         });
       }
-    } catch (err) {
-      if (err instanceof StationNotFoundError) {
-        const match = /^Station not found: "(.+)"$/.exec(err.message);
-        const stationName = match ? match[1]! : "unknown";
-        logger.warn({ chatId, stationName }, "Departure search — station not found");
-        await ctx.reply(t.errNotFound(stationName));
-      } else if (err instanceof StationsNotConnectedError) {
-        logger.warn(
-          { chatId, origin: originName, dest: destinationName },
-          "Departure search — no connection",
-        );
-        await ctx.reply(t.errNoConn(originName, destinationName));
-      } else if (err instanceof NoServiceError) {
-        logger.warn({ chatId }, "Departure search — no service");
-        await ctx.reply(t.errNoService);
-      } else if (err instanceof NoActiveServiceError) {
-        logger.warn({ chatId }, "Departure search — no active service");
-        await ctx.reply(t.errNoService);
-      } else {
-        logger.error({ chatId, err }, "Departure search — unexpected error");
-        await ctx.reply(t.errUnknown);
-      }
+      return;
     }
-  };
+
+    logger.info(
+      { chatId, durationMs: Date.now() - start, results: result.data.departures.length },
+      "Departure search — success",
+    );
+    await ctx.reply(
+      formatDepartures(
+        t,
+        result.data.origin.name.value,
+        result.data.destination.name.value,
+        result.data.departures,
+        result.data.firstTomorrow,
+        result.data.routeLineName,
+      ),
+      { parse_mode: "HTML" },
+    );
+    if (ctx.from) {
+      await userRepository.upsert({
+        chatId: ctx.from.id,
+        username: ctx.from.username,
+        firstName: ctx.from.first_name,
+        lastName: ctx.from.last_name,
+      });
+    }
+  } catch (err) {
+    if (err instanceof StationNotFoundError) {
+      const match = /^Station not found: "(.+)"$/.exec(err.message);
+      const stationName = match ? match[1]! : "unknown";
+      logger.warn({ chatId, stationName }, "Departure search — station not found");
+      await ctx.reply(t.errNotFound(stationName));
+    } else if (err instanceof StationsNotConnectedError) {
+      logger.warn(
+        { chatId, origin: originName, dest: destinationName },
+        "Departure search — no connection",
+      );
+      await ctx.reply(t.errNoConn(originName, destinationName));
+    } else if (err instanceof NoServiceError) {
+      logger.warn({ chatId }, "Departure search — no service");
+      await ctx.reply(t.errNoService);
+    } else if (err instanceof NoActiveServiceError) {
+      logger.warn({ chatId }, "Departure search — no active service");
+      await ctx.reply(t.errNoService);
+    } else {
+      logger.error({ chatId, err }, "Departure search — unexpected error");
+      await ctx.reply(t.errUnknown);
+    }
+  }
 }
 
 function parseStations(args: string): { originName: string; destinationName: string } | null {

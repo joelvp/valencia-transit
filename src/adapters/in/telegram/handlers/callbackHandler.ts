@@ -10,12 +10,15 @@ import { formatDepartures, formatNoMoreToday } from "./formatters";
 import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegram/lineEmoji";
 import { logger } from "@/config/logger";
+import { handleLanguageCallback } from "./languageHandler";
+import type { Lang } from "@/adapters/in/telegram/i18n";
 
 export function callbackHandler(
   useCase: SearchNextDepartures,
   getLineStations: GetLineStations,
   userRepository: UserRepository,
   eventBus: EventBus,
+  setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
 ) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
@@ -34,6 +37,17 @@ export function callbackHandler(
         firstName: ctx.from.first_name,
         lastName: ctx.from.last_name,
       });
+    }
+
+    // Handle language callback
+    if (data.startsWith("lang|")) {
+      const lang = data.split("|")[1] as Lang;
+      if (lang !== "es" && lang !== "val") {
+        await ctx.answerCallbackQuery({ text: t.errInvalidData });
+        return;
+      }
+      await handleLanguageCallback(ctx, lang, setCommandsForChat, userRepository, eventBus);
+      return;
     }
 
     // Handle line stations callback
