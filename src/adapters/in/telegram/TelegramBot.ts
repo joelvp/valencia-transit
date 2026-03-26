@@ -86,7 +86,7 @@ export class TelegramBot {
       ["s", "e"],
       departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
     );
-    this.bot.command("cancelar", async (ctx) => {
+    this.bot.command(["cancelar", "cancel"], async (ctx) => {
       const chatId = ctx.chat?.id ?? 0;
       const t = getT(getLang(chatId));
       clearConvState(chatId);
@@ -138,12 +138,13 @@ export class TelegramBot {
   private buildCommands(lang: Lang) {
     const t = getT(lang);
     const isVal = lang === "val";
+    const isEn = lang === "en";
     return [
       { command: isVal ? "eixida" : "salida", description: t("cmdSalida") },
       { command: isVal ? "linies" : "lineas", description: t("cmdLineas") },
       { command: "idioma", description: t("cmdIdioma") },
       { command: "help", description: t("cmdHelp") },
-      { command: "cancelar", description: t("cmdCancelar") },
+      { command: isEn ? "cancel" : "cancelar", description: t("cmdCancelar") },
     ];
   }
 }
