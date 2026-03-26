@@ -334,7 +334,7 @@ describe("departureHandler", () => {
     const callArgs = ctx.reply.mock.calls[0] as unknown[];
     const response = callArgs[0] as string;
     const opts = callArgs[1] as { reply_markup: unknown };
-    expect(response).toContain("Varias estaciones encontradas");
+    expect(response).toContain("Cuál querías decir");
     expect(opts.reply_markup).toBeDefined();
     // State should still be awaiting_origin
     expect(getConversationState(chatId)?.step).toBe("awaiting_origin");

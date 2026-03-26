@@ -143,6 +143,7 @@ export class TelegramBot {
       { command: isVal ? "linies" : "lineas", description: t.cmdLineas },
       { command: "idioma", description: t.cmdIdioma },
       { command: "help", description: t.cmdHelp },
+      { command: "cancelar", description: t.cmdCancelar },
     ];
   }
 }

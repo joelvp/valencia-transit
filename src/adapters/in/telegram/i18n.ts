@@ -33,6 +33,7 @@ export interface Translations {
   // Conversational flow
   askOrigin: string;
   askDestination: string;
+  whichStation: string;
   stationNotFoundInFlow: (name: string) => string;
   cancelledSearch: string;
   cancelHint: string;
@@ -43,6 +44,7 @@ export interface Translations {
   cmdLineas: string;
   cmdIdioma: string;
   cmdHelp: string;
+  cmdCancelar: string;
 }
 
 const es: Translations = {
@@ -82,6 +84,7 @@ const es: Translations = {
   askDestination: "🚊 ¿Hasta dónde?",
   stationNotFoundInFlow: (name) =>
     `❌ No conozco ninguna estación llamada "${name}". Inténtalo de nuevo o escribe /cancelar para salir.`,
+  whichStation: "🔍 ¿Cuál querías decir?",
   cancelledSearch: "🚫 Búsqueda cancelada.",
   cancelHint: "(Escribe /cancelar para salir en cualquier momento)",
   rateLimitExceeded: "⏳ Demasiados mensajes. Espera un momento.",
@@ -89,6 +92,7 @@ const es: Translations = {
   cmdLineas: "Ver líneas disponibles",
   cmdIdioma: "Cambiar idioma",
   cmdHelp: "Ayuda",
+  cmdCancelar: "Cancelar búsqueda en curso",
 };
 
 const val: Translations = {
@@ -128,6 +132,7 @@ const val: Translations = {
   askDestination: "🚊 Fins on?",
   stationNotFoundInFlow: (name) =>
     `❌ No conec cap estació amb el nom "${name}". Torna-ho a intentar o escriu /cancelar per a eixir.`,
+  whichStation: "🔍 Quina volies dir?",
   cancelledSearch: "🚫 Cerca cancel·lada.",
   cancelHint: "(Escriu /cancelar per a eixir en qualsevol moment)",
   rateLimitExceeded: "⏳ Massa missatges. Espera un moment.",
@@ -135,6 +140,7 @@ const val: Translations = {
   cmdLineas: "Veure línies disponibles",
   cmdIdioma: "Canviar idioma",
   cmdHelp: "Ajuda i informació",
+  cmdCancelar: "Cancel·lar cerca en curs",
 };
 
 export const translations: Record<Lang, Translations> = { es, val };

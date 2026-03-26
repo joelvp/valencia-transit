@@ -55,10 +55,7 @@ export function departureHandler(
           for (const candidate of result.candidates) {
             keyboard.text(candidate.name, `sw|o|${candidate.name}`.slice(0, 64)).row();
           }
-          await ctx.reply(formatDisambiguation(t, "origin", result.candidates as never), {
-            parse_mode: "HTML",
-            reply_markup: keyboard,
-          });
+          await ctx.reply(t.whichStation, { reply_markup: keyboard });
           return;
         }
 
@@ -86,10 +83,7 @@ export function departureHandler(
             const data = `sw|d|${candidate.name}|${state.originName}`;
             keyboard.text(candidate.name, data.slice(0, 64)).row();
           }
-          await ctx.reply(formatDisambiguation(t, "destination", result.candidates as never), {
-            parse_mode: "HTML",
-            reply_markup: keyboard,
-          });
+          await ctx.reply(t.whichStation, { reply_markup: keyboard });
           return;
         }
 
