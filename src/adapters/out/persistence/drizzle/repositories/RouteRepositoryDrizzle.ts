@@ -1,8 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import type * as schema from "../schema";
-import { routes, routeStations } from "../schema";
-import { RouteMapper } from "../mappers/RouteMapper";
+import type * as schema from "@/adapters/out/persistence/drizzle/schema";
+import { routes, routeStations } from "@/adapters/out/persistence/drizzle/schema";
+import { RouteMapper } from "@/adapters/out/persistence/drizzle/mappers/RouteMapper";
 import type { RouteRepository } from "@/core/domain/route/RouteRepository.ts";
 import type { Route } from "@/core/domain/route/Route.ts";
 import type { RouteId } from "@/core/domain/route/RouteId.ts";

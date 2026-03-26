@@ -1,6 +1,7 @@
 import type { DomainEvent } from "@/core/domain/event/DomainEvent";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import type { EventSubscriber } from "@/core/domain/event/EventSubscriber";
+import { logger } from "@/config/logger";
 
 export class InMemoryEventBus implements EventBus {
   constructor(private readonly subscribers: EventSubscriber[]) {}
@@ -9,7 +10,7 @@ export class InMemoryEventBus implements EventBus {
     for (const subscriber of this.subscribers) {
       await subscriber
         .handle(event)
-        .catch((err) => console.error(`[EventBus] Subscriber failed for ${event.eventName}:`, err));
+        .catch((err) => logger.error({ event: event.eventName, err }, "Event subscriber failed"));
     }
   }
 }

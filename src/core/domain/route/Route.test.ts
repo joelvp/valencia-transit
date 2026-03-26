@@ -1,10 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { Route } from "./Route.ts";
-import { RouteId } from "./RouteId.ts";
-import { RouteStation } from "./RouteStation.ts";
-import { LineId } from "../line/LineId.ts";
-import { StationId } from "../station/StationId.ts";
-import { TransportType } from "../shared/TransportType.ts";
+import { Route } from "./Route";
+import { RouteId } from "./RouteId";
+import { RouteStation } from "./RouteStation";
+import { LineId } from "@/core/domain/line/LineId";
+import { StationId } from "@/core/domain/station/StationId";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 function makeRoute(routeId = "V4-114-98", lineId = "4"): Route {
   return new Route(

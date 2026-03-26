@@ -1,10 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { Line } from "./Line.ts";
-import { LineId } from "./LineId.ts";
-import { LineName } from "./LineName.ts";
-import { LineStop } from "./LineStop.ts";
-import { LineColor } from "./LineColor.ts";
-import { StationId } from "../station/StationId.ts";
+import { Line } from "./Line";
+import { LineId } from "./LineId";
+import { LineName } from "./LineName";
+import { LineStop } from "./LineStop";
+import { LineColor } from "./LineColor";
+import { StationId } from "@/core/domain/station/StationId";
 
 function createLine(stops: { id: string; seq: number }[]): Line {
   return new Line(

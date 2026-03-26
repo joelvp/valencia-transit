@@ -7,9 +7,9 @@ import { LineName } from "@/core/domain/line/LineName";
 import { LineStop } from "@/core/domain/line/LineStop";
 import { Line } from "@/core/domain/line/Line";
 import { StationId } from "@/core/domain/station/StationId";
-import { stations, lines, lineStations } from "../schema";
-import { StationMother } from "./mothers/StationMother";
-import { LineMother } from "./mothers/LineMother";
+import { stations, lines, lineStations } from "@/adapters/out/persistence/drizzle/schema";
+import { StationMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/StationMother";
+import { LineMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/LineMother";
 
 const FEED_ID = "metrovalencia";
 

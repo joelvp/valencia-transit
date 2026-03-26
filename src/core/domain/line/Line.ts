@@ -1,9 +1,9 @@
-import type { LineId } from "./LineId.ts";
-import type { LineName } from "./LineName.ts";
-import type { LineStop } from "./LineStop.ts";
-import type { LineColor } from "./LineColor.ts";
-import type { StationId } from "../station/StationId.ts";
-import { TransportType } from "../shared/TransportType.ts";
+import type { LineId } from "./LineId";
+import type { LineName } from "./LineName";
+import type { LineStop } from "./LineStop";
+import type { LineColor } from "./LineColor";
+import type { StationId } from "@/core/domain/station/StationId";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 export class Line {
   constructor(

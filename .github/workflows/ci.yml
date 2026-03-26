@@ -16,7 +16,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.3.9"
+          bun-version-file: ".bun-version"
 
       - uses: actions/cache@v4
         with:
@@ -63,7 +63,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.3.9"
+          bun-version-file: ".bun-version"
 
       - uses: actions/cache@v4
         with:
@@ -79,5 +79,7 @@ jobs:
       - name: Unit tests
         run: bun test src/core src/adapters/out/persistence/drizzle/mappers
 
-      - name: Coverage (all tests)
-        run: bun test --coverage
+      - name: All tests
+        # TODO: restore --coverage once Bun fixes segfault on Linux with coverage instrumentation
+        # Tracked: https://github.com/oven-sh/bun/issues
+        run: bun test

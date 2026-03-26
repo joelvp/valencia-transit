@@ -1,5 +1,5 @@
-import type { Route } from "./Route.ts";
-import type { RouteId } from "./RouteId.ts";
+import type { Route } from "./Route";
+import type { RouteId } from "./RouteId";
 
 export interface RouteRepository {
   findLineIdsByRouteIds(routeIds: RouteId[]): Promise<Map<string, string>>;

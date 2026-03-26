@@ -1,4 +1,4 @@
-import type { DomainEventType } from "./DomainEventType.ts";
+import type { DomainEventType } from "./DomainEventType";
 
 export class StoredDomainEvent {
   constructor(

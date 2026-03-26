@@ -1,16 +1,16 @@
 import { describe, it, expect, mock } from "bun:test";
-import { GetLineStations } from "./GetLineStations.ts";
-import type { StationRepository } from "../../domain/station/StationRepository.ts";
-import type { LineRepository } from "../../domain/line/LineRepository.ts";
-import { Station } from "../../domain/station/Station.ts";
-import { StationId } from "../../domain/station/StationId.ts";
-import { StationName } from "../../domain/station/StationName.ts";
-import { StationLocation } from "../../domain/station/StationLocation.ts";
-import { Line } from "../../domain/line/Line.ts";
-import { LineId } from "../../domain/line/LineId.ts";
-import { LineName } from "../../domain/line/LineName.ts";
-import { LineStop } from "../../domain/line/LineStop.ts";
-import { TransportType } from "../../domain/shared/TransportType.ts";
+import { GetLineStations } from "./GetLineStations";
+import type { StationRepository } from "@/core/domain/station/StationRepository";
+import type { LineRepository } from "@/core/domain/line/LineRepository";
+import { Station } from "@/core/domain/station/Station";
+import { StationId } from "@/core/domain/station/StationId";
+import { StationName } from "@/core/domain/station/StationName";
+import { StationLocation } from "@/core/domain/station/StationLocation";
+import { Line } from "@/core/domain/line/Line";
+import { LineId } from "@/core/domain/line/LineId";
+import { LineName } from "@/core/domain/line/LineName";
+import { LineStop } from "@/core/domain/line/LineStop";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 function makeStation(id: string, name: string): Station {
   return new Station(new StationId(id), new StationName(name), new StationLocation(39.47, -0.37), [

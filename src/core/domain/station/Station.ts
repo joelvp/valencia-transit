@@ -1,7 +1,7 @@
-import { StationId } from "./StationId.ts";
-import { StationName } from "./StationName.ts";
-import type { StationLocation } from "./StationLocation.ts";
-import type { TransportType } from "../shared/TransportType.ts";
+import { StationId } from "./StationId";
+import { StationName } from "./StationName";
+import type { StationLocation } from "./StationLocation";
+import type { TransportType } from "@/core/domain/shared/TransportType";
 
 export class Station {
   constructor(

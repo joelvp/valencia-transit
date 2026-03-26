@@ -1,11 +1,11 @@
 import { describe, it, expect } from "bun:test";
-import { Trip } from "./Trip.ts";
-import { TripId } from "./TripId.ts";
-import { RouteId } from "../route/RouteId.ts";
-import { ScheduleId } from "../schedule/ScheduleId.ts";
-import { PassingTime } from "./PassingTime.ts";
-import { StationId } from "../station/StationId.ts";
-import { TimeOfDay } from "../shared/TimeOfDay.ts";
+import { Trip } from "./Trip";
+import { TripId } from "./TripId";
+import { RouteId } from "@/core/domain/route/RouteId";
+import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
+import { PassingTime } from "./PassingTime";
+import { StationId } from "@/core/domain/station/StationId";
+import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 
 function createTrip(
   passingTimes?: { stationId: string; arrival: string; departure: string; seq: number }[],

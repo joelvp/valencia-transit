@@ -1,7 +1,11 @@
+import "@/config/logger";
 import { createContainer } from "@/adapters/container";
 import { GtfsParser } from "@/adapters/out/transit-data/GtfsParser";
 import { ImportTransitData } from "@/core/application/import/ImportTransitData";
 import { BuildLines } from "@/core/domain/line/BuildLines";
+import { createLogger } from "@/config/logger";
+
+const log = createLogger("import-gtfs");
 
 const OPERATOR_ALIASES: Array<{ pattern: RegExp; feedId: string }> = [
   { pattern: /metro.?valencia/i, feedId: "metrovalencia" },
@@ -22,36 +26,35 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("Error: No GTFS ZIP file path provided.");
-    console.error("Usage: bun run scripts/import-gtfs.ts <path-to-gtfs-zip>");
-    console.error("Example: bun run scripts/import-gtfs.ts ./data/gtfs/metrovalencia.zip");
+    log.error(
+      "No GTFS ZIP file path provided. Usage: bun run scripts/import-gtfs.ts <path-to-gtfs-zip>",
+    );
     process.exit(1);
   }
 
   const zipPath = args[0]!;
   const feedId = deriveFeedId(zipPath);
 
-  console.log(`Importing GTFS data from: ${zipPath}`);
-  console.log(`Feed ID: ${feedId}`);
-  console.log("");
+  log.info({ zipPath, feedId }, "Starting GTFS import");
 
   const container = createContainer();
 
   try {
-    // Parse GTFS ZIP
-    console.log("Parsing GTFS file...");
+    log.info("Parsing GTFS file...");
     const parser = new GtfsParser();
     const gtfsData = parser.parse(zipPath);
     const lines = BuildLines.fromRoutesAndTrips(gtfsData.routes, gtfsData.trips);
-    console.log(`  - Stations: ${gtfsData.stations.length}`);
-    console.log(`  - Routes: ${gtfsData.routes.length}`);
-    console.log(`  - Lines: ${lines.length}`);
-    console.log(`  - Schedules: ${gtfsData.schedules.length}`);
-    console.log(`  - Trips: ${gtfsData.trips.length}`);
-    console.log("");
+    log.info(
+      {
+        stations: gtfsData.stations.length,
+        routes: gtfsData.routes.length,
+        lines: lines.length,
+        schedules: gtfsData.schedules.length,
+        trips: gtfsData.trips.length,
+      },
+      "GTFS parsed",
+    );
 
-    // Execute import
-    console.log("Importing data into database...");
     const importUseCase = new ImportTransitData(
       container.stationRepository,
       container.routeRepository,
@@ -63,36 +66,30 @@ async function main() {
 
     const summary = await importUseCase.execute(gtfsData, feedId);
 
-    // Log summary
-    console.log("");
-    console.log("=== Import Summary ===");
-    console.log(`Feed ID: ${summary.feedId}`);
-    console.log(`Stations imported: ${summary.stationsImported}`);
-    console.log(`Routes imported: ${summary.routesImported}`);
-    console.log(`Lines imported: ${summary.linesImported}`);
-    console.log(`Schedules imported: ${summary.schedulesImported}`);
-    console.log(`Trips imported: ${summary.tripsImported}`);
-    console.log("");
-    console.log("Import completed successfully!");
+    log.info(
+      {
+        feedId: summary.feedId,
+        stationsImported: summary.stationsImported,
+        routesImported: summary.routesImported,
+        linesImported: summary.linesImported,
+        schedulesImported: summary.schedulesImported,
+        tripsImported: summary.tripsImported,
+      },
+      "Import completed successfully",
+    );
   } catch (error) {
-    console.error("");
-    console.error("=== Import Failed ===");
-
     if (error instanceof Error) {
-      console.error(`Error: ${error.message}`);
+      log.error({ err: error }, "Import failed");
 
-      // Provide helpful hints for common errors
       if (error.message.includes("ENOENT") || error.message.includes("no such file")) {
-        console.error("");
-        console.error("Hint: Make sure the file path is correct and the file exists.");
+        log.error("Hint: Make sure the file path is correct and the file exists.");
       } else if (error.message.includes("Missing required GTFS file")) {
-        console.error("");
-        console.error(
+        log.error(
           "Hint: The GTFS ZIP file is missing required files (stops.txt, routes.txt, etc.).",
         );
       }
     } else {
-      console.error("An unknown error occurred.");
+      log.error({ err: error }, "Import failed with unknown error");
     }
 
     process.exit(1);

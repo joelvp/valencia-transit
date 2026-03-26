@@ -1,6 +1,6 @@
-import type { Line } from "../../domain/line/Line.ts";
-import type { LineRepository } from "../../domain/line/LineRepository.ts";
-import type { StationRepository } from "../../domain/station/StationRepository.ts";
+import type { Line } from "@/core/domain/line/Line";
+import type { LineRepository } from "@/core/domain/line/LineRepository";
+import type { StationRepository } from "@/core/domain/station/StationRepository";
 
 export interface LineWithTerminals {
   line: Line;

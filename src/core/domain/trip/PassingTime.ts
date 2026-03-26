@@ -1,5 +1,5 @@
-import type { StationId } from "../station/StationId.ts";
-import type { TimeOfDay } from "../shared/TimeOfDay.ts";
+import type { StationId } from "@/core/domain/station/StationId";
+import type { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 
 export class PassingTime {
   constructor(

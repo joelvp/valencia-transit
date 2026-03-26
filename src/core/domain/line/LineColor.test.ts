@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { LineColor } from "./LineColor.ts";
+import { LineColor } from "./LineColor";
 
 describe("LineColor", () => {
   describe("valid values", () => {

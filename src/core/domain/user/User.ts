@@ -1,4 +1,4 @@
-import type { ChatId } from "./ChatId.ts";
+import type { ChatId } from "./ChatId";
 
 export class User {
   constructor(

@@ -9,11 +9,11 @@ import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 import { PassingTime } from "@/core/domain/trip/PassingTime";
-import { stations, routes, schedules, trips, passingTimes } from "../schema";
-import { StationMother } from "./mothers/StationMother";
-import { RouteMother } from "./mothers/RouteMother";
-import { ScheduleMother } from "./mothers/ScheduleMother";
-import { TripMother } from "./mothers/TripMother";
+import { stations, routes, schedules, trips, passingTimes } from "@/adapters/out/persistence/drizzle/schema";
+import { StationMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/StationMother";
+import { RouteMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/RouteMother";
+import { ScheduleMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/ScheduleMother";
+import { TripMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/TripMother";
 
 const FEED_ID = "metrovalencia";
 

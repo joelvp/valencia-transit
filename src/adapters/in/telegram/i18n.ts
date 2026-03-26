@@ -29,6 +29,8 @@ export interface Translations {
   linesTitle: string;
   lineStationsTitle: (lineName: string, from: string, to: string) => string;
   errLineNotFound: string;
+  // Rate limiting
+  rateLimitExceeded: string;
   // Command menu descriptions
   cmdLineas: string;
   cmdIdioma: string;
@@ -68,6 +70,7 @@ const es: Translations = {
   linesTitle: "Selecciona una línea:",
   lineStationsTitle: (lineName, from, to) => `Paradas de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línea no encontrada",
+  rateLimitExceeded: "⏳ Demasiados mensajes. Espera un momento.",
   cmdLineas: "Ver líneas disponibles",
   cmdIdioma: "Cambiar idioma: /idioma es | val",
   cmdHelp: "Ayuda",
@@ -106,6 +109,7 @@ const val: Translations = {
   linesTitle: "Selecciona una línia:",
   lineStationsTitle: (lineName, from, to) => `Parades de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línia no trobada",
+  rateLimitExceeded: "⏳ Massa missatges. Espera un moment.",
   cmdLineas: "Veure línies disponibles",
   cmdIdioma: "Canviar idioma: /idioma es | val",
   cmdHelp: "Ajuda i informació",

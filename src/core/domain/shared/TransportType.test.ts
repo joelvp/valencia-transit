@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { TransportType } from "./TransportType.ts";
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { TransportType } from "./TransportType";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 describe("TransportType", () => {
   describe("constructor", () => {

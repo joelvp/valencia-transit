@@ -6,11 +6,9 @@ import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnec
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/languageStore";
-import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
-import {
-  formatDisambiguation,
-  buildDisambiguationKeyboard,
-} from "@/adapters/in/telegram/handlers/disambiguation";
+import { formatDepartures, formatNoMoreToday } from "./formatters";
+import { logger } from "@/config/logger";
+import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 
 export function departureHandler(useCase: SearchNextDepartures, userRepository: UserRepository) {
   return async (ctx: Context): Promise<void> => {
@@ -34,10 +32,17 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
 
     const traceId = String(chatId);
 
+    logger.info({ chatId, origin: originName, dest: destinationName }, "Departure search");
+    const start = Date.now();
+
     try {
       const result = await useCase.execute(originName, destinationName, new Date(), traceId);
 
       if (result.type === "disambiguation") {
+        logger.info(
+          { chatId, durationMs: Date.now() - start },
+          "Departure search — disambiguation",
+        );
         await ctx.reply(formatDisambiguation(t, result.field, result.candidates), {
           parse_mode: "HTML",
           reply_markup: buildDisambiguationKeyboard(
@@ -58,6 +63,7 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
       }
 
       if (result.type === "no_more_today") {
+        logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — no more today");
         await ctx.reply(
           formatNoMoreToday(
             t,
@@ -79,6 +85,10 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
         return;
       }
 
+      logger.info(
+        { chatId, durationMs: Date.now() - start, results: result.data.departures.length },
+        "Departure search — success",
+      );
       await ctx.reply(
         formatDepartures(
           t,
@@ -102,14 +112,22 @@ export function departureHandler(useCase: SearchNextDepartures, userRepository: 
       if (err instanceof StationNotFoundError) {
         const match = /^Station not found: "(.+)"$/.exec(err.message);
         const stationName = match ? match[1]! : "unknown";
+        logger.warn({ chatId, stationName }, "Departure search — station not found");
         await ctx.reply(t.errNotFound(stationName));
       } else if (err instanceof StationsNotConnectedError) {
+        logger.warn(
+          { chatId, origin: originName, dest: destinationName },
+          "Departure search — no connection",
+        );
         await ctx.reply(t.errNoConn(originName, destinationName));
       } else if (err instanceof NoServiceError) {
+        logger.warn({ chatId }, "Departure search — no service");
         await ctx.reply(t.errNoService);
       } else if (err instanceof NoActiveServiceError) {
+        logger.warn({ chatId }, "Departure search — no active service");
         await ctx.reply(t.errNoService);
       } else {
+        logger.error({ chatId, err }, "Departure search — unexpected error");
         await ctx.reply(t.errUnknown);
       }
     }

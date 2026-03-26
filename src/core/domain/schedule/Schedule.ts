@@ -1,7 +1,7 @@
-import type { ScheduleId } from "./ScheduleId.ts";
-import type { Weekdays } from "./Weekdays.ts";
-import type { DateRange } from "./DateRange.ts";
-import type { ScheduleException } from "./ScheduleException.ts";
+import type { ScheduleId } from "./ScheduleId";
+import type { Weekdays } from "./Weekdays";
+import type { DateRange } from "./DateRange";
+import type { ScheduleException } from "./ScheduleException";
 
 export class Schedule {
   constructor(

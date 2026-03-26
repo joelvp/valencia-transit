@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { StationLocation } from "./StationLocation.ts";
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { StationLocation } from "./StationLocation";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 describe("StationLocation", () => {
   it("should create a valid location", () => {

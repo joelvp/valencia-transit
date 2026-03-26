@@ -1,9 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { Schedule } from "./Schedule.ts";
-import { ScheduleId } from "./ScheduleId.ts";
-import { Weekdays } from "./Weekdays.ts";
-import { DateRange } from "./DateRange.ts";
-import { ScheduleException } from "./ScheduleException.ts";
+import { Schedule } from "./Schedule";
+import { ScheduleId } from "./ScheduleId";
+import { Weekdays } from "./Weekdays";
+import { DateRange } from "./DateRange";
+import { ScheduleException } from "./ScheduleException";
 
 function createSchedule(opts?: {
   weekdays?: Weekdays;

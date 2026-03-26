@@ -85,7 +85,7 @@ describe("TelegramBot E2E", () => {
       getLineStations,
       container.userRepository,
       container.eventBus,
-      { botInfo: fakeBotInfo },
+      { botInfo: fakeBotInfo, disableRateLimit: true },
     );
 
     replies = [];

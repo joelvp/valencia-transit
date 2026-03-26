@@ -1,5 +1,5 @@
-import { DomainEvent } from "./DomainEvent.ts";
-import { DomainEventType } from "./DomainEventType.ts";
+import { DomainEvent } from "./DomainEvent";
+import { DomainEventType } from "./DomainEventType";
 
 export class LanguageChanged extends DomainEvent {
   readonly eventName = DomainEventType.LANGUAGE_CHANGED;

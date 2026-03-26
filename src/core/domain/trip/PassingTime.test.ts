@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { PassingTime } from "./PassingTime.ts";
-import { StationId } from "../station/StationId.ts";
-import { TimeOfDay } from "../shared/TimeOfDay.ts";
+import { PassingTime } from "./PassingTime";
+import { StationId } from "@/core/domain/station/StationId";
+import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 
 function makePassingTime(opts?: {
   stationId?: string;

@@ -1,4 +1,5 @@
 import { Bot } from "grammy";
+import { limit } from "@grammyjs/ratelimiter";
 import type { Update, UserFromGetMe } from "grammy/types";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { ListLines } from "@/core/application/query/ListLines";
@@ -10,11 +11,15 @@ import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
-import { translations, type Lang } from "@/adapters/in/telegram/i18n";
+import { translations, type Lang } from "./i18n";
+import { getT } from "./languageStore";
+import { logger } from "@/config/logger";
 
 export interface TelegramBotOptions {
   /** Pre-set bot info to skip the `getMe` network call. Useful in tests. */
   botInfo?: UserFromGetMe;
+  /** Disable rate limiting. Useful in tests. */
+  disableRateLimit?: boolean;
 }
 
 export class TelegramBot {
@@ -31,8 +36,32 @@ export class TelegramBot {
   ) {
     this.bot = new Bot(token ?? "fake-token", { botInfo: options.botInfo });
 
+    if (!options.disableRateLimit) {
+      this.bot.use(
+        limit({
+          timeFrame: 2000,
+          limit: 3,
+          onLimitExceeded: async (ctx) => {
+            const chatId = ctx.chat?.id ?? 0;
+            const t = getT(chatId);
+            await ctx.reply(t.rateLimitExceeded);
+          },
+        }),
+      );
+    }
+
+    this.bot.use(async (ctx, next) => {
+      const start = Date.now();
+      await next();
+      const updateType = Object.keys(ctx.update).find((k) => k !== "update_id") ?? "unknown";
+      logger.info(
+        { durationMs: Date.now() - start, updateType, chatId: ctx.chat?.id },
+        "Request handled",
+      );
+    });
+
     this.bot.catch((err) => {
-      console.error("[TelegramBot] Unhandled error:", err.error);
+      logger.error({ err: err.error }, "Unhandled bot error");
     });
 
     this.bot.command(
@@ -71,8 +100,8 @@ export class TelegramBot {
       throw new Error("BOT_TOKEN is required to start the Telegram bot");
     }
 
-    console.log("[TelegramBot] Starting bot...");
     await this.bot.api.setMyCommands(this.buildCommands("es"));
+    logger.info("Bot started");
     await this.bot.start();
   }
 
