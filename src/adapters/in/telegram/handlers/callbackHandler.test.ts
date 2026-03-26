@@ -260,10 +260,10 @@ describe("callbackHandler", () => {
     );
     await handler(ctx as never);
 
-    expect(ctx.editMessageText).not.toHaveBeenCalled();
-    expect(ctx.answerCallbackQuery).toHaveBeenCalledTimes(1);
-    const [opts] = ctx.answerCallbackQuery.mock.calls[0] as unknown as [{ text: string }];
-    expect(opts.text).toContain("Error");
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
+    expect(ctx.editMessageText).toHaveBeenCalledTimes(1);
+    const [text] = ctx.editMessageText.mock.calls[0] as unknown as [string];
+    expect(text).toContain("Error");
   });
 
   it("should call getLineStations and reply with station list for li|3", async () => {

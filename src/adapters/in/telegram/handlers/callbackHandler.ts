@@ -277,19 +277,20 @@ async function answerWithError(
   originName: string,
   destinationName: string,
 ): Promise<void> {
+  let text: string;
   if (err instanceof StationNotFoundError) {
     const match = /^Station not found: "(.+)"$/.exec((err as Error).message);
     const name = match ? match[1]! : "unknown";
-    await ctx.answerCallbackQuery({ text: t("errNotFound", { name }) });
+    text = t("errNotFound", { name });
   } else if (err instanceof StationsNotConnectedError) {
-    await ctx.answerCallbackQuery({
-      text: t("errNoConn", { origin: originName, destination: destinationName }),
-    });
+    text = t("errNoConn", { origin: originName, destination: destinationName });
   } else if (err instanceof NoServiceError || err instanceof NoActiveServiceError) {
-    await ctx.answerCallbackQuery({ text: t("errNoService") });
+    text = t("errNoService");
   } else {
-    await ctx.answerCallbackQuery({ text: t("errUnknown") });
+    text = t("errUnknown");
   }
+  await ctx.answerCallbackQuery();
+  await ctx.editMessageText(text);
 }
 
 function parseCallbackData(data: string): { originName: string; destinationName: string } | null {
