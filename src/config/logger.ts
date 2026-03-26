@@ -1,11 +1,11 @@
 import pino from "pino";
 
 const appEnv = process.env["APP_ENV"] ?? "local";
-const isLocal = appEnv === "local";
+const isPretty = appEnv === "local" || appEnv === "dev";
 
 export const logger = pino({
-  level: isLocal ? "debug" : "info",
-  ...(isLocal && {
+  level: appEnv === "local" ? "debug" : "info",
+  ...(isPretty && {
     transport: {
       target: "pino-pretty",
       options: { colorize: true, translateTime: "SYS:HH:MM:ss.l", ignore: "pid,hostname" },
