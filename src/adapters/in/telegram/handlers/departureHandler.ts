@@ -8,10 +8,7 @@ import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/languageStore";
 import { formatDepartures, formatNoMoreToday } from "./formatters";
 import { logger } from "@/config/logger";
-import {
-  formatDisambiguation,
-  buildDisambiguationKeyboard,
-} from "./disambiguation";
+import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 
 export function departureHandler(useCase: SearchNextDepartures, userRepository: UserRepository) {
   return async (ctx: Context): Promise<void> => {

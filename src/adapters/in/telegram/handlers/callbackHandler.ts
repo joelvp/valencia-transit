@@ -7,10 +7,7 @@ import { StationLocationRequested } from "@/core/domain/event/StationLocationReq
 import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
 import { getT } from "@/adapters/in/telegram/languageStore";
 import { formatDepartures, formatNoMoreToday } from "./formatters";
-import {
-  formatDisambiguation,
-  buildDisambiguationKeyboard,
-} from "./disambiguation";
+import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegram/lineEmoji";
 import { logger } from "@/config/logger";
 
