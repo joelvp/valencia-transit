@@ -5,6 +5,10 @@ import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
 import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
+import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
+import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
+import { NoServiceError } from "@/core/domain/error/NoServiceError";
+import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { getT } from "@/adapters/in/telegram/i18n";
 import { getLang } from "@/adapters/in/telegram/languageStore";
 import {
@@ -194,8 +198,8 @@ export function callbackHandler(
             "Wizard callback departure search — success",
           );
         } catch (err) {
-          logger.error({ chatId, err }, "Wizard callback departure search — unexpected error");
-          await ctx.answerCallbackQuery({ text: t("errUnknown") });
+          logger.error({ chatId, err }, "Wizard callback departure search — error");
+          await answerWithError(ctx, err, t, originName, destinationName);
         }
         return;
       }
@@ -260,10 +264,32 @@ export function callbackHandler(
         "Callback departure search — success",
       );
     } catch (err) {
-      logger.error({ chatId, err }, "Callback departure search — unexpected error");
-      await ctx.answerCallbackQuery({ text: t("errUnknown") });
+      logger.error({ chatId, err }, "Callback departure search — error");
+      await answerWithError(ctx, err, t, originName, destinationName);
     }
   };
+}
+
+async function answerWithError(
+  ctx: Context,
+  err: unknown,
+  t: ReturnType<typeof getT>,
+  originName: string,
+  destinationName: string,
+): Promise<void> {
+  if (err instanceof StationNotFoundError) {
+    const match = /^Station not found: "(.+)"$/.exec((err as Error).message);
+    const name = match ? match[1]! : "unknown";
+    await ctx.answerCallbackQuery({ text: t("errNotFound", { name }) });
+  } else if (err instanceof StationsNotConnectedError) {
+    await ctx.answerCallbackQuery({
+      text: t("errNoConn", { origin: originName, destination: destinationName }),
+    });
+  } else if (err instanceof NoServiceError || err instanceof NoActiveServiceError) {
+    await ctx.answerCallbackQuery({ text: t("errNoService") });
+  } else {
+    await ctx.answerCallbackQuery({ text: t("errUnknown") });
+  }
 }
 
 function parseCallbackData(data: string): { originName: string; destinationName: string } | null {
