@@ -129,6 +129,15 @@ export class TelegramBot {
     await this.bot.start();
   }
 
+  async restoreCommandScopes(languages: Map<number, string>): Promise<void> {
+    for (const [chatId, lang] of languages) {
+      if (lang === "val" || lang === "en") {
+        await this.setCommandsForChat(chatId, lang);
+      }
+    }
+    logger.info({ count: languages.size }, "Command scopes restored");
+  }
+
   async setCommandsForChat(chatId: number, lang: Lang): Promise<void> {
     await this.bot.api.setMyCommands(this.buildCommands(lang), {
       scope: { type: "chat", chat_id: chatId },

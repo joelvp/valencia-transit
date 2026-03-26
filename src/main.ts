@@ -54,5 +54,6 @@ serve({
 });
 logger.info({ port }, "Health check server listening");
 
+await bot.restoreCommandScopes(languages);
 logger.info("Bot starting");
 await bot.start();
