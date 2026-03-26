@@ -33,6 +33,9 @@ export interface Translations {
   // Conversational flow
   askOrigin: string;
   askDestination: string;
+  stationNotFoundInFlow: (name: string) => string;
+  cancelledSearch: string;
+  cancelHint: string;
   // Rate limiting
   rateLimitExceeded: string;
   // Command menu descriptions
@@ -75,8 +78,12 @@ const es: Translations = {
   linesTitle: "Selecciona una línea:",
   lineStationsTitle: (lineName, from, to) => `Paradas de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línea no encontrada",
-  askOrigin: "🚊 ¿Desde dónde quieres salir?\n\nEjemplo: <code>Xàtiva</code>",
+  askOrigin: "🚊 ¿Desde dónde quieres salir?",
   askDestination: "🚊 ¿Hasta dónde?",
+  stationNotFoundInFlow: (name) =>
+    `❌ No conozco ninguna estación llamada "${name}". Inténtalo de nuevo o escribe /cancelar para salir.`,
+  cancelledSearch: "🚫 Búsqueda cancelada.",
+  cancelHint: "(Escribe /cancelar para salir en cualquier momento)",
   rateLimitExceeded: "⏳ Demasiados mensajes. Espera un momento.",
   cmdSalida: "Próximas salidas entre dos estaciones",
   cmdLineas: "Ver líneas disponibles",
@@ -117,8 +124,12 @@ const val: Translations = {
   linesTitle: "Selecciona una línia:",
   lineStationsTitle: (lineName, from, to) => `Parades de L${lineName}: ${from} → ${to}`,
   errLineNotFound: "Línia no trobada",
-  askOrigin: "🚊 Des d'on vols eixir?\n\nExemple: <code>Xàtiva</code>",
+  askOrigin: "🚊 Des d'on vols eixir?",
   askDestination: "🚊 Fins on?",
+  stationNotFoundInFlow: (name) =>
+    `❌ No conec cap estació amb el nom "${name}". Torna-ho a intentar o escriu /cancelar per a eixir.`,
+  cancelledSearch: "🚫 Cerca cancel·lada.",
+  cancelHint: "(Escriu /cancelar per a eixir en qualsevol moment)",
   rateLimitExceeded: "⏳ Massa missatges. Espera un moment.",
   cmdSalida: "Pròximes eixides entre dos estacions",
   cmdLineas: "Veure línies disponibles",

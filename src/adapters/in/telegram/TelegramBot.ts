@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 import { limit } from "@grammyjs/ratelimiter";
 import type { Update, UserFromGetMe } from "grammy/types";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
+import type { FindStation } from "@/core/application/query/FindStation";
 import type { ListLines } from "@/core/application/query/ListLines";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
@@ -13,6 +14,7 @@ import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
 import { translations, type Lang } from "./i18n";
 import { getT } from "./languageStore";
+import { clearConversationState } from "./conversationStore";
 import { logger } from "@/config/logger";
 
 export interface TelegramBotOptions {
@@ -28,6 +30,7 @@ export class TelegramBot {
   constructor(
     private readonly token: string | undefined,
     private readonly searchNextDepartures: SearchNextDepartures,
+    private readonly findStation: FindStation,
     private readonly listLines: ListLines,
     private readonly getLineStations: GetLineStations,
     private readonly userRepository: UserRepository,
@@ -64,11 +67,31 @@ export class TelegramBot {
       logger.error({ err: err.error }, "Unhandled bot error");
     });
 
+    // Clear conversation state when any non-departure command is used
+    this.bot.use(async (ctx, next) => {
+      if (ctx.message?.text?.startsWith("/") && ctx.chat) {
+        const cmd = ctx.message.text.split(" ")[0]?.split("@")[0];
+        if (cmd !== "/salida" && cmd !== "/s" && cmd !== "/eixida" && cmd !== "/e") {
+          clearConversationState(ctx.chat.id);
+        }
+      }
+      await next();
+    });
+
     this.bot.command(
       ["salida", "eixida"],
-      departureHandler(this.searchNextDepartures, this.userRepository),
+      departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
     );
-    this.bot.command(["s", "e"], departureHandler(this.searchNextDepartures, this.userRepository));
+    this.bot.command(
+      ["s", "e"],
+      departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
+    );
+    this.bot.command("cancelar", async (ctx) => {
+      const chatId = ctx.chat?.id ?? 0;
+      const t = getT(chatId);
+      clearConversationState(chatId);
+      await ctx.reply(t.cancelledSearch);
+    });
     this.bot.command(
       ["lineas", "linies"],
       lineHandler(this.listLines, this.userRepository, this.eventBus),
@@ -86,7 +109,10 @@ export class TelegramBot {
         this.setCommandsForChat.bind(this),
       ),
     );
-    this.bot.on("message:text", departureHandler(this.searchNextDepartures, this.userRepository));
+    this.bot.on(
+      "message:text",
+      departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
+    );
   }
 
   async handleUpdate(update: Update): Promise<void> {

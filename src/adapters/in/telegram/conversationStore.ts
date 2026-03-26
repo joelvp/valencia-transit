@@ -1,6 +1,6 @@
 type ConversationState =
   | { step: "awaiting_origin" }
-  | { step: "awaiting_destination"; origin: string };
+  | { step: "awaiting_destination"; originName: string };
 
 const store = new Map<number, ConversationState>();
 
