@@ -1,4 +1,5 @@
 import { Bot } from "grammy";
+import { limit } from "@grammyjs/ratelimiter";
 import type { Update, UserFromGetMe } from "grammy/types";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { ListLines } from "@/core/application/query/ListLines";
@@ -11,11 +12,14 @@ import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
 import { translations, type Lang } from "@/adapters/in/telegram/i18n";
+import { getT } from "@/adapters/in/telegram/languageStore";
 import { logger } from "@/config/logger";
 
 export interface TelegramBotOptions {
   /** Pre-set bot info to skip the `getMe` network call. Useful in tests. */
   botInfo?: UserFromGetMe;
+  /** Disable rate limiting. Useful in tests. */
+  disableRateLimit?: boolean;
 }
 
 export class TelegramBot {
@@ -31,6 +35,20 @@ export class TelegramBot {
     options: TelegramBotOptions = {},
   ) {
     this.bot = new Bot(token ?? "fake-token", { botInfo: options.botInfo });
+
+    if (!options.disableRateLimit) {
+      this.bot.use(
+        limit({
+          timeFrame: 2000,
+          limit: 3,
+          onLimitExceeded: async (ctx) => {
+            const chatId = ctx.chat?.id ?? 0;
+            const t = getT(chatId);
+            await ctx.reply(t.rateLimitExceeded);
+          },
+        }),
+      );
+    }
 
     this.bot.catch((err) => {
       logger.error({ err: err.error }, "Unhandled bot error");

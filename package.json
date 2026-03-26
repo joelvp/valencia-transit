@@ -17,6 +17,7 @@
     "import:gtfs": "bun run scripts/import-gtfs.ts"
   },
   "dependencies": {
+    "@grammyjs/ratelimiter": "^1.2.1",
     "adm-zip": "^0.5.16",
     "drizzle-kit": "^0.31.9",
     "drizzle-orm": "^0.45.1",
