@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 export abstract class StringValueObject {
   constructor(readonly value: string) {

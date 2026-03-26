@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { Weekdays } from "./Weekdays.ts";
+import { Weekdays } from "./Weekdays";
 
 describe("Weekdays", () => {
   const weekdaysOnly = new Weekdays(true, true, true, true, true, false, false);

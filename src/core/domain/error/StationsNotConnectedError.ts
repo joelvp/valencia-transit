@@ -1,4 +1,4 @@
-import { DomainError } from "./DomainError.ts";
+import { DomainError } from "./DomainError";
 
 export class StationsNotConnectedError extends DomainError {
   readonly code = "STATIONS_NOT_CONNECTED";

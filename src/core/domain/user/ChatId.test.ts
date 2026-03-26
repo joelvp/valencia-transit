@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { ChatId } from "./ChatId.ts";
+import { ChatId } from "./ChatId";
 
 describe("ChatId", () => {
   it("should create a ChatId with a valid bigint", () => {

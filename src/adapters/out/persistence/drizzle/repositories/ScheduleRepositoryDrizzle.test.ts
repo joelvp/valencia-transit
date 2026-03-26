@@ -6,8 +6,8 @@ import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { Schedule } from "@/core/domain/schedule/Schedule";
 import { Weekdays } from "@/core/domain/schedule/Weekdays";
 import { DateRange } from "@/core/domain/schedule/DateRange";
-import { schedules, scheduleExceptions } from "../schema";
-import { ScheduleMother } from "./mothers/ScheduleMother";
+import { schedules, scheduleExceptions } from "@/adapters/out/persistence/drizzle/schema";
+import { ScheduleMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/ScheduleMother";
 
 const FEED_ID = "metrovalencia";
 

@@ -1,5 +1,5 @@
-import type { Line } from "./Line.ts";
-import type { StationId } from "../station/StationId.ts";
+import type { Line } from "./Line";
+import type { StationId } from "@/core/domain/station/StationId";
 
 export interface LineRepository {
   saveMany(lines: Line[], feedId: string): Promise<void>;

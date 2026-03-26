@@ -1,6 +1,6 @@
-import type { Station } from "./Station.ts";
-import type { StationId } from "./StationId.ts";
-import type { TransportType } from "../shared/TransportType.ts";
+import type { Station } from "./Station";
+import type { StationId } from "./StationId";
+import type { TransportType } from "@/core/domain/shared/TransportType";
 
 export interface StationRepository {
   findById(id: StationId): Promise<Station | null>;

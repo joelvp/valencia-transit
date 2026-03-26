@@ -1,11 +1,11 @@
 import { describe, it, expect, mock } from "bun:test";
-import { SearchStations } from "./SearchStations.ts";
-import type { StationRepository } from "../../domain/station/StationRepository.ts";
-import { Station } from "../../domain/station/Station.ts";
-import { StationId } from "../../domain/station/StationId.ts";
-import { StationName } from "../../domain/station/StationName.ts";
-import { StationLocation } from "../../domain/station/StationLocation.ts";
-import { TransportType } from "../../domain/shared/TransportType.ts";
+import { SearchStations } from "./SearchStations";
+import type { StationRepository } from "@/core/domain/station/StationRepository";
+import { Station } from "@/core/domain/station/Station";
+import { StationId } from "@/core/domain/station/StationId";
+import { StationName } from "@/core/domain/station/StationName";
+import { StationLocation } from "@/core/domain/station/StationLocation";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 function makeStation(id: string, name: string): Station {
   return new Station(new StationId(id), new StationName(name), new StationLocation(39.47, -0.37), [

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { Departure } from "./Departure.ts";
-import { TimeOfDay } from "./TimeOfDay.ts";
+import { Departure } from "./Departure";
+import { TimeOfDay } from "./TimeOfDay";
 
 describe("Departure", () => {
   it("should calculate minutes remaining", () => {

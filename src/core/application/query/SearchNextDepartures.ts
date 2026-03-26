@@ -1,18 +1,18 @@
-import type { Station } from "../../domain/station/Station.ts";
-import type { Line } from "../../domain/line/Line.ts";
-import type { StationRepository } from "../../domain/station/StationRepository.ts";
-import type { LineRepository } from "../../domain/line/LineRepository.ts";
-import type { RouteRepository } from "../../domain/route/RouteRepository.ts";
-import type { ScheduleRepository } from "../../domain/schedule/ScheduleRepository.ts";
-import type { TripRepository } from "../../domain/trip/TripRepository.ts";
-import type { EventBus } from "../../domain/event/EventBus.ts";
-import { Departure } from "../../domain/shared/Departure.ts";
-import { TimeOfDay } from "../../domain/shared/TimeOfDay.ts";
-import { DepartureSearched } from "../../domain/event/DepartureSearched.ts";
-import { StationNotFoundError } from "../../domain/error/StationNotFoundError.ts";
-import { StationsNotConnectedError } from "../../domain/error/StationsNotConnectedError.ts";
-import { NoServiceError } from "../../domain/error/NoServiceError.ts";
-import { NoActiveServiceError } from "../../domain/error/NoActiveServiceError.ts";
+import type { Station } from "@/core/domain/station/Station";
+import type { Line } from "@/core/domain/line/Line";
+import type { StationRepository } from "@/core/domain/station/StationRepository";
+import type { LineRepository } from "@/core/domain/line/LineRepository";
+import type { RouteRepository } from "@/core/domain/route/RouteRepository";
+import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
+import type { TripRepository } from "@/core/domain/trip/TripRepository";
+import type { EventBus } from "@/core/domain/event/EventBus";
+import { Departure } from "@/core/domain/shared/Departure";
+import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
+import { DepartureSearched } from "@/core/domain/event/DepartureSearched";
+import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
+import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
+import { NoServiceError } from "@/core/domain/error/NoServiceError";
+import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 
 export interface DepartureResult {
   origin: Station;

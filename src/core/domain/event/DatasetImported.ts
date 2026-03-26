@@ -1,5 +1,5 @@
-import { DomainEvent } from "./DomainEvent.ts";
-import { DomainEventType } from "./DomainEventType.ts";
+import { DomainEvent } from "./DomainEvent";
+import { DomainEventType } from "./DomainEventType";
 
 export class DatasetImported extends DomainEvent {
   readonly eventName = DomainEventType.DATASET_IMPORTED;

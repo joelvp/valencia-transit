@@ -1,15 +1,15 @@
 import { describe, it, expect } from "bun:test";
-import { BuildLines } from "./BuildLines.ts";
-import { Route } from "../route/Route.ts";
-import { RouteId } from "../route/RouteId.ts";
-import { Trip } from "../trip/Trip.ts";
-import { TripId } from "../trip/TripId.ts";
-import { PassingTime } from "../trip/PassingTime.ts";
-import { LineId } from "./LineId.ts";
-import { StationId } from "../station/StationId.ts";
-import { ScheduleId } from "../schedule/ScheduleId.ts";
-import { TimeOfDay } from "../shared/TimeOfDay.ts";
-import { TransportType } from "../shared/TransportType.ts";
+import { BuildLines } from "./BuildLines";
+import { Route } from "@/core/domain/route/Route";
+import { RouteId } from "@/core/domain/route/RouteId";
+import { Trip } from "@/core/domain/trip/Trip";
+import { TripId } from "@/core/domain/trip/TripId";
+import { PassingTime } from "@/core/domain/trip/PassingTime";
+import { LineId } from "./LineId";
+import { StationId } from "@/core/domain/station/StationId";
+import { ScheduleId } from "@/core/domain/schedule/ScheduleId";
+import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 const SCHEDULE = new ScheduleId("S1");
 const TIME = new TimeOfDay("08:00:00");

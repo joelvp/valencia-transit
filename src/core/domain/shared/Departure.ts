@@ -1,4 +1,4 @@
-import type { TimeOfDay } from "./TimeOfDay.ts";
+import type { TimeOfDay } from "./TimeOfDay";
 
 export class Departure {
   readonly minutesRemaining: number;

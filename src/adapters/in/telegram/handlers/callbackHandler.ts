@@ -6,12 +6,13 @@ import type { EventBus } from "@/core/domain/event/EventBus";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
 import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
 import { getT } from "@/adapters/in/telegram/languageStore";
-import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
+import { formatDepartures, formatNoMoreToday } from "./formatters";
 import {
   formatDisambiguation,
   buildDisambiguationKeyboard,
-} from "@/adapters/in/telegram/handlers/disambiguation";
+} from "./disambiguation";
 import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegram/lineEmoji";
+import { logger } from "@/config/logger";
 
 export function callbackHandler(
   useCase: SearchNextDepartures,
@@ -26,6 +27,8 @@ export function callbackHandler(
     if (!data) return;
 
     const traceId = String(ctx.chat?.id ?? ctx.from?.id ?? 0);
+    const start = Date.now();
+    logger.info({ chatId, callback: data.split("|")[0] }, "Callback received");
 
     if (ctx.from) {
       await userRepository.upsert({
@@ -71,6 +74,10 @@ export function callbackHandler(
       const lineStationsViewedEvent = new LineStationsViewed(result.line.id.value);
       lineStationsViewedEvent.traceId = traceId;
       void eventBus.publish(lineStationsViewedEvent);
+      logger.info(
+        { chatId, lineId: result.line.id.value, durationMs: Date.now() - start },
+        "Line stations viewed",
+      );
       return;
     }
 
@@ -89,6 +96,10 @@ export function callbackHandler(
       const stationLocationRequestedEvent = new StationLocationRequested(stationId);
       stationLocationRequestedEvent.traceId = traceId;
       void eventBus.publish(stationLocationRequestedEvent);
+      logger.info(
+        { chatId, stationId, durationMs: Date.now() - start },
+        "Station location requested",
+      );
       return;
     }
 
@@ -143,7 +154,12 @@ export function callbackHandler(
         ),
         { parse_mode: "HTML" },
       );
-    } catch {
+      logger.info(
+        { chatId, durationMs: Date.now() - start, results: result.data.departures.length },
+        "Callback departure search — success",
+      );
+    } catch (err) {
+      logger.error({ chatId, err }, "Callback departure search — unexpected error");
       await ctx.answerCallbackQuery({ text: t.errUnknown });
     }
   };

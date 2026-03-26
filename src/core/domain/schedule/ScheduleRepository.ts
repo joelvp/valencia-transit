@@ -1,5 +1,5 @@
-import type { Schedule } from "./Schedule.ts";
-import type { ScheduleId } from "./ScheduleId.ts";
+import type { Schedule } from "./Schedule";
+import type { ScheduleId } from "./ScheduleId";
 
 export interface ScheduleRepository {
   findById(id: ScheduleId): Promise<Schedule | null>;

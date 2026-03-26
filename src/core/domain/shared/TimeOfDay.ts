@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 const TIME_PATTERN = /^(\d{1,2}):(\d{2}):(\d{2})$/;
 

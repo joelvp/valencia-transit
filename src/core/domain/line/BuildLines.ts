@@ -1,12 +1,12 @@
-import type { Route } from "../route/Route.ts";
-import type { Trip } from "../trip/Trip.ts";
-import type { StationId } from "../station/StationId.ts";
-import { Line } from "./Line.ts";
-import { LineId } from "./LineId.ts";
-import { LineName } from "./LineName.ts";
-import { LineStop } from "./LineStop.ts";
-import { LineColor } from "./LineColor.ts";
-import { TransportType } from "../shared/TransportType.ts";
+import type { Route } from "@/core/domain/route/Route";
+import type { Trip } from "@/core/domain/trip/Trip";
+import type { StationId } from "@/core/domain/station/StationId";
+import { Line } from "./Line";
+import { LineId } from "./LineId";
+import { LineName } from "./LineName";
+import { LineStop } from "./LineStop";
+import { LineColor } from "./LineColor";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 export class BuildLines {
   private static readonly LINE_TRANSPORT_TYPES: Record<string, TransportType> = {

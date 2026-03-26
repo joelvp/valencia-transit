@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 const VALID_TYPES = ["metro", "tram", "bus", "train"] as const;
 type TransportTypeValue = (typeof VALID_TYPES)[number];

@@ -1,4 +1,4 @@
-import { DomainError } from "./DomainError.ts";
+import { DomainError } from "./DomainError";
 
 export class InvalidArgumentError extends DomainError {
   readonly code = "INVALID_ARGUMENT";

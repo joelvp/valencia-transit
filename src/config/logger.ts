@@ -8,7 +8,11 @@ export const logger = pino({
   ...(isLocal && {
     transport: {
       target: "pino-pretty",
-      options: { colorize: true, translateTime: "HH:MM:ss", ignore: "pid,hostname" },
+      options: { colorize: true, translateTime: "SYS:HH:MM:ss.l", ignore: "pid,hostname" },
     },
   }),
 });
+
+export function createLogger(module: string) {
+  return logger.child({ module });
+}

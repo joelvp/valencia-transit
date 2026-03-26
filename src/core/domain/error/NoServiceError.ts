@@ -1,4 +1,4 @@
-import { DomainError } from "./DomainError.ts";
+import { DomainError } from "./DomainError";
 
 export class NoServiceError extends DomainError {
   readonly code = "NO_SERVICE";

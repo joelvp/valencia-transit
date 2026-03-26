@@ -1,5 +1,5 @@
-import type { Station } from "../../domain/station/Station.ts";
-import type { StationRepository } from "../../domain/station/StationRepository.ts";
+import type { Station } from "@/core/domain/station/Station";
+import type { StationRepository } from "@/core/domain/station/StationRepository";
 
 export class SearchStations {
   constructor(private readonly stationRepository: StationRepository) {}

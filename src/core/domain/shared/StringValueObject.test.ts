@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { StringValueObject } from "./StringValueObject.ts";
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { StringValueObject } from "./StringValueObject";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 class TestStringVO extends StringValueObject {}
 

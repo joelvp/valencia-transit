@@ -1,4 +1,4 @@
-import type { StationId } from "../station/StationId.ts";
+import type { StationId } from "@/core/domain/station/StationId";
 
 export class LineStop {
   constructor(

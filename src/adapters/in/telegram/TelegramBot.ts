@@ -11,8 +11,8 @@ import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
-import { translations, type Lang } from "@/adapters/in/telegram/i18n";
-import { getT } from "@/adapters/in/telegram/languageStore";
+import { translations, type Lang } from "./i18n";
+import { getT } from "./languageStore";
 import { logger } from "@/config/logger";
 
 export interface TelegramBotOptions {
@@ -49,6 +49,16 @@ export class TelegramBot {
         }),
       );
     }
+
+    this.bot.use(async (ctx, next) => {
+      const start = Date.now();
+      await next();
+      const updateType = Object.keys(ctx.update).find((k) => k !== "update_id") ?? "unknown";
+      logger.info(
+        { durationMs: Date.now() - start, updateType, chatId: ctx.chat?.id },
+        "Request handled",
+      );
+    });
 
     this.bot.catch((err) => {
       logger.error({ err: err.error }, "Unhandled bot error");

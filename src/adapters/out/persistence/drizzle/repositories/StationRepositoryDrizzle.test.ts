@@ -6,8 +6,8 @@ import { StationId } from "@/core/domain/station/StationId";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
 import { TransportType } from "@/core/domain/shared/TransportType";
-import { stations } from "../schema";
-import { StationMother } from "./mothers/StationMother";
+import { stations } from "@/adapters/out/persistence/drizzle/schema";
+import { StationMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/StationMother";
 
 const FEED_ID = "metrovalencia";
 

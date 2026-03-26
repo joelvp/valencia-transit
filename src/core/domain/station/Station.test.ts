@@ -1,9 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { Station } from "./Station.ts";
-import { StationId } from "./StationId.ts";
-import { StationName } from "./StationName.ts";
-import { StationLocation } from "./StationLocation.ts";
-import { TransportType } from "../shared/TransportType.ts";
+import { Station } from "./Station";
+import { StationId } from "./StationId";
+import { StationName } from "./StationName";
+import { StationLocation } from "./StationLocation";
+import { TransportType } from "@/core/domain/shared/TransportType";
 
 describe("Station", () => {
   const location = new StationLocation(39.4699, -0.3763);

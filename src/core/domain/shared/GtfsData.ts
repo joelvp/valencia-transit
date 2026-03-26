@@ -1,7 +1,7 @@
-import type { Station } from "../station/Station.ts";
-import type { Route } from "../route/Route.ts";
-import type { Schedule } from "../schedule/Schedule.ts";
-import type { Trip } from "../trip/Trip.ts";
+import type { Station } from "@/core/domain/station/Station";
+import type { Route } from "@/core/domain/route/Route";
+import type { Schedule } from "@/core/domain/schedule/Schedule";
+import type { Trip } from "@/core/domain/trip/Trip";
 
 export type GtfsData = {
   stations: Station[];

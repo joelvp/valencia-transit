@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { User } from "./User.ts";
-import { ChatId } from "./ChatId.ts";
+import { User } from "./User";
+import { ChatId } from "./ChatId";
 
 function makeUser(chatId = 100n, firstName = "Ana"): User {
   return new User(new ChatId(chatId), firstName);

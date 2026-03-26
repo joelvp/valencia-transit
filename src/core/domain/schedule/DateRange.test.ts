@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { DateRange } from "./DateRange.ts";
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { DateRange } from "./DateRange";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 describe("DateRange", () => {
   const range = new DateRange("2026-01-01", "2026-06-30");

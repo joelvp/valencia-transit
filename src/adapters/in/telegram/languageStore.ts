@@ -1,5 +1,5 @@
-import type { Lang } from "@/adapters/in/telegram/i18n";
-import { translations } from "@/adapters/in/telegram/i18n";
+import type { Lang } from "./i18n";
+import { translations } from "./i18n";
 
 const store = new Map<number, Lang>();
 

@@ -1,6 +1,6 @@
-import type { DomainEvent } from "./DomainEvent.ts";
-import type { DomainEventType } from "./DomainEventType.ts";
-import type { StoredDomainEvent } from "./StoredDomainEvent.ts";
+import type { DomainEvent } from "./DomainEvent";
+import type { DomainEventType } from "./DomainEventType";
+import type { StoredDomainEvent } from "./StoredDomainEvent";
 
 export interface DomainEventRepository {
   save(event: DomainEvent): Promise<void>;

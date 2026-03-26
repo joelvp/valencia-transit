@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { TimeOfDay } from "./TimeOfDay.ts";
-import { InvalidArgumentError } from "../error/InvalidArgumentError.ts";
+import { TimeOfDay } from "./TimeOfDay";
+import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
 
 describe("TimeOfDay", () => {
   it("should parse a valid time", () => {

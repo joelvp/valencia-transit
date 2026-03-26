@@ -1,9 +1,9 @@
-import type { TripId } from "./TripId.ts";
-import type { RouteId } from "../route/RouteId.ts";
-import type { ScheduleId } from "../schedule/ScheduleId.ts";
-import type { PassingTime } from "./PassingTime.ts";
-import type { StationId } from "../station/StationId.ts";
-import type { TimeOfDay } from "../shared/TimeOfDay.ts";
+import type { TripId } from "./TripId";
+import type { RouteId } from "@/core/domain/route/RouteId";
+import type { ScheduleId } from "@/core/domain/schedule/ScheduleId";
+import type { PassingTime } from "./PassingTime";
+import type { StationId } from "@/core/domain/station/StationId";
+import type { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 
 export class Trip {
   constructor(

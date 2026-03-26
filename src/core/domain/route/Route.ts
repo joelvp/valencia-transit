@@ -1,7 +1,7 @@
-import type { RouteId } from "./RouteId.ts";
-import type { LineId } from "../line/LineId.ts";
-import type { RouteStation } from "./RouteStation.ts";
-import type { TransportType } from "../shared/TransportType.ts";
+import type { RouteId } from "./RouteId";
+import type { LineId } from "@/core/domain/line/LineId";
+import type { RouteStation } from "./RouteStation";
+import type { TransportType } from "@/core/domain/shared/TransportType";
 
 export class Route {
   constructor(

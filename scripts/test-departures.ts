@@ -7,6 +7,7 @@
  *   bun run scripts/test-departures.ts "Xàtiva" "Colón" 08:30
  */
 
+import "@/config/logger";
 import { createContainer } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import { translations } from "@/adapters/in/telegram/i18n";
@@ -14,11 +15,14 @@ import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/hand
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
+import { createLogger } from "@/config/logger";
+
+const log = createLogger("test-departures");
 
 const [originArg, destinationArg, timeArg] = process.argv.slice(2);
 
 if (!originArg || !destinationArg) {
-  console.error("Usage: bun run scripts/test-departures.ts <origin> <destination> [HH:MM]");
+  log.error("Usage: bun run scripts/test-departures.ts <origin> <destination> [HH:MM]");
   process.exit(1);
 }
 
@@ -30,7 +34,7 @@ function buildNow(timeArg?: string): Date {
   if (!timeArg) return new Date();
   const match = /^(\d{1,2}):(\d{2})$/.exec(timeArg);
   if (!match) {
-    console.error(`Invalid time format: "${timeArg}". Expected HH:MM`);
+    log.error({ timeArg }, `Invalid time format. Expected HH:MM`);
     process.exit(1);
   }
   const now = new Date();
@@ -52,8 +56,9 @@ const useCase = new SearchNextDepartures(
   container.eventBus,
 );
 
-console.log(
-  `\nSearching: ${originArg} → ${destinationArg} at ${now.toLocaleTimeString("es-ES")}\n`,
+log.info(
+  { origin: originArg, destination: destinationArg, time: now.toLocaleTimeString("es-ES") },
+  "Searching departures",
 );
 
 try {
@@ -84,18 +89,21 @@ try {
     );
   }
 
-  console.log(stripHtml(message));
+  log.info(stripHtml(message));
 } catch (err) {
   if (err instanceof StationNotFoundError) {
     const match = /^Station not found: "(.+)"$/.exec((err as Error).message);
     const name = match ? match[1]! : "unknown";
-    console.error(`❌ Estación no encontrada: ${name}`);
+    log.error({ stationName: name }, "Estación no encontrada");
   } else if (err instanceof NoConnectionError) {
-    console.error(`❌ No hay conexión entre ${originArg} y ${destinationArg}`);
+    log.error(
+      { origin: originArg, destination: destinationArg },
+      "No hay conexión entre estaciones",
+    );
   } else if (err instanceof NoActiveServiceError) {
-    console.error("❌ No hay servicio activo en este momento");
+    log.error("No hay servicio activo en este momento");
   } else {
-    console.error("❌ Error inesperado:", err);
+    log.error({ err }, "Error inesperado");
   }
 } finally {
   await container.dispose();
