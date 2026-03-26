@@ -65,3 +65,5 @@ Plano-zonal-tarifario-Metrovalencia_.png
 # Skill-creator
 *-workspace/
 *evals/
+logs.*.json
+logs.*.log
