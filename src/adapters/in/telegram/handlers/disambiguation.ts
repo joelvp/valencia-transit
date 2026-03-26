@@ -1,14 +1,15 @@
 import { InlineKeyboard } from "grammy";
 import type { Station } from "@/core/domain/station/Station";
-import type { Translations } from "@/adapters/in/telegram/i18n";
+import { getT } from "@/adapters/in/telegram/i18n";
 
 export function formatDisambiguation(
-  t: Translations,
+  t: ReturnType<typeof getT>,
   field: "origin" | "destination",
   candidates: Station[],
 ): string {
   const names = candidates.map((c) => c.name.value).join(", ");
-  return t.disambiguation(field, names);
+  const key = field === "origin" ? "disambiguationOrigin" : "disambiguationDestination";
+  return t(key, { names });
 }
 
 export function buildDisambiguationKeyboard(

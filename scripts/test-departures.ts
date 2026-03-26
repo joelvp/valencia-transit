@@ -10,7 +10,7 @@
 import "@/config/logger";
 import { createContainer } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
-import { translations } from "@/adapters/in/telegram/i18n";
+import { initI18n, getT } from "@/adapters/in/telegram/i18n";
 import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoConnectionError } from "@/core/domain/error/NoConnectionError";
@@ -43,7 +43,8 @@ function buildNow(timeArg?: string): Date {
 }
 
 const now = buildNow(timeArg);
-const t = translations.es;
+await initI18n();
+const t = getT("es");
 
 const container = createContainer();
 

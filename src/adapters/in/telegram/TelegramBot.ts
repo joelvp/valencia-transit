@@ -12,9 +12,9 @@ import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
-import { translations, type Lang } from "./i18n";
-import { getT } from "./languageStore";
-import { clearConversationState } from "./conversationStore";
+import { getT, type Lang } from "./i18n";
+import { getLang } from "./languageStore";
+import { clearConversationState as clearConvState } from "./conversationStore";
 import { logger } from "@/config/logger";
 
 export interface TelegramBotOptions {
@@ -46,8 +46,8 @@ export class TelegramBot {
           limit: 3,
           onLimitExceeded: async (ctx) => {
             const chatId = ctx.chat?.id ?? 0;
-            const t = getT(chatId);
-            await ctx.reply(t.rateLimitExceeded);
+            const t = getT(getLang(chatId));
+            await ctx.reply(t("rateLimitExceeded"));
           },
         }),
       );
@@ -72,7 +72,7 @@ export class TelegramBot {
       if (ctx.message?.text?.startsWith("/") && ctx.chat) {
         const cmd = ctx.message.text.split(" ")[0]?.split("@")[0];
         if (cmd !== "/salida" && cmd !== "/s" && cmd !== "/eixida" && cmd !== "/e") {
-          clearConversationState(ctx.chat.id);
+          clearConvState(ctx.chat.id);
         }
       }
       await next();
@@ -86,11 +86,11 @@ export class TelegramBot {
       ["s", "e"],
       departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
     );
-    this.bot.command("cancelar", async (ctx) => {
+    this.bot.command(["cancelar", "cancel"], async (ctx) => {
       const chatId = ctx.chat?.id ?? 0;
-      const t = getT(chatId);
-      clearConversationState(chatId);
-      await ctx.reply(t.cancelledSearch);
+      const t = getT(getLang(chatId));
+      clearConvState(chatId);
+      await ctx.reply(t("cancelledSearch"));
     });
     this.bot.command(
       ["lineas", "linies"],
@@ -136,14 +136,15 @@ export class TelegramBot {
   }
 
   private buildCommands(lang: Lang) {
-    const t = translations[lang];
+    const t = getT(lang);
     const isVal = lang === "val";
+    const isEn = lang === "en";
     return [
-      { command: isVal ? "eixida" : "salida", description: t.cmdSalida },
-      { command: isVal ? "linies" : "lineas", description: t.cmdLineas },
-      { command: "idioma", description: t.cmdIdioma },
-      { command: "help", description: t.cmdHelp },
-      { command: "cancelar", description: t.cmdCancelar },
+      { command: isVal ? "eixida" : "salida", description: t("cmdSalida") },
+      { command: isVal ? "linies" : "lineas", description: t("cmdLineas") },
+      { command: "idioma", description: t("cmdIdioma") },
+      { command: "help", description: t("cmdHelp") },
+      { command: isEn ? "cancel" : "cancelar", description: t("cmdCancelar") },
     ];
   }
 }

@@ -7,7 +7,8 @@ import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
-import { getT } from "@/adapters/in/telegram/languageStore";
+import { getT } from "@/adapters/in/telegram/i18n";
+import { getLang } from "@/adapters/in/telegram/languageStore";
 import {
   getConversationState,
   setConversationState,
@@ -24,7 +25,7 @@ export function departureHandler(
 ) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
-    const t = getT(chatId);
+    const t = getT(getLang(chatId));
     const text = ctx.message?.text ?? "";
     const isCommand = text.startsWith("/");
     const args = text.trim().replace(/^\/\S+\s*/, "");
@@ -33,7 +34,7 @@ export function departureHandler(
     if (isCommand && !args) {
       clearConversationState(chatId);
       setConversationState(chatId, { step: "awaiting_origin" });
-      await ctx.reply(`${t.askOrigin}\n\n${t.cancelHint}`);
+      await ctx.reply(`${t("askOrigin")}\n\n${t("cancelHint")}`);
       return;
     }
 
@@ -46,7 +47,7 @@ export function departureHandler(
         const result = await findStation.execute(input);
 
         if (result.type === "not_found") {
-          await ctx.reply(t.stationNotFoundInFlow(input));
+          await ctx.reply(t("stationNotFoundInFlow", { name: input }));
           return;
         }
 
@@ -55,7 +56,7 @@ export function departureHandler(
           for (const candidate of result.candidates) {
             keyboard.text(candidate.name, `sw|o|${candidate.name}`.slice(0, 64)).row();
           }
-          await ctx.reply(t.whichStation, { reply_markup: keyboard });
+          await ctx.reply(t("whichStation"), { reply_markup: keyboard });
           return;
         }
 
@@ -64,7 +65,7 @@ export function departureHandler(
           step: "awaiting_destination",
           originName: result.stationName,
         });
-        await ctx.reply(t.askDestination);
+        await ctx.reply(t("askDestination"));
         return;
       }
 
@@ -73,7 +74,7 @@ export function departureHandler(
         const result = await findStation.execute(input);
 
         if (result.type === "not_found") {
-          await ctx.reply(t.stationNotFoundInFlow(input));
+          await ctx.reply(t("stationNotFoundInFlow", { name: input }));
           return;
         }
 
@@ -83,7 +84,7 @@ export function departureHandler(
             const data = `sw|d|${candidate.name}|${state.originName}`;
             keyboard.text(candidate.name, data.slice(0, 64)).row();
           }
-          await ctx.reply(t.whichStation, { reply_markup: keyboard });
+          await ctx.reply(t("whichStation"), { reply_markup: keyboard });
           return;
         }
 
@@ -104,7 +105,7 @@ export function departureHandler(
       // No active state and no command — show help for unrecognized text
       const parsed = parseStations(text);
       if (!parsed) {
-        await ctx.reply(t.helpText, { parse_mode: "HTML" });
+        await ctx.reply(t("helpText"), { parse_mode: "HTML" });
         return;
       }
 
@@ -123,7 +124,7 @@ export function departureHandler(
     // Command with arguments
     const parsed = parseStations(args);
     if (!parsed) {
-      await ctx.reply(t.helpText, { parse_mode: "HTML" });
+      await ctx.reply(t("helpText"), { parse_mode: "HTML" });
       return;
     }
 
@@ -228,22 +229,22 @@ async function executeSearch(
       const match = /^Station not found: "(.+)"$/.exec(err.message);
       const stationName = match ? match[1]! : "unknown";
       logger.warn({ chatId, stationName }, "Departure search — station not found");
-      await ctx.reply(t.errNotFound(stationName));
+      await ctx.reply(t("errNotFound", { name: stationName }));
     } else if (err instanceof StationsNotConnectedError) {
       logger.warn(
         { chatId, origin: originName, dest: destinationName },
         "Departure search — no connection",
       );
-      await ctx.reply(t.errNoConn(originName, destinationName));
+      await ctx.reply(t("errNoConn", { origin: originName, destination: destinationName }));
     } else if (err instanceof NoServiceError) {
       logger.warn({ chatId }, "Departure search — no service");
-      await ctx.reply(t.errNoService);
+      await ctx.reply(t("errNoService"));
     } else if (err instanceof NoActiveServiceError) {
       logger.warn({ chatId }, "Departure search — no active service");
-      await ctx.reply(t.errNoService);
+      await ctx.reply(t("errNoService"));
     } else {
       logger.error({ chatId, err }, "Departure search — unexpected error");
-      await ctx.reply(t.errUnknown);
+      await ctx.reply(t("errUnknown"));
     }
   }
 }

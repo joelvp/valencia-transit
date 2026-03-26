@@ -4,5 +4,7 @@ export interface UserRepository {
     username?: string;
     firstName: string;
     lastName?: string;
+    language?: string;
   }): Promise<void>;
+  findAllLanguages(): Promise<Map<number, string>>;
 }

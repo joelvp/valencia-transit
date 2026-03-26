@@ -7,12 +7,18 @@ import { FindStation } from "@/core/application/query/FindStation";
 import { ListLines } from "@/core/application/query/ListLines";
 import { GetLineStations } from "@/core/application/query/GetLineStations";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
+import { initI18n } from "@/adapters/in/telegram/i18n";
+import { initLanguageStore } from "@/adapters/in/telegram/languageStore";
 
 const container = createContainer();
 
 logger.info({ env: container.secrets.APP_ENV }, "Starting valencia-transit");
 await migrate(container.db, { migrationsFolder: "./drizzle" });
 logger.info("Migrations applied");
+
+await initI18n();
+const languages = await container.userRepository.findAllLanguages();
+initLanguageStore(languages);
 
 const searchNextDepartures = new SearchNextDepartures(
   container.stationRepository,

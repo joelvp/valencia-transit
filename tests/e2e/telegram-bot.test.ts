@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
 import { clearConversationState } from "@/adapters/in/telegram/conversationStore";
+import { initI18n } from "@/adapters/in/telegram/i18n";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createContainer, type Container } from "@/adapters/container";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
@@ -53,7 +54,8 @@ describe("TelegramBot E2E", () => {
   let bot: TelegramBot;
   let replies: string[];
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    await initI18n();
     container = createContainer();
 
     const searchNextDepartures = new SearchNextDepartures(

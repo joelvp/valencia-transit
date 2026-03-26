@@ -208,6 +208,7 @@ export const users = pgTable("users", {
   username: text("username"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name"),
+  language: text("language"),
   firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
   lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
 });

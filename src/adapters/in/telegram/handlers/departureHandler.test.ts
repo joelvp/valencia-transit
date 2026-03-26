@@ -12,7 +12,10 @@ import {
   clearConversationState,
 } from "@/adapters/in/telegram/conversationStore";
 
-const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+const mockUserRepository = {
+  upsert: mock(() => Promise.resolve()),
+  findAllLanguages: mock(() => Promise.resolve(new Map())),
+};
 
 const notFoundResult: FindStationResult = { type: "not_found" };
 

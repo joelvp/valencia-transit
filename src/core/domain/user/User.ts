@@ -6,6 +6,7 @@ export class User {
     readonly firstName: string,
     readonly username?: string,
     readonly lastName?: string,
+    readonly language?: string,
   ) {}
 
   equals(other: User): boolean {

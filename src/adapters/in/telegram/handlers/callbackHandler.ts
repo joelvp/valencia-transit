@@ -5,7 +5,8 @@ import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
 import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
-import { getT } from "@/adapters/in/telegram/languageStore";
+import { getT } from "@/adapters/in/telegram/i18n";
+import { getLang } from "@/adapters/in/telegram/languageStore";
 import {
   setConversationState,
   clearConversationState,
@@ -26,7 +27,7 @@ export function callbackHandler(
 ) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
-    const t = getT(chatId);
+    const t = getT(getLang(chatId));
     const data = ctx.callbackQuery?.data;
     if (!data) return;
 
@@ -46,8 +47,8 @@ export function callbackHandler(
     // Handle language callback
     if (data.startsWith("lang|")) {
       const lang = data.split("|")[1] as Lang;
-      if (lang !== "es" && lang !== "val") {
-        await ctx.answerCallbackQuery({ text: t.errInvalidData });
+      if (lang !== "es" && lang !== "val" && lang !== "en") {
+        await ctx.answerCallbackQuery({ text: t("errInvalidData") });
         return;
       }
       await handleLanguageCallback(ctx, lang, setCommandsForChat, userRepository, eventBus);
@@ -59,13 +60,13 @@ export function callbackHandler(
       const parts = data.split("|");
       const lineId = parts[1];
       if (!lineId) {
-        await ctx.answerCallbackQuery({ text: t.errInvalidData });
+        await ctx.answerCallbackQuery({ text: t("errInvalidData") });
         return;
       }
 
       const result = await getLineStations.execute(lineId);
       if (!result) {
-        await ctx.answerCallbackQuery({ text: t.errLineNotFound });
+        await ctx.answerCallbackQuery({ text: t("errLineNotFound") });
         return;
       }
 
@@ -103,7 +104,7 @@ export function callbackHandler(
       const lat = parseFloat(parts[2] ?? "");
       const lon = parseFloat(parts[3] ?? "");
       if (!stationId || isNaN(lat) || isNaN(lon)) {
-        await ctx.answerCallbackQuery({ text: t.errInvalidData });
+        await ctx.answerCallbackQuery({ text: t("errInvalidData") });
         return;
       }
       await ctx.answerCallbackQuery();
@@ -127,12 +128,12 @@ export function callbackHandler(
         // sw|o|StationName — origin resolved, ask for destination
         const stationName = parts[2];
         if (!stationName) {
-          await ctx.answerCallbackQuery({ text: t.errInvalidData });
+          await ctx.answerCallbackQuery({ text: t("errInvalidData") });
           return;
         }
         setConversationState(chatId, { step: "awaiting_destination", originName: stationName });
         await ctx.answerCallbackQuery();
-        await ctx.editMessageText(t.askDestination);
+        await ctx.editMessageText(t("askDestination"));
         return;
       }
 
@@ -141,7 +142,7 @@ export function callbackHandler(
         const destinationName = parts[2];
         const originName = parts[3];
         if (!destinationName || !originName) {
-          await ctx.answerCallbackQuery({ text: t.errInvalidData });
+          await ctx.answerCallbackQuery({ text: t("errInvalidData") });
           return;
         }
         clearConversationState(chatId);
@@ -194,18 +195,18 @@ export function callbackHandler(
           );
         } catch (err) {
           logger.error({ chatId, err }, "Wizard callback departure search — unexpected error");
-          await ctx.answerCallbackQuery({ text: t.errUnknown });
+          await ctx.answerCallbackQuery({ text: t("errUnknown") });
         }
         return;
       }
 
-      await ctx.answerCallbackQuery({ text: t.errInvalidData });
+      await ctx.answerCallbackQuery({ text: t("errInvalidData") });
       return;
     }
 
     const parsed = parseCallbackData(data);
     if (!parsed) {
-      await ctx.answerCallbackQuery({ text: t.errInvalidData });
+      await ctx.answerCallbackQuery({ text: t("errInvalidData") });
       return;
     }
 
@@ -260,7 +261,7 @@ export function callbackHandler(
       );
     } catch (err) {
       logger.error({ chatId, err }, "Callback departure search — unexpected error");
-      await ctx.answerCallbackQuery({ text: t.errUnknown });
+      await ctx.answerCallbackQuery({ text: t("errUnknown") });
     }
   };
 }

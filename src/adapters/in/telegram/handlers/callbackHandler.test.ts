@@ -3,7 +3,10 @@ import { callbackHandler } from "./callbackHandler";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStationsResult } from "@/core/application/query/GetLineStations";
 
-const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+const mockUserRepository = {
+  upsert: mock(() => Promise.resolve()),
+  findAllLanguages: mock(() => Promise.resolve(new Map())),
+};
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
 
 function makeStation(name: string) {

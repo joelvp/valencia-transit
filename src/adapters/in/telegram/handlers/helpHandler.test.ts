@@ -1,7 +1,10 @@
 import { describe, it, expect, mock } from "bun:test";
 import { helpHandler } from "./helpHandler";
 
-const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+const mockUserRepository = {
+  upsert: mock(() => Promise.resolve()),
+  findAllLanguages: mock(() => Promise.resolve(new Map())),
+};
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
 
 function makeCtx() {
