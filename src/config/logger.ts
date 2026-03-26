@@ -8,7 +8,7 @@ export const logger = pino({
   ...(isPretty && {
     transport: {
       target: "pino-pretty",
-      options: { colorize: true, translateTime: "SYS:HH:MM:ss.l", ignore: "pid,hostname" },
+      options: { colorize: true, translateTime: "SYS:HH:MM:ss.l", ignore: "pid,hostname", singleLine: true },
     },
   }),
 });
