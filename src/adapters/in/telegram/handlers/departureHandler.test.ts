@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach } from "bun:test";
+import { describe, it, expect, mock, beforeEach, beforeAll } from "bun:test";
 import { departureHandler } from "./departureHandler";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
@@ -11,6 +11,7 @@ import {
   setConversationState,
   clearConversationState,
 } from "@/adapters/in/telegram/conversationStore";
+import { initI18n } from "@/adapters/in/telegram/i18n";
 
 const mockUserRepository = {
   upsert: mock(() => Promise.resolve()),
@@ -78,6 +79,10 @@ function makeDepartureResult(
 }
 
 describe("departureHandler", () => {
+  beforeAll(async () => {
+    await initI18n();
+  });
+
   beforeEach(() => {
     // Reset conversation state for a fresh chatId range each test
     for (let i = 1000; i < 2000; i++) {

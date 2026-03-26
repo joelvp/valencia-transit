@@ -5,11 +5,9 @@ import { getT } from "@/adapters/in/telegram/i18n";
 export function formatDisambiguation(
   t: ReturnType<typeof getT>,
   field: "origin" | "destination",
-  candidates: Station[],
 ): string {
-  const names = candidates.map((c) => c.name.value).join(", ");
   const key = field === "origin" ? "disambiguationOrigin" : "disambiguationDestination";
-  return t(key, { names });
+  return t(key);
 }
 
 export function buildDisambiguationKeyboard(

@@ -1,6 +1,7 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, beforeAll } from "bun:test";
 import { lineHandler } from "./lineHandler";
 import type { LineWithTerminals } from "@/core/application/query/ListLines";
+import { initI18n } from "@/adapters/in/telegram/i18n";
 
 const mockUserRepository = {
   upsert: mock(() => Promise.resolve()),
@@ -27,6 +28,10 @@ function makeCtx() {
 }
 
 describe("lineHandler", () => {
+  beforeAll(async () => {
+    await initI18n();
+  });
+
   it("should call listLines.execute and reply with inline keyboard", async () => {
     const mockUseCase = {
       execute: mock(() => Promise.resolve(makeListLinesResult())),

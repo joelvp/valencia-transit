@@ -151,7 +151,7 @@ export function callbackHandler(
 
           if (result.type === "disambiguation") {
             await ctx.answerCallbackQuery();
-            await ctx.editMessageText(formatDisambiguation(t, result.field, result.candidates), {
+            await ctx.editMessageText(formatDisambiguation(t, result.field), {
               parse_mode: "HTML",
               reply_markup: buildDisambiguationKeyboard(
                 result.field,
@@ -217,7 +217,7 @@ export function callbackHandler(
 
       if (result.type === "disambiguation") {
         await ctx.answerCallbackQuery();
-        await ctx.editMessageText(formatDisambiguation(t, result.field, result.candidates), {
+        await ctx.editMessageText(formatDisambiguation(t, result.field), {
           parse_mode: "HTML",
           reply_markup: buildDisambiguationKeyboard(
             result.field,

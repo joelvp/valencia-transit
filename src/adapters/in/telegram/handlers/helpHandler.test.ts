@@ -1,5 +1,6 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, beforeAll } from "bun:test";
 import { helpHandler } from "./helpHandler";
+import { initI18n } from "@/adapters/in/telegram/i18n";
 
 const mockUserRepository = {
   upsert: mock(() => Promise.resolve()),
@@ -15,6 +16,10 @@ function makeCtx() {
 }
 
 describe("helpHandler", () => {
+  beforeAll(async () => {
+    await initI18n();
+  });
+
   it("should reply with help text listing all commands", async () => {
     const ctx = makeCtx();
     const handler = helpHandler(mockUserRepository, mockEventBus);

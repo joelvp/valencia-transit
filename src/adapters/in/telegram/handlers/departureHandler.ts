@@ -159,7 +159,7 @@ async function executeSearch(
 
     if (result.type === "disambiguation") {
       logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — disambiguation");
-      await ctx.reply(formatDisambiguation(t, result.field, result.candidates), {
+      await ctx.reply(formatDisambiguation(t, result.field), {
         parse_mode: "HTML",
         reply_markup: buildDisambiguationKeyboard(
           result.field,

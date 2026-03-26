@@ -1,5 +1,6 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, beforeAll } from "bun:test";
 import { callbackHandler } from "./callbackHandler";
+import { initI18n } from "@/adapters/in/telegram/i18n";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStationsResult } from "@/core/application/query/GetLineStations";
 
@@ -90,6 +91,10 @@ function makeDisambiguationResult(): SearchResult {
 }
 
 describe("callbackHandler", () => {
+  beforeAll(async () => {
+    await initI18n();
+  });
+
   it("should call execute with originName=parts[2] and destinationName=parts[3] for field 'o'", async () => {
     const mockUseCase = {
       execute: mock(() => Promise.resolve(makeDepartureResult("Xàtiva", "Colón"))),
