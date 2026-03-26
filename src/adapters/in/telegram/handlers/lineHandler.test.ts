@@ -2,7 +2,10 @@ import { describe, it, expect, mock } from "bun:test";
 import { lineHandler } from "./lineHandler";
 import type { LineWithTerminals } from "@/core/application/query/ListLines";
 
-const mockUserRepository = { upsert: mock(() => Promise.resolve()) };
+const mockUserRepository = {
+  upsert: mock(() => Promise.resolve()),
+  findAllLanguages: mock(() => Promise.resolve(new Map())),
+};
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
 
 function makeLine(id: string): LineWithTerminals["line"] {

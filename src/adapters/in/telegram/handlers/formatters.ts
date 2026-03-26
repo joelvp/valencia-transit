@@ -1,5 +1,5 @@
 import type { Departure } from "@/core/domain/shared/Departure";
-import type { Translations } from "@/adapters/in/telegram/i18n";
+import { getT } from "@/adapters/in/telegram/i18n";
 import {
   lineNumberToEmoji,
   lineNumberToName,
@@ -31,7 +31,7 @@ function formatHeader(
 }
 
 export function formatDepartures(
-  t: Translations,
+  t: ReturnType<typeof getT>,
   origin: string,
   destination: string,
   departures: Departure[],
@@ -50,36 +50,36 @@ export function formatDepartures(
 
   const tomorrowLine = firstTomorrow
     ? [
-        t.firstTomorrow(
-          formatTime(firstTomorrow.departureTime.hours, firstTomorrow.departureTime.minutes),
-        ),
+        t("firstTomorrow", {
+          time: formatTime(firstTomorrow.departureTime.hours, firstTomorrow.departureTime.minutes),
+        }),
       ]
     : [];
 
   return [
     header,
     "",
-    t.nextDepartures,
+    t("nextDepartures"),
     ...lines,
     ...(tomorrowLine.length ? ["", ...tomorrowLine] : []),
     "",
-    t.disclaimer,
+    t("disclaimer"),
   ].join("\n");
 }
 
 export function formatNoMoreToday(
-  t: Translations,
+  t: ReturnType<typeof getT>,
   origin: string,
   destination: string,
   firstTomorrow: Departure | null,
   routeLineName: string | null = null,
 ): string {
   const header = formatHeader(origin, destination, routeLineName);
-  const noMore = `\n${t.noMoreToday(origin, destination)}`;
+  const noMore = `\n${t("noMoreToday", { origin, destination })}`;
 
   if (firstTomorrow) {
     const time = formatTime(firstTomorrow.departureTime.hours, firstTomorrow.departureTime.minutes);
-    return `${header}${noMore}\n\n${t.firstTomorrow(time)}`;
+    return `${header}${noMore}\n\n${t("firstTomorrow", { time })}`;
   }
 
   return `${header}${noMore}`;

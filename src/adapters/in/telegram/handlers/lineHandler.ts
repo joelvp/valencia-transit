@@ -3,7 +3,8 @@ import type { ListLines } from "@/core/application/query/ListLines";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { LinesBrowsed } from "@/core/domain/event/LinesBrowsed";
-import { getT } from "@/adapters/in/telegram/languageStore";
+import { getT } from "@/adapters/in/telegram/i18n";
+import { getLang } from "@/adapters/in/telegram/languageStore";
 import { lineNumberToEmoji } from "@/adapters/in/telegram/lineEmoji";
 
 export function lineHandler(
@@ -13,7 +14,7 @@ export function lineHandler(
 ) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
-    const t = getT(chatId);
+    const t = getT(getLang(chatId));
 
     const results = await listLines.execute();
 
@@ -23,7 +24,7 @@ export function lineHandler(
       return [{ text: label, callback_data: `li|${line.id.value}` }];
     });
 
-    await ctx.reply(t.linesTitle, {
+    await ctx.reply(t("linesTitle"), {
       parse_mode: "HTML",
       reply_markup: { inline_keyboard: buttons },
     });
