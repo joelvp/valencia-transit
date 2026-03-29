@@ -1,6 +1,6 @@
 {
   "usage": "⚠️ Ús: /eixida &lt;origen&gt; - &lt;destí&gt;",
-  "helpText": "🤖 <b>Valencia Transit Bot</b>\n\nOrdres disponibles:\n/eixida, /e &lt;origen&gt; - &lt;destí&gt; — Pròximes eixides entre dos estacions\n/linies — Veure línies i parades\n/idioma — Canviar idioma\n/help — Mostrar aquesta ajuda",
+  "helpText": "🤖 <b>Valencia Transit Bot</b>\n\nOrdres disponibles:\n/eixida, /e — Pròximes eixides entre dos estacions\n  · Prem sense arguments per al flux interactiu\n  · O escriu directament: &lt;origen&gt; - &lt;destí&gt; o &lt;origen&gt; a &lt;destí&gt;\n  · També pots escriure sense ordre: és la cerca per defecte\n/linies — Veure línies i parades\n/idioma — Canviar idioma\n/cancelar — Cancel·lar cerca en curs\n/ajuda — Mostrar aquesta ajuda",
   "nextDepartures": "Pròximes eixides:",
   "disclaimer": "ℹ️ Horaris planificats. Els temps reals poden variar.",
   "noMoreToday": "No hi ha més eixides hui de {{origin}} a {{destination}}.",
@@ -25,12 +25,14 @@
   "askDestination": "🚊 Fins on?",
   "whichStation": "🔍 Quina volies dir?",
   "stationNotFoundInFlow": "❌ No conec cap estació amb el nom \"{{name}}\". Torna-ho a intentar o escriu /cancelar per a eixir.",
+  "nothingToCancel": "😴 No hi ha cap cerca activa... No estaves fent res. Zzzz...",
   "cancelledSearch": "🚫 Cerca cancel·lada.",
   "cancelHint": "(Escriu /cancelar per a eixir en qualsevol moment)",
   "rateLimitExceeded": "⏳ Massa missatges. Espera un moment.",
   "cmdSalida": "Pròximes eixides entre dos estacions",
   "cmdLineas": "Veure línies disponibles",
   "cmdIdioma": "Canviar idioma",
-  "cmdHelp": "Ajuda i informació",
-  "cmdCancelar": "Cancel·lar cerca en curs"
+  "cmdHelp": "Ajuda",
+  "cmdCancelar": "Cancel·lar cerca en curs",
+  "separators": [" - ", " a "]
 }

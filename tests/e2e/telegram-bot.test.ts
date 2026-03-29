@@ -234,7 +234,7 @@ describe("TelegramBot E2E", () => {
   });
 
   it("should reply with formatted departures for /salida Xàtiva Colón", async () => {
-    await bot.handleUpdate(makeCommandUpdate("/salida Xàtiva Colón"));
+    await bot.handleUpdate(makeCommandUpdate("/salida Xàtiva - Colón"));
 
     expect(replies).toHaveLength(1);
     const reply = replies[0]!;
@@ -253,7 +253,7 @@ describe("TelegramBot E2E", () => {
   });
 
   it("should reply with station not found for /salida Desconocida Colón", async () => {
-    await bot.handleUpdate(makeCommandUpdate("/salida Desconocida Colón"));
+    await bot.handleUpdate(makeCommandUpdate("/salida Desconocida - Colón"));
 
     expect(replies).toHaveLength(1);
     expect(replies[0]!).toContain("❌ Estación no encontrada");

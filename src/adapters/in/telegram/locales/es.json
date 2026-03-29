@@ -1,6 +1,6 @@
 {
   "usage": "⚠️ Uso: /salida &lt;origen&gt; - &lt;destino&gt;",
-  "helpText": "🤖 <b>Valencia Transit Bot</b>\n\nComandos disponibles:\n/salida, /s &lt;origen&gt; - &lt;destino&gt; — Próximas salidas entre dos estaciones\n/lineas — Ver líneas y paradas\n/idioma — Cambiar idioma\n/help — Mostrar esta ayuda",
+  "helpText": "🤖 <b>Valencia Transit Bot</b>\n\nComandos disponibles:\n/salida, /s — Próximas salidas entre dos estaciones\n  · Pulsa sin argumentos para el flujo interactivo\n  · O escribe directamente: &lt;origen&gt; - &lt;destino&gt; o &lt;origen&gt; a &lt;destino&gt;\n  · También puedes escribir sin comando: es la búsqueda por defecto\n/lineas — Ver líneas y paradas\n/idioma — Cambiar idioma\n/cancelar — Cancelar búsqueda en curso\n/ayuda — Mostrar esta ayuda",
   "nextDepartures": "Próximas salidas:",
   "disclaimer": "ℹ️ Horarios planificados. Los tiempos reales pueden variar.",
   "noMoreToday": "No hay más salidas hoy de {{origin}} a {{destination}}.",
@@ -25,6 +25,7 @@
   "askDestination": "🚊 ¿Hasta dónde?",
   "whichStation": "🔍 ¿Cuál querías decir?",
   "stationNotFoundInFlow": "❌ No conozco ninguna estación llamada \"{{name}}\". Inténtalo de nuevo o escribe /cancelar para salir.",
+  "nothingToCancel": "😴 No hay ninguna búsqueda activa... No estabas haciendo nada. Zzzz...",
   "cancelledSearch": "🚫 Búsqueda cancelada.",
   "cancelHint": "(Escribe /cancelar para salir en cualquier momento)",
   "rateLimitExceeded": "⏳ Demasiados mensajes. Espera un momento.",
@@ -32,5 +33,6 @@
   "cmdLineas": "Ver líneas disponibles",
   "cmdIdioma": "Cambiar idioma",
   "cmdHelp": "Ayuda",
-  "cmdCancelar": "Cancelar búsqueda en curso"
+  "cmdCancelar": "Cancelar búsqueda en curso",
+  "separators": [" - ", " a "]
 }

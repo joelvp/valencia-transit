@@ -14,7 +14,11 @@ import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
 import { getT, type Lang } from "./i18n";
 import { getLang } from "./languageStore";
-import { clearConversationState as clearConvState } from "./conversationStore";
+import { LANG_COMMANDS, DEPARTURE_COMMANDS } from "./commands";
+import {
+  clearConversationState as clearConvState,
+  getConversationState,
+} from "./conversationStore";
 import { logger } from "@/config/logger";
 
 export interface TelegramBotOptions {
@@ -71,34 +75,42 @@ export class TelegramBot {
     this.bot.use(async (ctx, next) => {
       if (ctx.message?.text?.startsWith("/") && ctx.chat) {
         const cmd = ctx.message.text.split(" ")[0]?.split("@")[0];
-        if (cmd !== "/salida" && cmd !== "/s" && cmd !== "/eixida" && cmd !== "/e") {
+        if (!DEPARTURE_COMMANDS.has(cmd ?? "")) {
           clearConvState(ctx.chat.id);
         }
       }
       await next();
     });
 
+    const allDepartures = Object.values(LANG_COMMANDS).map((c) => c.departure);
+    const allAliases = Object.values(LANG_COMMANDS).map((c) => c.alias);
+    const allLines = Object.values(LANG_COMMANDS).map((c) => c.lines);
+    const allCancels = Object.values(LANG_COMMANDS).map((c) => c.cancel);
+    const allLanguages = [...new Set(Object.values(LANG_COMMANDS).map((c) => c.language))];
+    const allHelps = [...new Set(Object.values(LANG_COMMANDS).map((c) => c.help))];
+
     this.bot.command(
-      ["salida", "eixida"],
+      allDepartures,
       departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
     );
     this.bot.command(
-      ["s", "e"],
+      allAliases,
       departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
     );
-    this.bot.command(["cancelar", "cancel"], async (ctx) => {
+    this.bot.command(allCancels, async (ctx) => {
       const chatId = ctx.chat?.id ?? 0;
       const t = getT(getLang(chatId));
+      if (!getConversationState(chatId)) {
+        await ctx.reply(t("nothingToCancel"));
+        return;
+      }
       clearConvState(chatId);
       await ctx.reply(t("cancelledSearch"));
     });
-    this.bot.command(
-      ["lineas", "linies"],
-      lineHandler(this.listLines, this.userRepository, this.eventBus),
-    );
-    this.bot.command("help", helpHandler(this.userRepository, this.eventBus));
+    this.bot.command(allLines, lineHandler(this.listLines, this.userRepository, this.eventBus));
+    this.bot.command(allHelps, helpHandler(this.userRepository, this.eventBus));
     this.bot.command("start", helpHandler(this.userRepository, this.eventBus));
-    this.bot.command("idioma", languageHandler());
+    this.bot.command(allLanguages, languageHandler());
     this.bot.on(
       "callback_query:data",
       callbackHandler(
@@ -146,14 +158,13 @@ export class TelegramBot {
 
   private buildCommands(lang: Lang) {
     const t = getT(lang);
-    const isVal = lang === "val";
-    const isEn = lang === "en";
+    const cmd = LANG_COMMANDS[lang];
     return [
-      { command: isVal ? "eixida" : "salida", description: t("cmdSalida") },
-      { command: isVal ? "linies" : "lineas", description: t("cmdLineas") },
-      { command: "idioma", description: t("cmdIdioma") },
-      { command: "help", description: t("cmdHelp") },
-      { command: isEn ? "cancel" : "cancelar", description: t("cmdCancelar") },
+      { command: cmd.departure, description: t("cmdSalida") },
+      { command: cmd.lines, description: t("cmdLineas") },
+      { command: cmd.language, description: t("cmdIdioma") },
+      { command: cmd.help, description: t("cmdHelp") },
+      { command: cmd.cancel, description: t("cmdCancelar") },
     ];
   }
 }

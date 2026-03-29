@@ -103,7 +103,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -138,7 +138,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -163,7 +163,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -187,7 +187,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -208,7 +208,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -491,7 +491,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Unknwon Colón");
+    const ctx = makeCtx("/salida Unknwon - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -508,7 +508,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -525,7 +525,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -542,7 +542,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -566,7 +566,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida X Colón");
+    const ctx = makeCtx("/salida X - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -602,7 +602,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,
@@ -631,7 +631,7 @@ describe("departureHandler", () => {
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 
-    const ctx = makeCtx("/salida Xàtiva Colón");
+    const ctx = makeCtx("/salida Xàtiva - Colón");
     const handler = departureHandler(
       mockUseCase as never,
       mockUserRepository,

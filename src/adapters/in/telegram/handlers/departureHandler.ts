@@ -103,7 +103,8 @@ export function departureHandler(
       }
 
       // No active state and no command — show help for unrecognized text
-      const parsed = parseStations(text);
+      const separators = t("separators", { returnObjects: true }) as string[];
+      const parsed = parseStations(text, separators);
       if (!parsed) {
         await ctx.reply(t("helpText"), { parse_mode: "HTML" });
         return;
@@ -122,7 +123,8 @@ export function departureHandler(
     }
 
     // Command with arguments
-    const parsed = parseStations(args);
+    const separators = t("separators", { returnObjects: true }) as string[];
+    const parsed = parseStations(args, separators);
     if (!parsed) {
       await ctx.reply(t("helpText"), { parse_mode: "HTML" });
       return;
@@ -249,17 +251,17 @@ async function executeSearch(
   }
 }
 
-function parseStations(args: string): { originName: string; destinationName: string } | null {
-  // Try " - " separator: "Àngel Guimerà - Colón"
-  const dashMatch = /^(.+?)\s+-\s+(.+)$/.exec(args);
-  if (dashMatch) return { originName: dashMatch[1]!.trim(), destinationName: dashMatch[2]!.trim() };
-
-  // Try " a " separator: "Àngel Guimerà a Colón"
-  const aMatch = /^(.+?)\sa\s(.+)$/.exec(args);
-  if (aMatch) return { originName: aMatch[1]!.trim(), destinationName: aMatch[2]!.trim() };
-
-  // Fallback: first word = origin, rest = destination
-  const spaceIdx = args.indexOf(" ");
-  if (spaceIdx === -1) return null;
-  return { originName: args.slice(0, spaceIdx), destinationName: args.slice(spaceIdx + 1) };
+function parseStations(
+  args: string,
+  separators: string[],
+): { originName: string; destinationName: string } | null {
+  for (const sep of separators) {
+    const idx = args.indexOf(sep);
+    if (idx !== -1) {
+      const origin = args.slice(0, idx).trim();
+      const dest = args.slice(idx + sep.length).trim();
+      if (origin && dest) return { originName: origin, destinationName: dest };
+    }
+  }
+  return null;
 }

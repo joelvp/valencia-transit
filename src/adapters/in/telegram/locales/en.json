@@ -1,6 +1,6 @@
 {
-  "usage": "⚠️ Usage: /salida &lt;origin&gt; - &lt;destination&gt;",
-  "helpText": "🤖 <b>Valencia Transit Bot</b>\n\nAvailable commands:\n/salida, /s &lt;origin&gt; - &lt;destination&gt; — Next departures between two stations\n/lineas — View lines and stops\n/idioma — Change language\n/cancel — Cancel current search\n/help — Show this help",
+  "usage": "⚠️ Usage: /departure &lt;origin&gt; - &lt;destination&gt;",
+  "helpText": "🤖 <b>Valencia Transit Bot</b>\n\nAvailable commands:\n/departure, /d — Next departures between two stations\n  · Tap without arguments for the interactive flow\n  · Or type directly: &lt;origin&gt; - &lt;destination&gt; or &lt;origin&gt; to &lt;destination&gt;\n  · You can also type without a command: it's the default search\n/lines — View lines and stops\n/language — Change language\n/cancel — Cancel current search\n/help — Show this help",
   "nextDepartures": "Next departures:",
   "disclaimer": "ℹ️ Scheduled times. Actual times may vary.",
   "noMoreToday": "No more departures today from {{origin}} to {{destination}}.",
@@ -25,6 +25,7 @@
   "askDestination": "🚊 Where are you going?",
   "whichStation": "🔍 Which one did you mean?",
   "stationNotFoundInFlow": "❌ I don't know any station called \"{{name}}\". Try again or type /cancel to exit.",
+  "nothingToCancel": "😴 There's nothing to cancel... You weren't doing anything. Zzzz...",
   "cancelledSearch": "🚫 Search cancelled.",
   "cancelHint": "(Type /cancel to exit at any time)",
   "rateLimitExceeded": "⏳ Too many messages. Please wait a moment.",
@@ -32,5 +33,6 @@
   "cmdLineas": "View available lines",
   "cmdIdioma": "Change language",
   "cmdHelp": "Help",
-  "cmdCancelar": "Cancel ongoing search"
+  "cmdCancelar": "Cancel ongoing search",
+  "separators": [" - ", " to "]
 }

@@ -30,7 +30,7 @@ describe("helpHandler", () => {
     expect(response).toContain("/salida");
     expect(response).toContain("/s");
     expect(response).toContain("/lineas");
-    expect(response).toContain("/help");
+    expect(response).toContain("/ayuda");
   });
 
   it("should work when called for /start command", async () => {
