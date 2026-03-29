@@ -14,7 +14,7 @@ import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
 import { getT, type Lang } from "./i18n";
 import { getLang } from "./languageStore";
-import { LANG_COMMANDS, DEPARTURE_COMMANDS } from "./commands";
+import { LANG_COMMANDS, DEPARTURE_COMMANDS, CANCEL_COMMANDS } from "./commands";
 import {
   clearConversationState as clearConvState,
   getConversationState,
@@ -75,7 +75,7 @@ export class TelegramBot {
     this.bot.use(async (ctx, next) => {
       if (ctx.message?.text?.startsWith("/") && ctx.chat) {
         const cmd = ctx.message.text.split(" ")[0]?.split("@")[0];
-        if (!DEPARTURE_COMMANDS.has(cmd ?? "")) {
+        if (!DEPARTURE_COMMANDS.has(cmd ?? "") && !CANCEL_COMMANDS.has(cmd ?? "")) {
           clearConvState(ctx.chat.id);
         }
       }

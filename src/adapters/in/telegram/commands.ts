@@ -39,3 +39,5 @@ export const LANG_COMMANDS: Record<Lang, LangCommands> = {
 export const DEPARTURE_COMMANDS = new Set(
   Object.values(LANG_COMMANDS).flatMap((c) => [`/${c.departure}`, `/${c.alias}`]),
 );
+
+export const CANCEL_COMMANDS = new Set(Object.values(LANG_COMMANDS).map((c) => `/${c.cancel}`));
