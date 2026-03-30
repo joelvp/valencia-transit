@@ -146,7 +146,7 @@ describe("LineRepositoryDrizzle", () => {
     });
 
     it("should handle empty array without error", async () => {
-      await expect(repo.saveMany([], FEED_ID)).resolves.toBeUndefined();
+      await repo.saveMany([], FEED_ID);
 
       const result = await repo.findAll();
       expect(result.length).toBe(2); // pre-seeded rows still present

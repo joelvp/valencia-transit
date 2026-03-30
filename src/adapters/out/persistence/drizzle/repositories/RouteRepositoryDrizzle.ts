@@ -3,9 +3,9 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type * as schema from "@/adapters/out/persistence/drizzle/schema";
 import { routes, routeStations } from "@/adapters/out/persistence/drizzle/schema";
 import { RouteMapper } from "@/adapters/out/persistence/drizzle/mappers/RouteMapper";
-import type { RouteRepository } from "@/core/domain/route/RouteRepository.ts";
-import type { Route } from "@/core/domain/route/Route.ts";
-import type { RouteId } from "@/core/domain/route/RouteId.ts";
+import type { RouteRepository } from "@/core/domain/route/RouteRepository";
+import type { Route } from "@/core/domain/route/Route";
+import type { RouteId } from "@/core/domain/route/RouteId";
 
 export class RouteRepositoryDrizzle implements RouteRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}

@@ -157,7 +157,7 @@ describe("ScheduleRepositoryDrizzle", () => {
     });
 
     it("should handle empty array without error", async () => {
-      await expect(repo.saveAll([], FEED_ID)).resolves.toBeUndefined();
+      await repo.saveAll([], FEED_ID);
 
       const rows = await container.db.select().from(schedules);
       expect(rows.length).toBe(2); // pre-seeded rows still present

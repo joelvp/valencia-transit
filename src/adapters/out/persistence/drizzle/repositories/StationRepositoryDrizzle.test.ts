@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test";
+import { and, eq } from "drizzle-orm";
 import { createContainer, type Container } from "@/adapters/container";
 import { clearDatabase, clearTables } from "tests/helpers/db";
 import { StationRepositoryDrizzle } from "./StationRepositoryDrizzle";
@@ -197,10 +198,48 @@ describe("StationRepositoryDrizzle", () => {
     });
 
     it("should handle empty array without error", async () => {
-      await expect(repo.saveAll([], FEED_ID)).resolves.toBeUndefined();
+      await repo.saveAll([], FEED_ID);
 
       const result = await repo.findAll();
       expect(result.length).toBe(2); // pre-seeded rows still present
+    });
+  });
+
+  describe("updateTransportTypes", () => {
+    it("should update transport types for a station", async () => {
+      const map = new Map([["ST1", [TransportType.METRO, TransportType.TRAM]]]);
+
+      await repo.updateTransportTypes(map, FEED_ID);
+
+      const result = await repo.findById(new StationId("ST1"));
+      expect(result).not.toBeNull();
+      expect(result!.transportTypes).toContainEqual(TransportType.METRO);
+      expect(result!.transportTypes).toContainEqual(TransportType.TRAM);
+      expect(result!.transportTypes.length).toBe(2);
+    });
+
+    it("should not affect stations from a different feedId", async () => {
+      const OTHER_FEED = "other-feed";
+      await container.db.insert(stations).values([
+        StationMother.row({ id: "ST9", feedId: OTHER_FEED, name: "Patraix", longitude: -0.39, transportTypes: [] }),
+      ]);
+
+      const map = new Map([["ST9", [TransportType.METRO]]]);
+      await repo.updateTransportTypes(map, FEED_ID);
+
+      const rows = await container.db
+        .select()
+        .from(stations)
+        .where(and(eq(stations.id, "ST9"), eq(stations.feedId, OTHER_FEED)));
+      expect(rows.length).toBe(1);
+      expect(rows[0]!.transportTypes).toEqual([]);
+    });
+
+    it("should handle empty map without error", async () => {
+      await repo.updateTransportTypes(new Map(), FEED_ID);
+
+      const result = await repo.findAll();
+      expect(result.length).toBe(2);
     });
   });
 });
