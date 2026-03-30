@@ -7,6 +7,7 @@ import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartu
 import { FindStation } from "@/core/application/query/FindStation";
 import { ListLines } from "@/core/application/query/ListLines";
 import { GetLineStations } from "@/core/application/query/GetLineStations";
+import { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { clearDatabase } from "../helpers/db";
 import {
@@ -67,11 +68,17 @@ describe("TelegramBot E2E", () => {
       container.eventBus,
     );
     const findStation = new FindStation(container.stationRepository);
-    const listLines = new ListLines(container.lineRepository, container.stationRepository);
+    const listLines = new ListLines(
+      container.lineRepository,
+      container.stationRepository,
+      container.eventBus,
+    );
     const getLineStations = new GetLineStations(
       container.lineRepository,
       container.stationRepository,
+      container.eventBus,
     );
+    const changeUserLanguage = new ChangeUserLanguage(container.userRepository, container.eventBus);
 
     const fakeBotInfo = {
       id: 123456789,
@@ -89,6 +96,7 @@ describe("TelegramBot E2E", () => {
       findStation,
       listLines,
       getLineStations,
+      changeUserLanguage,
       container.userRepository,
       container.eventBus,
       { botInfo: fakeBotInfo, disableRateLimit: true },

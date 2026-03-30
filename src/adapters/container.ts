@@ -9,8 +9,10 @@ import { RouteRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repos
 import { ScheduleRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/ScheduleRepositoryDrizzle";
 import { TripRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/TripRepositoryDrizzle";
 import { DomainEventRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/DomainEventRepositoryDrizzle";
+import { AnalyticsEventRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/AnalyticsEventRepositoryDrizzle";
 import { UserRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/UserRepositoryDrizzle";
-import { PersistAllEventsSubscriber } from "@/core/application/event/PersistAllEventsSubscriber";
+import { PersistDomainEventsSubscriber } from "@/core/application/event/PersistDomainEventsSubscriber";
+import { PersistAnalyticsEventsSubscriber } from "@/core/application/event/PersistAnalyticsEventsSubscriber";
 import { InMemoryEventBus } from "@/adapters/out/event-bus/InMemoryEventBus";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
@@ -44,10 +46,12 @@ export function createContainer(): Container {
   const scheduleRepository = new ScheduleRepositoryDrizzle(db);
   const tripRepository = new TripRepositoryDrizzle(db);
   const domainEventRepository = new DomainEventRepositoryDrizzle(db);
+  const analyticsEventRepository = new AnalyticsEventRepositoryDrizzle(db);
   const userRepository = new UserRepositoryDrizzle(db);
 
-  const persistAllEvents = new PersistAllEventsSubscriber(domainEventRepository);
-  const eventBus = new InMemoryEventBus([persistAllEvents]);
+  const persistDomainEvents = new PersistDomainEventsSubscriber(domainEventRepository);
+  const persistAnalyticsEvents = new PersistAnalyticsEventsSubscriber(analyticsEventRepository);
+  const eventBus = new InMemoryEventBus([persistDomainEvents, persistAnalyticsEvents]);
 
   return {
     secrets,

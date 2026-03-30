@@ -1,4 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
+import type { EventBus } from "@/core/domain/event/EventBus";
 import { GetLineStations } from "./GetLineStations";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
@@ -40,6 +41,8 @@ function makeLineRepo(lines: Line[]): LineRepository {
   };
 }
 
+const mockEventBus: EventBus = { publish: mock(() => Promise.resolve()) };
+
 describe("GetLineStations", () => {
   it("should return the line with stations in sequence order", async () => {
     const s1 = makeStation("S1", "Llíria");
@@ -54,7 +57,11 @@ describe("GetLineStations", () => {
     ];
     const line = new Line(new LineId("1"), new LineName("Line 1"), stops);
 
-    const useCase = new GetLineStations(makeLineRepo([line]), makeStationRepo([s1, s2, s3]));
+    const useCase = new GetLineStations(
+      makeLineRepo([line]),
+      makeStationRepo([s1, s2, s3]),
+      mockEventBus,
+    );
 
     const result = await useCase.execute("1");
 
@@ -70,7 +77,7 @@ describe("GetLineStations", () => {
   });
 
   it("should return null when line is not found", async () => {
-    const useCase = new GetLineStations(makeLineRepo([]), makeStationRepo([]));
+    const useCase = new GetLineStations(makeLineRepo([]), makeStationRepo([]), mockEventBus);
     const result = await useCase.execute("99");
     expect(result).toBeNull();
   });

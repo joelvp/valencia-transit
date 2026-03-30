@@ -1,6 +1,8 @@
 import type { Line } from "@/core/domain/line/Line";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
+import type { EventBus } from "@/core/domain/event/EventBus";
+import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
 
 export interface LineStation {
   id: string;
@@ -19,9 +21,10 @@ export class GetLineStations {
   constructor(
     private readonly lineRepository: LineRepository,
     private readonly stationRepository: StationRepository,
+    private readonly eventBus: EventBus,
   ) {}
 
-  async execute(lineId: string): Promise<GetLineStationsResult | null> {
+  async execute(lineId: string, traceId?: string): Promise<GetLineStationsResult | null> {
     const [lines, stations] = await Promise.all([
       this.lineRepository.findAll(),
       this.stationRepository.findAll(),
@@ -51,6 +54,10 @@ export class GetLineStations {
         };
       })
       .sort((a, b) => a.sequence - b.sequence);
+
+    const event = new LineStationsViewed(line.id.value);
+    event.traceId = traceId;
+    void this.eventBus.publish(event);
 
     return { line, stations: lineStations };
   }

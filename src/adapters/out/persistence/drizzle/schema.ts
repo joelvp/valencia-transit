@@ -223,3 +223,13 @@ export const domainEvents = pgTable("domain_events", {
   aggregateType: text("aggregate_type"),
   traceId: text("trace_id"),
 });
+
+export const analyticsEvents = pgTable("analytics_events", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(),
+  occurredOn: timestamp("occurred_on").notNull(),
+  body: jsonb("body").notNull(),
+  aggregateId: text("aggregate_id"),
+  aggregateType: text("aggregate_type"),
+  traceId: text("trace_id"),
+});

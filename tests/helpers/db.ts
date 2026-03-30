@@ -12,7 +12,9 @@ type TableName =
   | "trips"
   | "passing_times"
   | "dataset_versions"
-  | "domain_events";
+  | "domain_events"
+  | "analytics_events"
+  | "users";
 
 const ALL_TABLES: TableName[] = [
   "passing_times",
@@ -25,7 +27,9 @@ const ALL_TABLES: TableName[] = [
   "routes",
   "stations",
   "domain_events",
+  "analytics_events",
   "dataset_versions",
+  "users",
 ];
 
 export async function clearDatabase(db: AppDatabase): Promise<void> {

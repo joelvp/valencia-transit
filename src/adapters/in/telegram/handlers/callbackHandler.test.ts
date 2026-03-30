@@ -8,6 +8,7 @@ const mockUserRepository = {
   upsert: mock(() => Promise.resolve()),
   findAllLanguages: mock(() => Promise.resolve(new Map())),
 };
+const mockChangeUserLanguage = { execute: mock(() => Promise.resolve()) };
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
 
 function makeStation(name: string) {
@@ -105,6 +106,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -123,6 +125,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -141,6 +144,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -167,6 +171,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -192,6 +197,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -216,6 +222,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -235,6 +242,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -255,6 +263,7 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       makeNoopGetLineStations() as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -277,12 +286,13 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       mockGetLineStations as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
-    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3");
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3", expect.any(String));
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const [text, opts] = ctx.reply.mock.calls[0] as unknown as [string, { parse_mode: string }];
@@ -303,12 +313,13 @@ describe("callbackHandler", () => {
       mockUseCase as never,
       mockGetLineStations as never,
       mockUserRepository,
+      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
     await handler(ctx as never);
 
-    expect(mockGetLineStations.execute).toHaveBeenCalledWith("unknown");
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith("unknown", expect.any(String));
     expect(ctx.reply).not.toHaveBeenCalled();
     expect(ctx.answerCallbackQuery).toHaveBeenCalledTimes(1);
     const [opts] = ctx.answerCallbackQuery.mock.calls[0] as unknown as [{ text: string }];

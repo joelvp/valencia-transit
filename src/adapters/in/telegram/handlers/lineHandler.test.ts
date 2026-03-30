@@ -7,7 +7,6 @@ const mockUserRepository = {
   upsert: mock(() => Promise.resolve()),
   findAllLanguages: mock(() => Promise.resolve(new Map())),
 };
-const mockEventBus = { publish: mock(() => Promise.resolve()) };
 
 function makeLine(id: string): LineWithTerminals["line"] {
   return { id: { value: id } } as LineWithTerminals["line"];
@@ -38,7 +37,7 @@ describe("lineHandler", () => {
     };
 
     const ctx = makeCtx();
-    const handler = lineHandler(mockUseCase as never, mockUserRepository, mockEventBus);
+    const handler = lineHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     expect(mockUseCase.execute).toHaveBeenCalledTimes(1);
@@ -59,7 +58,7 @@ describe("lineHandler", () => {
     };
 
     const ctx = makeCtx();
-    const handler = lineHandler(mockUseCase as never, mockUserRepository, mockEventBus);
+    const handler = lineHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const [, opts] = ctx.reply.mock.calls[0] as unknown as [
@@ -78,7 +77,7 @@ describe("lineHandler", () => {
     };
 
     const ctx = makeCtx();
-    const handler = lineHandler(mockUseCase as never, mockUserRepository, mockEventBus);
+    const handler = lineHandler(mockUseCase as never, mockUserRepository);
     await handler(ctx as never);
 
     const [, opts] = ctx.reply.mock.calls[0] as unknown as [

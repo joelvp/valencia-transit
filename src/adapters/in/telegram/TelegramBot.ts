@@ -5,6 +5,7 @@ import type { SearchNextDepartures } from "@/core/application/query/SearchNextDe
 import type { FindStation } from "@/core/application/query/FindStation";
 import type { ListLines } from "@/core/application/query/ListLines";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
+import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { departureHandler } from "@/adapters/in/telegram/handlers/departureHandler";
@@ -37,6 +38,7 @@ export class TelegramBot {
     private readonly findStation: FindStation,
     private readonly listLines: ListLines,
     private readonly getLineStations: GetLineStations,
+    private readonly changeUserLanguage: ChangeUserLanguage,
     private readonly userRepository: UserRepository,
     private readonly eventBus: EventBus,
     options: TelegramBotOptions = {},
@@ -107,7 +109,7 @@ export class TelegramBot {
       clearConvState(chatId);
       await ctx.reply(t("cancelledSearch"));
     });
-    this.bot.command(allLines, lineHandler(this.listLines, this.userRepository, this.eventBus));
+    this.bot.command(allLines, lineHandler(this.listLines, this.userRepository));
     this.bot.command(allHelps, helpHandler(this.userRepository, this.eventBus));
     this.bot.command("start", helpHandler(this.userRepository, this.eventBus));
     this.bot.command(allLanguages, languageHandler());
@@ -117,6 +119,7 @@ export class TelegramBot {
         this.searchNextDepartures,
         this.getLineStations,
         this.userRepository,
+        this.changeUserLanguage,
         this.eventBus,
         this.setCommandsForChat.bind(this),
       ),

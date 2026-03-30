@@ -53,7 +53,7 @@ describe("DomainEventRepositoryDrizzle", () => {
   });
 
   it("should return empty array when no events match the requested type", async () => {
-    const results = await repo.findByType(DomainEventType.DEPARTURE_SEARCHED);
+    const results = await repo.findByType(DomainEventType.LANGUAGE_CHANGED);
 
     expect(results).toEqual([]);
   });

@@ -1,8 +1,8 @@
-import { DomainEvent } from "./DomainEvent";
-import { DomainEventType } from "./DomainEventType";
+import { AnalyticsEvent } from "./AnalyticsEvent";
+import { AnalyticsEventType } from "./AnalyticsEventType";
 
-export class LinesBrowsed extends DomainEvent {
-  readonly eventName = DomainEventType.LINES_BROWSED;
+export class LinesBrowsed extends AnalyticsEvent {
+  readonly eventName = AnalyticsEventType.LINES_BROWSED;
 
   constructor() {
     super();

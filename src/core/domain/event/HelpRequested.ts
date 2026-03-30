@@ -1,8 +1,8 @@
-import { DomainEvent } from "./DomainEvent";
-import { DomainEventType } from "./DomainEventType";
+import { AnalyticsEvent } from "./AnalyticsEvent";
+import { AnalyticsEventType } from "./AnalyticsEventType";
 
-export class HelpRequested extends DomainEvent {
-  readonly eventName = DomainEventType.HELP_REQUESTED;
+export class HelpRequested extends AnalyticsEvent {
+  readonly eventName = AnalyticsEventType.HELP_REQUESTED;
 
   constructor() {
     super();

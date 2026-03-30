@@ -1,4 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
+import type { EventBus } from "@/core/domain/event/EventBus";
 import { ListLines } from "./ListLines";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
@@ -45,6 +46,8 @@ function makeLineRepo(lines: Line[]): LineRepository {
   };
 }
 
+const mockEventBus: EventBus = { publish: mock(() => Promise.resolve()) };
+
 describe("ListLines", () => {
   it("should return lines sorted numerically with correct terminal names", async () => {
     const s1 = makeStation("S1", "Llíria");
@@ -55,7 +58,11 @@ describe("ListLines", () => {
     const line1 = makeLine("1", ["S1", "S2"]);
     const line2 = makeLine("2", ["S3", "S4"]);
 
-    const useCase = new ListLines(makeLineRepo([line2, line1]), makeStationRepo([s1, s2, s3, s4]));
+    const useCase = new ListLines(
+      makeLineRepo([line2, line1]),
+      makeStationRepo([s1, s2, s3, s4]),
+      mockEventBus,
+    );
 
     const result = await useCase.execute();
 
@@ -76,6 +83,7 @@ describe("ListLines", () => {
     const useCase = new ListLines(
       makeLineRepo([lineWithStops, lineWithoutStops]),
       makeStationRepo([s1]),
+      mockEventBus,
     );
 
     const result = await useCase.execute();
@@ -85,7 +93,7 @@ describe("ListLines", () => {
   });
 
   it("should return empty array when there are no lines", async () => {
-    const useCase = new ListLines(makeLineRepo([]), makeStationRepo([]));
+    const useCase = new ListLines(makeLineRepo([]), makeStationRepo([]), mockEventBus);
     const result = await useCase.execute();
     expect(result).toHaveLength(0);
   });

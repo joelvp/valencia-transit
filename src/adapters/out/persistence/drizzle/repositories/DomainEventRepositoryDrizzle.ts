@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import type { DomainEventRepository } from "@/core/domain/event/DomainEventRepository";
 import type { DomainEvent } from "@/core/domain/event/DomainEvent";
+import type { DomainEventRepository } from "@/core/domain/event/DomainEventRepository";
 import type { DomainEventType } from "@/core/domain/event/DomainEventType";
 import type { StoredDomainEvent } from "@/core/domain/event/StoredDomainEvent";
 import { DomainEventMapper } from "@/adapters/out/persistence/drizzle/mappers/DomainEventMapper";

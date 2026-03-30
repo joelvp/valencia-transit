@@ -1,6 +1,8 @@
 import type { Line } from "@/core/domain/line/Line";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
+import type { EventBus } from "@/core/domain/event/EventBus";
+import { LinesBrowsed } from "@/core/domain/event/LinesBrowsed";
 
 export interface LineWithTerminals {
   line: Line;
@@ -12,9 +14,10 @@ export class ListLines {
   constructor(
     private readonly lineRepository: LineRepository,
     private readonly stationRepository: StationRepository,
+    private readonly eventBus: EventBus,
   ) {}
 
-  async execute(): Promise<LineWithTerminals[]> {
+  async execute(traceId?: string): Promise<LineWithTerminals[]> {
     const [lines, stations] = await Promise.all([
       this.lineRepository.findAll(),
       this.stationRepository.findAll(),
@@ -39,11 +42,17 @@ export class ListLines {
       results.push({ line, terminalFrom, terminalTo });
     }
 
-    return results.sort((a, b) => {
+    const sorted = results.sort((a, b) => {
       const aNum = parseInt(a.line.id.value, 10);
       const bNum = parseInt(b.line.id.value, 10);
       if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
       return a.line.id.value.localeCompare(b.line.id.value);
     });
+
+    const event = new LinesBrowsed();
+    event.traceId = traceId;
+    void this.eventBus.publish(event);
+
+    return sorted;
   }
 }

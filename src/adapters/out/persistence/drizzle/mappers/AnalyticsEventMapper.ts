@@ -1,8 +1,8 @@
-import type { DomainEvent } from "@/core/domain/event/DomainEvent";
-import type { DomainEventType } from "@/core/domain/event/DomainEventType";
-import { StoredDomainEvent } from "@/core/domain/event/StoredDomainEvent";
+import type { AnalyticsEvent } from "@/core/domain/event/AnalyticsEvent";
+import type { AnalyticsEventType } from "@/core/domain/event/AnalyticsEventType";
+import { StoredAnalyticsEvent } from "@/core/domain/event/StoredAnalyticsEvent";
 
-type DomainEventRow = {
+type AnalyticsEventRow = {
   id: number;
   type: string;
   occurredOn: Date;
@@ -12,7 +12,7 @@ type DomainEventRow = {
   traceId: string | null;
 };
 
-type DomainEventInsert = {
+type AnalyticsEventInsert = {
   type: string;
   occurredOn: Date;
   body: Record<string, unknown>;
@@ -21,11 +21,11 @@ type DomainEventInsert = {
   traceId: string | null;
 };
 
-export const DomainEventMapper = {
-  toDomain(row: DomainEventRow): StoredDomainEvent {
-    return new StoredDomainEvent(
+export const AnalyticsEventMapper = {
+  toDomain(row: AnalyticsEventRow): StoredAnalyticsEvent {
+    return new StoredAnalyticsEvent(
       row.id,
-      row.type as DomainEventType,
+      row.type as AnalyticsEventType,
       row.occurredOn,
       row.body as Record<string, unknown>,
       row.aggregateId,
@@ -34,7 +34,7 @@ export const DomainEventMapper = {
     );
   },
 
-  toPersistence(event: DomainEvent): DomainEventInsert {
+  toPersistence(event: AnalyticsEvent): AnalyticsEventInsert {
     return {
       type: event.eventName,
       occurredOn: event.occurredOn,

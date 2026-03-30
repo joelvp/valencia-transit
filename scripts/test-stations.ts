@@ -16,7 +16,11 @@ const log = createLogger("test-stations");
 
 const container = createContainer();
 
-const useCase = new ListLines(container.lineRepository, container.stationRepository);
+const useCase = new ListLines(
+  container.lineRepository,
+  container.stationRepository,
+  container.eventBus,
+);
 const result = await useCase.execute();
 
 log.info(`\n🚉 Líneas disponibles:\n`);

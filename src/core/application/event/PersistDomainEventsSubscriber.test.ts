@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
-import { PersistAllEventsSubscriber } from "./PersistAllEventsSubscriber";
+import { PersistDomainEventsSubscriber } from "./PersistDomainEventsSubscriber";
 import { DatasetImported } from "@/core/domain/event/DatasetImported";
+import { DepartureSearched } from "@/core/domain/event/DepartureSearched";
 import type { DomainEventRepository } from "@/core/domain/event/DomainEventRepository";
 
 function makeMockRepository(): DomainEventRepository {
@@ -12,10 +13,10 @@ function makeMockRepository(): DomainEventRepository {
   };
 }
 
-describe("PersistAllEventsSubscriber", () => {
-  it("should call repository.save exactly once with the received event", async () => {
+describe("PersistDomainEventsSubscriber", () => {
+  it("should call repository.save exactly once with the received DomainEvent", async () => {
     const repository = makeMockRepository();
-    const subscriber = new PersistAllEventsSubscriber(repository);
+    const subscriber = new PersistDomainEventsSubscriber(repository);
     const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
 
     await subscriber.handle(event);
@@ -26,7 +27,7 @@ describe("PersistAllEventsSubscriber", () => {
 
   it("should forward traceId from event.traceId to repository.save", async () => {
     const repository = makeMockRepository();
-    const subscriber = new PersistAllEventsSubscriber(repository);
+    const subscriber = new PersistDomainEventsSubscriber(repository);
     const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
     event.traceId = "trace-abc";
 
@@ -35,13 +36,13 @@ describe("PersistAllEventsSubscriber", () => {
     expect(repository.save).toHaveBeenCalledWith(event);
   });
 
-  it("should work for any DomainEvent subclass", async () => {
+  it("should not call repository.save for AnalyticsEvent", async () => {
     const repository = makeMockRepository();
-    const subscriber = new PersistAllEventsSubscriber(repository);
-    const event = new DatasetImported("feed-xyz", 0, 0, 0, 0);
+    const subscriber = new PersistDomainEventsSubscriber(repository);
+    const event = new DepartureSearched("station-1", "station-2", 3);
 
     await subscriber.handle(event);
 
-    expect(repository.save).toHaveBeenCalledWith(event);
+    expect(repository.save).not.toHaveBeenCalled();
   });
 });

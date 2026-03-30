@@ -2,9 +2,9 @@ import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
+import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
-import { LineStationsViewed } from "@/core/domain/event/LineStationsViewed";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
@@ -26,6 +26,7 @@ export function callbackHandler(
   useCase: SearchNextDepartures,
   getLineStations: GetLineStations,
   userRepository: UserRepository,
+  changeUserLanguage: ChangeUserLanguage,
   eventBus: EventBus,
   setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
 ) {
@@ -55,7 +56,7 @@ export function callbackHandler(
         await ctx.answerCallbackQuery({ text: t("errInvalidData") });
         return;
       }
-      await handleLanguageCallback(ctx, lang, setCommandsForChat, userRepository, eventBus);
+      await handleLanguageCallback(ctx, lang, setCommandsForChat, changeUserLanguage);
       return;
     }
 
@@ -68,7 +69,7 @@ export function callbackHandler(
         return;
       }
 
-      const result = await getLineStations.execute(lineId);
+      const result = await getLineStations.execute(lineId, traceId);
       if (!result) {
         await ctx.answerCallbackQuery({ text: t("errLineNotFound") });
         return;
@@ -91,9 +92,6 @@ export function callbackHandler(
         parse_mode: "HTML",
         reply_markup: { inline_keyboard: locationButtons },
       });
-      const lineStationsViewedEvent = new LineStationsViewed(result.line.id.value);
-      lineStationsViewedEvent.traceId = traceId;
-      void eventBus.publish(lineStationsViewedEvent);
       logger.info(
         { chatId, lineId: result.line.id.value, durationMs: Date.now() - start },
         "Line stations viewed",

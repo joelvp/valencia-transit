@@ -1,8 +1,8 @@
-import { DomainEvent } from "./DomainEvent";
-import { DomainEventType } from "./DomainEventType";
+import { AnalyticsEvent } from "./AnalyticsEvent";
+import { AnalyticsEventType } from "./AnalyticsEventType";
 
-export class DepartureSearched extends DomainEvent {
-  readonly eventName = DomainEventType.DEPARTURE_SEARCHED;
+export class DepartureSearched extends AnalyticsEvent {
+  readonly eventName = AnalyticsEventType.DEPARTURE_SEARCHED;
 
   constructor(
     readonly originStationId: string,
