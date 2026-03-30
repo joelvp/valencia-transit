@@ -36,6 +36,7 @@ Determine test type based on the source file location:
 ### `adapters/in/**` (handlers, controllers) → Unit Test
 - **Mock use cases** (the application layer)
 - Test input parsing, response formatting, error handling
+- **Not all files in `adapters/in/` need tests** — only handlers with real logic. Infrastructure wiring files (entry point class, command registration, i18n setup, in-memory stores) have no testable behavior and are correctly excluded.
 
 ### `tests/component/` → Component Test
 - **Use case + real adapters + real DB**, no entry point
@@ -83,6 +84,8 @@ Strategy in order of preference:
 1. **Transaction rollback** — wrap each test in a transaction, roll back after. Fastest.
 2. **Truncate in `beforeEach`** — if transactions aren't feasible.
 3. **Dedicated test database** — `metrovalencia_test`, fully wiped between runs.
+
+**Never use `expect(promise).resolves.toBeUndefined()` for `Promise<void>` operations.** Use `await` directly — if the promise rejects, `await` throws and the test fails anyway. To verify the operation worked, assert on side effects: query the DB after saving and check the data is there, or for empty-array calls check that pre-existing rows are untouched.
 
 ### Integration Test DB Connection Pattern
 

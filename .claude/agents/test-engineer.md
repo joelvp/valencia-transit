@@ -63,6 +63,8 @@ You are the testing specialist for Valencia Transit. You write and maintain test
 | `ScheduleRepository` | `schedule_exceptions`, `schedules` |
 | `TripRepository` | `passing_times`, `trips`, `schedule_exceptions`, `schedules`, `line_stations`, `route_stations`, `routes`, `lines`, `stations` |
 | `DomainEventRepository` | `domain_events` |
+| `UserRepository` | `users` |
+| `AnalyticsEventRepository` | `analytics_events` |
 
 ## Test Location Convention
 
