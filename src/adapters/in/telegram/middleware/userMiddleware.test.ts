@@ -6,7 +6,7 @@ const validUserId = "550e8400-e29b-41d4-a716-446655440000";
 
 function makeUserRepository(returnedUserId = validUserId): UserRepository {
   return {
-    upsert: mock(() => Promise.resolve()),
+    updateLanguage: mock(() => Promise.resolve()),
     findLanguageByUserId: mock(() => Promise.resolve(null)),
     findAllLanguages: mock(() => Promise.resolve(new Map())),
     upsertByProvider: mock(() => Promise.resolve(returnedUserId)),

@@ -9,7 +9,7 @@ const validUuid = "550e8400-e29b-41d4-a716-446655440000";
 
 function makeRepos(): { userRepository: UserRepository; eventBus: EventBus } {
   const userRepository: UserRepository = {
-    upsert: mock(() => Promise.resolve()),
+    updateLanguage: mock(() => Promise.resolve()),
     findLanguageByUserId: mock(() => Promise.resolve(null)),
     findAllLanguages: mock(() => Promise.resolve(new Map())),
     upsertByProvider: mock(() => Promise.resolve("550e8400-e29b-41d4-a716-446655440000")),
@@ -21,17 +21,15 @@ function makeRepos(): { userRepository: UserRepository; eventBus: EventBus } {
 }
 
 describe("ChangeUserLanguage", () => {
-  it("should call userRepository.upsert with correct userId and language", async () => {
+  it("should call userRepository.updateLanguage with correct userId and language", async () => {
     const { userRepository, eventBus } = makeRepos();
     const useCase = new ChangeUserLanguage(userRepository, eventBus);
     const userId = new UserId(validUuid);
 
     await useCase.execute(userId, "en");
 
-    expect(userRepository.upsert).toHaveBeenCalledTimes(1);
-    expect(userRepository.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ userId, language: "en" }),
-    );
+    expect(userRepository.updateLanguage).toHaveBeenCalledTimes(1);
+    expect(userRepository.updateLanguage).toHaveBeenCalledWith(userId, "en");
   });
 
   it("should publish a LanguageChanged event", async () => {

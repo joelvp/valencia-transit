@@ -10,13 +10,7 @@ export class ChangeUserLanguage {
   ) {}
 
   async execute(userId: UserId, lang: string, requestId?: string): Promise<void> {
-    const now = new Date();
-    await this.userRepository.upsert({
-      userId,
-      language: lang,
-      firstSeenAt: now,
-      lastSeenAt: now,
-    });
+    await this.userRepository.updateLanguage(userId, lang);
 
     const event = new LanguageChanged(lang, userId.value);
     event.traceId = requestId;

@@ -8,19 +8,11 @@ import type * as schema from "@/adapters/out/persistence/drizzle/schema";
 export class UserRepositoryDrizzle implements UserRepository {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
 
-  async upsert(params: {
-    userId: UserId;
-    language?: string;
-    firstSeenAt: Date;
-    lastSeenAt: Date;
-  }): Promise<void> {
+  async updateLanguage(userId: UserId, language: string): Promise<void> {
     await this.db
       .update(users)
-      .set({
-        ...(params.language !== undefined ? { language: params.language } : {}),
-        lastSeenAt: params.lastSeenAt,
-      })
-      .where(eq(users.id, params.userId.value));
+      .set({ language, lastSeenAt: new Date() })
+      .where(eq(users.id, userId.value));
   }
 
   async findLanguageByUserId(userId: UserId): Promise<string | null> {
