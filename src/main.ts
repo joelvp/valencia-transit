@@ -9,6 +9,8 @@ import { GetLineStations } from "@/core/application/query/GetLineStations";
 import { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { initI18n } from "@/adapters/in/telegram/i18n";
+import { setLang } from "@/adapters/in/telegram/languageStore";
+import type { Lang } from "@/adapters/in/telegram/i18n";
 
 const container = createContainer();
 
@@ -17,8 +19,10 @@ await migrate(container.db, { migrationsFolder: "./drizzle" });
 logger.info("Migrations applied");
 
 await initI18n();
-// TODO: restore per-chat language scopes once chatId→userId mapping is implemented
-// const languages = await container.userRepository.findAllLanguages();
+const languages = await container.userRepository.findAllLanguages();
+for (const [chatId, lang] of languages) {
+  setLang(parseInt(chatId), lang as Lang);
+}
 
 const searchNextDepartures = new SearchNextDepartures(
   container.stationRepository,

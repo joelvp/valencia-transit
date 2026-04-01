@@ -205,7 +205,7 @@ export const datasetVersions = pgTable("dataset_versions", {
 // Users: provider-agnostic user records
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
-  language: text("language"),
+  language: text("language").default("es"),
   firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
   lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
 });
@@ -214,7 +214,7 @@ export const users = pgTable("users", {
 export const userIdentities = pgTable(
   "user_identities",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").notNull().defaultRandom(),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

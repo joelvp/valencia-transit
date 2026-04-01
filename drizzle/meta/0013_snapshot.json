@@ -1,6 +1,6 @@
 {
-  "id": "f0e9d1b6-a232-485b-9294-351c087b4247",
-  "prevId": "3f0e58c7-f60d-4fe3-89e5-b31ed0c6bf56",
+  "id": "f43f32d3-f011-4fd7-9fd7-309fa90b02e7",
+  "prevId": "f0e9d1b6-a232-485b-9294-351c087b4247",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -32,14 +32,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "trace_id": {
-          "name": "trace_id",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "user_id": {
-          "name": "user_id",
+        "trace_id": {
+          "name": "trace_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -198,32 +198,32 @@
         "line_stations_line_id_feed_id_lines_id_feed_id_fk": {
           "name": "line_stations_line_id_feed_id_lines_id_feed_id_fk",
           "tableFrom": "line_stations",
+          "tableTo": "lines",
           "columnsFrom": [
             "line_id",
             "feed_id"
           ],
-          "tableTo": "lines",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "line_stations_station_id_feed_id_stations_id_feed_id_fk": {
           "name": "line_stations_station_id_feed_id_stations_id_feed_id_fk",
           "tableFrom": "line_stations",
+          "tableTo": "stations",
           "columnsFrom": [
             "station_id",
             "feed_id"
           ],
-          "tableTo": "stations",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -338,32 +338,32 @@
         "passing_times_trip_id_feed_id_trips_id_feed_id_fk": {
           "name": "passing_times_trip_id_feed_id_trips_id_feed_id_fk",
           "tableFrom": "passing_times",
+          "tableTo": "trips",
           "columnsFrom": [
             "trip_id",
             "feed_id"
           ],
-          "tableTo": "trips",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "passing_times_station_id_feed_id_stations_id_feed_id_fk": {
           "name": "passing_times_station_id_feed_id_stations_id_feed_id_fk",
           "tableFrom": "passing_times",
+          "tableTo": "stations",
           "columnsFrom": [
             "station_id",
             "feed_id"
           ],
-          "tableTo": "stations",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -410,32 +410,32 @@
         "route_stations_route_id_feed_id_routes_id_feed_id_fk": {
           "name": "route_stations_route_id_feed_id_routes_id_feed_id_fk",
           "tableFrom": "route_stations",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_id",
             "feed_id"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "route_stations_station_id_feed_id_stations_id_feed_id_fk": {
           "name": "route_stations_station_id_feed_id_stations_id_feed_id_fk",
           "tableFrom": "route_stations",
+          "tableTo": "stations",
           "columnsFrom": [
             "station_id",
             "feed_id"
           ],
-          "tableTo": "stations",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -487,17 +487,17 @@
         "routes_line_id_feed_id_lines_id_feed_id_fk": {
           "name": "routes_line_id_feed_id_lines_id_feed_id_fk",
           "tableFrom": "routes",
+          "tableTo": "lines",
           "columnsFrom": [
             "line_id",
             "feed_id"
           ],
-          "tableTo": "lines",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -548,17 +548,17 @@
         "schedule_exceptions_schedule_id_feed_id_schedules_id_feed_id_fk": {
           "name": "schedule_exceptions_schedule_id_feed_id_schedules_id_feed_id_fk",
           "tableFrom": "schedule_exceptions",
+          "tableTo": "schedules",
           "columnsFrom": [
             "schedule_id",
             "feed_id"
           ],
-          "tableTo": "schedules",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -760,32 +760,32 @@
         "trips_route_id_feed_id_routes_id_feed_id_fk": {
           "name": "trips_route_id_feed_id_routes_id_feed_id_fk",
           "tableFrom": "trips",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_id",
             "feed_id"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "trips_schedule_id_feed_id_schedules_id_feed_id_fk": {
           "name": "trips_schedule_id_feed_id_schedules_id_feed_id_fk",
           "tableFrom": "trips",
+          "tableTo": "schedules",
           "columnsFrom": [
             "schedule_id",
             "feed_id"
           ],
-          "tableTo": "schedules",
           "columnsTo": [
             "id",
             "feed_id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -802,46 +802,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users": {
-      "name": "users",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "language": {
-          "name": "language",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "first_seen_at": {
-          "name": "first_seen_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "last_seen_at": {
-          "name": "last_seen_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.user_identities": {
       "name": "user_identities",
       "schema": "",
@@ -850,7 +810,7 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "gen_random_uuid()"
         },
         "user_id": {
@@ -884,7 +844,6 @@
           "name": "user_identities_user_id_users_id_fk",
           "tableFrom": "user_identities",
           "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "user_id"
           ],
@@ -908,14 +867,55 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'es'"
+        },
+        "first_seen_at": {
+          "name": "first_seen_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {},
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
