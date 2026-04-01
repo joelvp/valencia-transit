@@ -1,4 +1,4 @@
-import type { AnalyticsEventType } from "./AnalyticsEventType";
+import type { AnalyticsEventType } from "./AnalyticsEventType.ts";
 
 export class StoredAnalyticsEvent {
   constructor(
@@ -6,8 +6,7 @@ export class StoredAnalyticsEvent {
     readonly type: AnalyticsEventType,
     readonly occurredOn: Date,
     readonly body: Record<string, unknown>,
-    readonly aggregateId: string | null,
-    readonly aggregateType: string | null,
+    readonly userId: string | null,
     readonly traceId: string | null,
   ) {}
 }

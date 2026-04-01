@@ -9,7 +9,7 @@ function makeMockRepository(): AnalyticsEventRepository {
     save: mock(() => Promise.resolve()),
     findAll: mock(() => Promise.resolve([])),
     findByType: mock(() => Promise.resolve([])),
-    findByAggregateId: mock(() => Promise.resolve([])),
+    findByUserId: mock(() => Promise.resolve([])),
   };
 }
 
@@ -28,8 +28,7 @@ describe("PersistAnalyticsEventsSubscriber", () => {
   it("should forward traceId from event.traceId to repository.save", async () => {
     const repository = makeMockRepository();
     const subscriber = new PersistAnalyticsEventsSubscriber(repository);
-    const event = new DepartureSearched("station-1", "station-2", 3);
-    event.traceId = "trace-xyz";
+    const event = new DepartureSearched("station-1", "station-2", 3, undefined, "trace-xyz");
 
     await subscriber.handle(event);
 

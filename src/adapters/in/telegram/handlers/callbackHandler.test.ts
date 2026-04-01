@@ -4,12 +4,8 @@ import { initI18n } from "@/adapters/in/telegram/i18n";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStationsResult } from "@/core/application/query/GetLineStations";
 
-const mockUserRepository = {
-  upsert: mock(() => Promise.resolve()),
-  findAllLanguages: mock(() => Promise.resolve(new Map())),
-};
-const mockChangeUserLanguage = { execute: mock(() => Promise.resolve()) };
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
+const mockChangeUserLanguage = { execute: mock(() => Promise.resolve()) };
 
 function makeStation(name: string) {
   return { name: { value: name }, id: { value: name.toLowerCase() } };
@@ -33,6 +29,8 @@ function makeCtx(data: string | undefined) {
     answerCallbackQuery: mock(() => Promise.resolve()),
     editMessageText: mock(() => Promise.resolve()),
     reply: mock(() => Promise.resolve()),
+    requestId: "test-request-id",
+    userId: "",
   };
 }
 
@@ -105,14 +103,19 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
-    expect(mockUseCase.execute).toHaveBeenCalledWith("Xàtiva", "Colón", expect.any(Date));
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Xàtiva",
+      "Colón",
+      expect.any(Date),
+      undefined,
+      "test-request-id",
+    );
   });
 
   it("should call execute with originName=parts[3] and destinationName=parts[2] for field 'd'", async () => {
@@ -124,14 +127,19 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
-    expect(mockUseCase.execute).toHaveBeenCalledWith("Colón", "Xàtiva", expect.any(Date));
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Colón",
+      "Xàtiva",
+      expect.any(Date),
+      undefined,
+      "test-request-id",
+    );
   });
 
   it("should edit message with formatted departures on happy path", async () => {
@@ -143,10 +151,9 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -170,10 +177,9 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -196,10 +202,9 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -221,10 +226,9 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -241,10 +245,9 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -262,10 +265,9 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -285,14 +287,13 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       mockGetLineStations as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
-    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3", expect.any(String));
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3", undefined, "test-request-id");
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const [text, opts] = ctx.reply.mock.calls[0] as unknown as [string, { parse_mode: string }];
@@ -312,14 +313,17 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       mockGetLineStations as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
-    expect(mockGetLineStations.execute).toHaveBeenCalledWith("unknown", expect.any(String));
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith(
+      "unknown",
+      undefined,
+      "test-request-id",
+    );
     expect(ctx.reply).not.toHaveBeenCalled();
     expect(ctx.answerCallbackQuery).toHaveBeenCalledTimes(1);
     const [opts] = ctx.answerCallbackQuery.mock.calls[0] as unknown as [{ text: string }];

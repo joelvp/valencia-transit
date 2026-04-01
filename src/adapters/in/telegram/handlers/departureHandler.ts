@@ -1,8 +1,7 @@
-import type { Context } from "grammy";
+import type { ExtendedContext } from "@/adapters/in/telegram/middleware/userMiddleware";
 import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { FindStation } from "@/core/application/query/FindStation";
-import type { UserRepository } from "@/core/domain/user/UserRepository";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
@@ -18,12 +17,8 @@ import { formatDepartures, formatNoMoreToday } from "./formatters";
 import { logger } from "@/config/logger";
 import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 
-export function departureHandler(
-  useCase: SearchNextDepartures,
-  userRepository: UserRepository,
-  findStation: FindStation,
-) {
-  return async (ctx: Context): Promise<void> => {
+export function departureHandler(useCase: SearchNextDepartures, findStation: FindStation) {
+  return async (ctx: ExtendedContext): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(getLang(chatId));
     const text = ctx.message?.text ?? "";
@@ -93,11 +88,12 @@ export function departureHandler(
         await executeSearch(
           ctx,
           useCase,
-          userRepository,
           t,
           chatId,
           state.originName,
           result.stationName,
+          ctx.requestId,
+          ctx.userId || undefined,
         );
         return;
       }
@@ -113,11 +109,12 @@ export function departureHandler(
       await executeSearch(
         ctx,
         useCase,
-        userRepository,
         t,
         chatId,
         parsed.originName,
         parsed.destinationName,
+        ctx.requestId,
+        ctx.userId || undefined,
       );
       return;
     }
@@ -133,31 +130,31 @@ export function departureHandler(
     await executeSearch(
       ctx,
       useCase,
-      userRepository,
       t,
       chatId,
       parsed.originName,
       parsed.destinationName,
+      ctx.requestId,
+      ctx.userId || undefined,
     );
   };
 }
 
 async function executeSearch(
-  ctx: Context,
+  ctx: ExtendedContext,
   useCase: SearchNextDepartures,
-  userRepository: UserRepository,
   t: ReturnType<typeof getT>,
   chatId: number,
   originName: string,
   destinationName: string,
+  traceId?: string,
+  userId?: string,
 ): Promise<void> {
-  const traceId = String(chatId);
-
   logger.info({ chatId, origin: originName, dest: destinationName }, "Departure search");
   const start = Date.now();
 
   try {
-    const result = await useCase.execute(originName, destinationName, new Date(), traceId);
+    const result = await useCase.execute(originName, destinationName, new Date(), userId, traceId);
 
     if (result.type === "disambiguation") {
       logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — disambiguation");
@@ -169,14 +166,6 @@ async function executeSearch(
           result.otherName,
         ),
       });
-      if (ctx.from) {
-        await userRepository.upsert({
-          chatId: ctx.from.id,
-          username: ctx.from.username,
-          firstName: ctx.from.first_name,
-          lastName: ctx.from.last_name,
-        });
-      }
       return;
     }
 
@@ -192,14 +181,6 @@ async function executeSearch(
         ),
         { parse_mode: "HTML" },
       );
-      if (ctx.from) {
-        await userRepository.upsert({
-          chatId: ctx.from.id,
-          username: ctx.from.username,
-          firstName: ctx.from.first_name,
-          lastName: ctx.from.last_name,
-        });
-      }
       return;
     }
 
@@ -218,14 +199,6 @@ async function executeSearch(
       ),
       { parse_mode: "HTML" },
     );
-    if (ctx.from) {
-      await userRepository.upsert({
-        chatId: ctx.from.id,
-        username: ctx.from.username,
-        firstName: ctx.from.first_name,
-        lastName: ctx.from.last_name,
-      });
-    }
   } catch (err) {
     if (err instanceof StationNotFoundError) {
       const match = /^Station not found: "(.+)"$/.exec(err.message);

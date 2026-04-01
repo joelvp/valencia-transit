@@ -1,5 +1,5 @@
-import { AnalyticsEvent } from "./AnalyticsEvent";
-import { AnalyticsEventType } from "./AnalyticsEventType";
+import { AnalyticsEvent } from "./AnalyticsEvent.ts";
+import { AnalyticsEventType } from "./AnalyticsEventType.ts";
 
 export class DepartureSearched extends AnalyticsEvent {
   readonly eventName = AnalyticsEventType.DEPARTURE_SEARCHED;
@@ -8,7 +8,9 @@ export class DepartureSearched extends AnalyticsEvent {
     readonly originStationId: string,
     readonly destinationStationId: string,
     readonly resultsCount: number,
+    userId?: string,
+    traceId?: string,
   ) {
-    super(`${originStationId}-${destinationStationId}`, "route");
+    super(userId, traceId);
   }
 }

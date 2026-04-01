@@ -10,7 +10,8 @@ export class DatasetImported extends DomainEvent {
     readonly linesCount: number,
     readonly schedulesCount: number,
     readonly tripsCount: number,
+    traceId?: string,
   ) {
-    super(feedId, "feed");
+    super(feedId, "feed", traceId);
   }
 }

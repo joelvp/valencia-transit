@@ -7,8 +7,7 @@ type AnalyticsEventRow = {
   type: string;
   occurredOn: Date;
   body: unknown;
-  aggregateId: string | null;
-  aggregateType: string | null;
+  userId: string | null;
   traceId: string | null;
 };
 
@@ -16,8 +15,7 @@ type AnalyticsEventInsert = {
   type: string;
   occurredOn: Date;
   body: Record<string, unknown>;
-  aggregateId: string | null;
-  aggregateType: string | null;
+  userId: string | null;
   traceId: string | null;
 };
 
@@ -28,8 +26,7 @@ export const AnalyticsEventMapper = {
       row.type as AnalyticsEventType,
       row.occurredOn,
       row.body as Record<string, unknown>,
-      row.aggregateId,
-      row.aggregateType,
+      row.userId,
       row.traceId,
     );
   },
@@ -39,8 +36,7 @@ export const AnalyticsEventMapper = {
       type: event.eventName,
       occurredOn: event.occurredOn,
       body: { ...event } as Record<string, unknown>,
-      aggregateId: event.aggregateId ?? null,
-      aggregateType: event.aggregateType ?? null,
+      userId: event.userId ?? null,
       traceId: event.traceId ?? null,
     };
   },

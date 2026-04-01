@@ -6,13 +6,17 @@ import type { FindStation } from "@/core/application/query/FindStation";
 import type { ListLines } from "@/core/application/query/ListLines";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
 import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
-import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { UserRepository } from "@/core/domain/user/UserRepository";
 import { departureHandler } from "@/adapters/in/telegram/handlers/departureHandler";
 import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
+import {
+  createUserMiddleware,
+  type ExtendedContext,
+} from "@/adapters/in/telegram/middleware/userMiddleware";
 import { getT, type Lang } from "./i18n";
 import { getLang } from "./languageStore";
 import { LANG_COMMANDS, DEPARTURE_COMMANDS, CANCEL_COMMANDS } from "./commands";
@@ -30,7 +34,7 @@ export interface TelegramBotOptions {
 }
 
 export class TelegramBot {
-  private readonly bot: Bot;
+  private readonly bot: Bot<ExtendedContext>;
 
   constructor(
     private readonly token: string | undefined,
@@ -38,12 +42,12 @@ export class TelegramBot {
     private readonly findStation: FindStation,
     private readonly listLines: ListLines,
     private readonly getLineStations: GetLineStations,
-    private readonly changeUserLanguage: ChangeUserLanguage,
-    private readonly userRepository: UserRepository,
     private readonly eventBus: EventBus,
+    private readonly userRepository: UserRepository,
+    private readonly changeUserLanguage: ChangeUserLanguage,
     options: TelegramBotOptions = {},
   ) {
-    this.bot = new Bot(token ?? "fake-token", { botInfo: options.botInfo });
+    this.bot = new Bot<ExtendedContext>(token ?? "fake-token", { botInfo: options.botInfo });
 
     if (!options.disableRateLimit) {
       this.bot.use(
@@ -58,6 +62,9 @@ export class TelegramBot {
         }),
       );
     }
+
+    // User middleware: upsert user, attach requestId + userId to context
+    this.bot.use(createUserMiddleware(this.userRepository));
 
     this.bot.use(async (ctx, next) => {
       const start = Date.now();
@@ -91,14 +98,8 @@ export class TelegramBot {
     const allLanguages = [...new Set(Object.values(LANG_COMMANDS).map((c) => c.language))];
     const allHelps = [...new Set(Object.values(LANG_COMMANDS).map((c) => c.help))];
 
-    this.bot.command(
-      allDepartures,
-      departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
-    );
-    this.bot.command(
-      allAliases,
-      departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
-    );
+    this.bot.command(allDepartures, departureHandler(this.searchNextDepartures, this.findStation));
+    this.bot.command(allAliases, departureHandler(this.searchNextDepartures, this.findStation));
     this.bot.command(allCancels, async (ctx) => {
       const chatId = ctx.chat?.id ?? 0;
       const t = getT(getLang(chatId));
@@ -109,25 +110,21 @@ export class TelegramBot {
       clearConvState(chatId);
       await ctx.reply(t("cancelledSearch"));
     });
-    this.bot.command(allLines, lineHandler(this.listLines, this.userRepository));
-    this.bot.command(allHelps, helpHandler(this.userRepository, this.eventBus));
-    this.bot.command("start", helpHandler(this.userRepository, this.eventBus));
+    this.bot.command(allLines, lineHandler(this.listLines));
+    this.bot.command(allHelps, helpHandler(this.eventBus));
+    this.bot.command("start", helpHandler(this.eventBus));
     this.bot.command(allLanguages, languageHandler());
     this.bot.on(
       "callback_query:data",
       callbackHandler(
         this.searchNextDepartures,
         this.getLineStations,
-        this.userRepository,
-        this.changeUserLanguage,
         this.eventBus,
         this.setCommandsForChat.bind(this),
+        this.changeUserLanguage,
       ),
     );
-    this.bot.on(
-      "message:text",
-      departureHandler(this.searchNextDepartures, this.userRepository, this.findStation),
-    );
+    this.bot.on("message:text", departureHandler(this.searchNextDepartures, this.findStation));
   }
 
   async handleUpdate(update: Update): Promise<void> {
@@ -144,10 +141,10 @@ export class TelegramBot {
     await this.bot.start();
   }
 
-  async restoreCommandScopes(languages: Map<number, string>): Promise<void> {
-    for (const [chatId, lang] of languages) {
+  async restoreCommandScopes(languages: Map<string, string>): Promise<void> {
+    for (const [, lang] of languages) {
       if (lang === "val" || lang === "en") {
-        await this.setCommandsForChat(chatId, lang);
+        // TODO: restore per-chat scopes requires chatId — needs adapter-level mapping
       }
     }
     logger.info({ count: languages.size }, "Command scopes restored");

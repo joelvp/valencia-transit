@@ -3,11 +3,16 @@ import { ChangeUserLanguage } from "./ChangeUserLanguage";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { LanguageChanged } from "@/core/domain/event/LanguageChanged";
+import { UserId } from "@/core/domain/user/UserId";
+
+const validUuid = "550e8400-e29b-41d4-a716-446655440000";
 
 function makeRepos(): { userRepository: UserRepository; eventBus: EventBus } {
   const userRepository: UserRepository = {
-    upsert: mock(() => Promise.resolve()),
+    updateLanguage: mock(() => Promise.resolve()),
+    findLanguageByUserId: mock(() => Promise.resolve(null)),
     findAllLanguages: mock(() => Promise.resolve(new Map())),
+    upsertByProvider: mock(() => Promise.resolve("550e8400-e29b-41d4-a716-446655440000")),
   };
   const eventBus: EventBus = {
     publish: mock(() => Promise.resolve()),
@@ -16,23 +21,22 @@ function makeRepos(): { userRepository: UserRepository; eventBus: EventBus } {
 }
 
 describe("ChangeUserLanguage", () => {
-  it("should call userRepository.upsert with correct chatId and language", async () => {
+  it("should call userRepository.updateLanguage with correct userId and language", async () => {
     const { userRepository, eventBus } = makeRepos();
     const useCase = new ChangeUserLanguage(userRepository, eventBus);
+    const userId = new UserId(validUuid);
 
-    await useCase.execute(12345, "en");
+    await useCase.execute(userId, "en");
 
-    expect(userRepository.upsert).toHaveBeenCalledTimes(1);
-    expect(userRepository.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ chatId: 12345, language: "en" }),
-    );
+    expect(userRepository.updateLanguage).toHaveBeenCalledTimes(1);
+    expect(userRepository.updateLanguage).toHaveBeenCalledWith(userId, "en");
   });
 
   it("should publish a LanguageChanged event", async () => {
     const { userRepository, eventBus } = makeRepos();
     const useCase = new ChangeUserLanguage(userRepository, eventBus);
 
-    await useCase.execute(12345, "val");
+    await useCase.execute(new UserId(validUuid), "val");
 
     expect(eventBus.publish).toHaveBeenCalledTimes(1);
     const published = (eventBus.publish as ReturnType<typeof mock>).mock.calls[0]![0];
@@ -43,58 +47,36 @@ describe("ChangeUserLanguage", () => {
     const { userRepository, eventBus } = makeRepos();
     const useCase = new ChangeUserLanguage(userRepository, eventBus);
 
-    await useCase.execute(99, "en");
+    await useCase.execute(new UserId(validUuid), "en");
 
     const published = (eventBus.publish as ReturnType<typeof mock>).mock
       .calls[0]![0] as LanguageChanged;
     expect(published.lang).toBe("en");
   });
 
-  it("should set chatId as traceId in the LanguageChanged event", async () => {
+  it("should set userId as aggregateId and requestId as traceId in the LanguageChanged event", async () => {
     const { userRepository, eventBus } = makeRepos();
     const useCase = new ChangeUserLanguage(userRepository, eventBus);
+    const userId = new UserId(validUuid);
+    const requestId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
 
-    await useCase.execute(42, "es");
+    await useCase.execute(userId, "es", requestId);
 
     const published = (eventBus.publish as ReturnType<typeof mock>).mock
       .calls[0]![0] as LanguageChanged;
-    expect(published.chatId).toBe("42");
-    expect(published.traceId).toBe("42");
+    expect(published.userId).toBe(validUuid);
+    expect(published.traceId).toBe(requestId);
   });
 
-  it("should pass optional username, firstName, lastName to upsert", async () => {
+  it("should set traceId as undefined when no requestId provided", async () => {
     const { userRepository, eventBus } = makeRepos();
     const useCase = new ChangeUserLanguage(userRepository, eventBus);
+    const userId = new UserId(validUuid);
 
-    await useCase.execute(777, "es", "johndoe", "John", "Doe");
+    await useCase.execute(userId, "es");
 
-    expect(userRepository.upsert).toHaveBeenCalledWith({
-      chatId: 777,
-      username: "johndoe",
-      firstName: "John",
-      lastName: "Doe",
-      language: "es",
-    });
-  });
-
-  it("should use empty string for firstName when not provided", async () => {
-    const { userRepository, eventBus } = makeRepos();
-    const useCase = new ChangeUserLanguage(userRepository, eventBus);
-
-    await useCase.execute(100, "val", "user123");
-
-    expect(userRepository.upsert).toHaveBeenCalledWith(expect.objectContaining({ firstName: "" }));
-  });
-
-  it("should omit lastName from upsert when not provided", async () => {
-    const { userRepository, eventBus } = makeRepos();
-    const useCase = new ChangeUserLanguage(userRepository, eventBus);
-
-    await useCase.execute(200, "en", undefined, "Maria");
-
-    const call = (userRepository.upsert as ReturnType<typeof mock>).mock.calls[0]![0] as {
-      lastName?: string;
-    };
-    expect(call.lastName).toBeUndefined();
+    const published = (eventBus.publish as ReturnType<typeof mock>).mock
+      .calls[0]![0] as LanguageChanged;
+    expect(published.traceId).toBeUndefined();
   });
 });

@@ -1,15 +1,14 @@
-import type { AnalyticsEventType } from "./AnalyticsEventType";
+import type { AnalyticsEventType } from "./AnalyticsEventType.ts";
 
 export abstract class AnalyticsEvent {
   readonly occurredOn: Date;
   abstract readonly eventName: AnalyticsEventType;
-  readonly aggregateId?: string;
-  readonly aggregateType?: string;
-  traceId?: string;
+  readonly userId?: string;
+  readonly traceId?: string;
 
-  constructor(aggregateId?: string, aggregateType?: string) {
+  constructor(userId?: string, traceId?: string) {
     this.occurredOn = new Date();
-    this.aggregateId = aggregateId;
-    this.aggregateType = aggregateType;
+    this.userId = userId;
+    this.traceId = traceId;
   }
 }

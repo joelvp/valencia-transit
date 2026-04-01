@@ -1,15 +1,14 @@
-import type { ChatId } from "./ChatId";
+import type { UserId } from "./UserId.ts";
 
 export class User {
   constructor(
-    readonly chatId: ChatId,
-    readonly firstName: string,
-    readonly username?: string,
-    readonly lastName?: string,
-    readonly language?: string,
+    readonly userId: UserId,
+    readonly language: string | undefined,
+    readonly firstSeenAt: Date,
+    readonly lastSeenAt: Date,
   ) {}
 
   equals(other: User): boolean {
-    return this.chatId.equals(other.chatId);
+    return this.userId.equals(other.userId);
   }
 }

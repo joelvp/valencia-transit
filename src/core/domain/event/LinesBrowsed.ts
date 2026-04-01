@@ -1,10 +1,10 @@
-import { AnalyticsEvent } from "./AnalyticsEvent";
-import { AnalyticsEventType } from "./AnalyticsEventType";
+import { AnalyticsEvent } from "./AnalyticsEvent.ts";
+import { AnalyticsEventType } from "./AnalyticsEventType.ts";
 
 export class LinesBrowsed extends AnalyticsEvent {
   readonly eventName = AnalyticsEventType.LINES_BROWSED;
 
-  constructor() {
-    super();
+  constructor(userId?: string, traceId?: string) {
+    super(userId, traceId);
   }
 }

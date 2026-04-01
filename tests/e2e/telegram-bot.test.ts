@@ -78,8 +78,6 @@ describe("TelegramBot E2E", () => {
       container.stationRepository,
       container.eventBus,
     );
-    const changeUserLanguage = new ChangeUserLanguage(container.userRepository, container.eventBus);
-
     const fakeBotInfo = {
       id: 123456789,
       is_bot: true,
@@ -90,15 +88,17 @@ describe("TelegramBot E2E", () => {
       supports_inline_queries: false,
     } as UserFromGetMe;
 
+    const changeUserLanguage = new ChangeUserLanguage(container.userRepository, container.eventBus);
+
     bot = new TelegramBot(
       "fake-token-for-testing",
       searchNextDepartures,
       findStation,
       listLines,
       getLineStations,
-      changeUserLanguage,
-      container.userRepository,
       container.eventBus,
+      container.userRepository,
+      changeUserLanguage,
       { botInfo: fakeBotInfo, disableRateLimit: true },
     );
 

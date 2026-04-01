@@ -1,6 +1,6 @@
 ---
 name: event-design
-description: Design and wire domain events with subscribers following the project event-driven pattern
+description: Design and wire domain events and analytics events with subscribers following the project event-driven pattern
 user-invocable: false
 ---
 
@@ -11,11 +11,20 @@ bun ./.claude/hooks/echo_skill_start.ts event-design
 
 # Event Design
 
-Design and wire a domain event with its subscriber. This skill is used by the domain-expert agent when designing event-driven flows.
+Design and wire events with subscribers. There are two event types — choose the right one:
+
+| Type | Base class | Use when |
+|------|-----------|----------|
+| **Domain event** | `DomainEvent` | Something changed the state of an aggregate (e.g., language changed, dataset imported) |
+| **Analytics event** | `AnalyticsEvent` | A user action was observed but no state changed (e.g., departure searched, lines browsed) |
+
+This skill is used by the domain-expert agent when designing event-driven flows.
 
 ## Steps
 
 ### 1. Create event class: `src/core/domain/event/<EventName>.ts`
+
+#### Domain event (state change)
 
 ```typescript
 import { DomainEventType } from "@/core/domain/event/DomainEventType";
@@ -25,22 +34,42 @@ export class <EventName> extends DomainEvent {
   override readonly eventName = DomainEventType.<ENUM_VALUE>;
 
   constructor(
-    readonly relevantField1: string,
-    readonly relevantField2: number,
-    // ... only primitive types (events must be serializable)
-    override readonly aggregateId?: string,
-    override readonly aggregateType?: string,
+    readonly relevantField: string,
+    // aggregateId = the UUID of the affected aggregate root
+    // aggregateType = the aggregate name (e.g., "user", "feed")
+    aggregateId: string,
+    aggregateType: string,
   ) {
-    super();
+    super(aggregateId, aggregateType);
+  }
+}
+```
+
+#### Analytics event (user behaviour, no state change)
+
+```typescript
+import { AnalyticsEventType } from "@/core/domain/event/AnalyticsEventType";
+import { AnalyticsEvent } from "@/core/domain/event/AnalyticsEvent";
+
+export class <EventName> extends AnalyticsEvent {
+  override readonly eventName = AnalyticsEventType.<ENUM_VALUE>;
+
+  constructor(
+    readonly relevantField: string,
+    // ... only primitive types (events must be serializable)
+    userId?: string,   // optional — pass ctx.userId || undefined from handler
+    traceId?: string,  // optional — pass ctx.requestId from handler
+  ) {
+    super(userId, traceId);
   }
 }
 ```
 
 Rules:
-- `eventName` must be a `DomainEventType` enum value (e.g., `DomainEventType.DATASET_IMPORTED`)
-- Extend `DomainEvent` base class — provides `occurredOn` timestamp only (no `eventId`)
-- Optionally set `aggregateId` / `aggregateType` for traceability
-- All properties `readonly`; only primitives (serializable)
+- Domain events: `eventName` must be a `DomainEventType` enum value; `aggregateId`/`aggregateType` required
+- Analytics events: `eventName` must be an `AnalyticsEventType` enum value; no `aggregateId`/`aggregateType`; `userId` and `traceId` are optional last params
+- Domain events also accept optional `traceId` as last constructor param: `super(aggregateId, aggregateType, traceId)`
+- All properties `readonly`; only primitives (serializable); never mutate after construction
 
 ### 2. Create subscriber: `src/core/application/<context>/<SubscriberName>.ts`
 
@@ -102,11 +131,13 @@ Use case calls aggregate method
 
 MVP implementation: `InMemoryEventBus` (sync, in-process).
 
-## Analytics via Domain Events
+## Analytics via Analytics Events
 
-Every departure search emits `DepartureSearched`. A subscriber persists it to the `domain_events` Event Store table. This enables analytics: most searched routes, peak times, per-station popularity.
+Every user action emits an `AnalyticsEvent` subclass (e.g., `DepartureSearched`, `LinesBrowsed`). A dedicated subscriber persists it to the `analytics_events` table. This enables analytics: most searched routes, peak times, per-station popularity.
 
-Pattern: one event -> one subscriber -> one persistence call. Keep subscribers focused.
+Analytics events carry `userId?` (the internal UUID from `users` table) and `traceId?` (the request correlation UUID generated per Telegram update). These are passed from the handler context (`ctx.userId`, `ctx.requestId`) through the use case `execute()` signature.
+
+Pattern: one event → one subscriber → one persistence call. Keep subscribers focused.
 
 ## DI Wiring for Events
 
@@ -123,8 +154,9 @@ export function createContainer(): Container {
   const domainEventRepo = new DomainEventRepositoryDrizzle(db);
 
   // 2. Subscribers (created BEFORE EventBus)
-  const persistAllEvents = new PersistAllEventsSubscriber(domainEventRepo);
-  const eventBus = new InMemoryEventBus([persistAllEvents]);
+  const persistDomainEvents = new PersistDomainEventsSubscriber(domainEventRepo);
+  const persistAnalyticsEvents = new PersistAnalyticsEventsSubscriber(analyticsEventRepo);
+  const eventBus = new InMemoryEventBus([persistDomainEvents, persistAnalyticsEvents]);
 
   // 3. Use cases
   const searchNextDepartures = new SearchNextDepartures(stationRepo, eventBus);
@@ -133,6 +165,6 @@ export function createContainer(): Container {
 }
 ```
 
-> Note: No `.subscribe()` method exists on `EventBus` or `InMemoryEventBus`. `PersistAllEventsSubscriber` (already in container) persists all events automatically.
+> Note: No `.subscribe()` method exists on `EventBus` or `InMemoryEventBus`. Two subscribers are registered at startup: `PersistDomainEventsSubscriber` (persists to `domain_events`) and `PersistAnalyticsEventsSubscriber` (persists to `analytics_events`). Each subscriber checks the event type and ignores events that don't concern it.
 
 The `EventBus` port is defined in `core/domain/` and implemented in `adapters/out/`. Use cases receive it via constructor injection.

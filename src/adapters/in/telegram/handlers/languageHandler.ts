@@ -1,8 +1,10 @@
 import type { Context } from "grammy";
+import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import type { Lang } from "@/adapters/in/telegram/i18n";
 import { getT } from "@/adapters/in/telegram/i18n";
-import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import { setLang, getLang } from "@/adapters/in/telegram/languageStore";
+import type { ExtendedContext } from "@/adapters/in/telegram/middleware/userMiddleware";
+import { UserId } from "@/core/domain/user/UserId";
 
 export function languageHandler() {
   return async (ctx: Context): Promise<void> => {
@@ -34,13 +36,13 @@ export async function handleLanguageCallback(
   await ctx.answerCallbackQuery();
   await Promise.all([ctx.editMessageText(t("langChanged")), setCommandsForChat(chatId, lang)]);
 
-  if (ctx.from) {
-    await changeUserLanguage.execute(
-      ctx.from.id,
-      lang,
-      ctx.from.username,
-      ctx.from.first_name,
-      ctx.from.last_name,
-    );
+  const extCtx = ctx as ExtendedContext;
+  if (extCtx.userId) {
+    try {
+      const userId = new UserId(extCtx.userId);
+      void changeUserLanguage.execute(userId, lang, extCtx.requestId);
+    } catch {
+      // Invalid userId — skip persistence, language already set in memory
+    }
   }
 }

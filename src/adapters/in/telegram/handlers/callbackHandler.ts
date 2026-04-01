@@ -1,9 +1,6 @@
-import type { Context } from "grammy";
+import type { ExtendedContext } from "@/adapters/in/telegram/middleware/userMiddleware";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
-import type { UserRepository } from "@/core/domain/user/UserRepository";
-import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
-import type { EventBus } from "@/core/domain/event/EventBus";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
@@ -21,33 +18,26 @@ import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegr
 import { logger } from "@/config/logger";
 import { handleLanguageCallback } from "./languageHandler";
 import type { Lang } from "@/adapters/in/telegram/i18n";
+import type { EventBus } from "@/core/domain/event/EventBus";
+import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 
 export function callbackHandler(
   useCase: SearchNextDepartures,
   getLineStations: GetLineStations,
-  userRepository: UserRepository,
-  changeUserLanguage: ChangeUserLanguage,
   eventBus: EventBus,
   setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
+  changeUserLanguage: ChangeUserLanguage,
 ) {
-  return async (ctx: Context): Promise<void> => {
+  return async (ctx: ExtendedContext): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(getLang(chatId));
     const data = ctx.callbackQuery?.data;
     if (!data) return;
 
-    const traceId = String(ctx.chat?.id ?? ctx.from?.id ?? 0);
+    const traceId = ctx.requestId;
+    const userId = ctx.userId || undefined;
     const start = Date.now();
     logger.info({ chatId, callback: data.split("|")[0] }, "Callback received");
-
-    if (ctx.from) {
-      await userRepository.upsert({
-        chatId: ctx.from.id,
-        username: ctx.from.username,
-        firstName: ctx.from.first_name,
-        lastName: ctx.from.last_name,
-      });
-    }
 
     // Handle language callback
     if (data.startsWith("lang|")) {
@@ -69,7 +59,7 @@ export function callbackHandler(
         return;
       }
 
-      const result = await getLineStations.execute(lineId, traceId);
+      const result = await getLineStations.execute(lineId, userId, traceId);
       if (!result) {
         await ctx.answerCallbackQuery({ text: t("errLineNotFound") });
         return;
@@ -111,9 +101,7 @@ export function callbackHandler(
       }
       await ctx.answerCallbackQuery();
       await ctx.replyWithLocation(lat, lon);
-      const stationLocationRequestedEvent = new StationLocationRequested(stationId);
-      stationLocationRequestedEvent.traceId = traceId;
-      void eventBus.publish(stationLocationRequestedEvent);
+      void eventBus.publish(new StationLocationRequested(stationId, userId, traceId));
       logger.info(
         { chatId, stationId, durationMs: Date.now() - start },
         "Station location requested",
@@ -149,7 +137,13 @@ export function callbackHandler(
         }
         clearConversationState(chatId);
         try {
-          const result = await useCase.execute(originName, destinationName, new Date());
+          const result = await useCase.execute(
+            originName,
+            destinationName,
+            new Date(),
+            userId,
+            traceId,
+          );
 
           if (result.type === "disambiguation") {
             await ctx.answerCallbackQuery();
@@ -215,7 +209,13 @@ export function callbackHandler(
     const { originName, destinationName } = parsed;
 
     try {
-      const result = await useCase.execute(originName, destinationName, new Date());
+      const result = await useCase.execute(
+        originName,
+        destinationName,
+        new Date(),
+        userId,
+        traceId,
+      );
 
       if (result.type === "disambiguation") {
         await ctx.answerCallbackQuery();
@@ -269,7 +269,7 @@ export function callbackHandler(
 }
 
 async function answerWithError(
-  ctx: Context,
+  ctx: ExtendedContext,
   err: unknown,
   t: ReturnType<typeof getT>,
   originName: string,

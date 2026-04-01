@@ -2,10 +2,6 @@ import { describe, it, expect, mock, beforeAll } from "bun:test";
 import { helpHandler } from "./helpHandler";
 import { initI18n } from "@/adapters/in/telegram/i18n";
 
-const mockUserRepository = {
-  upsert: mock(() => Promise.resolve()),
-  findAllLanguages: mock(() => Promise.resolve(new Map())),
-};
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
 
 function makeCtx() {
@@ -22,7 +18,7 @@ describe("helpHandler", () => {
 
   it("should reply with help text listing all commands", async () => {
     const ctx = makeCtx();
-    const handler = helpHandler(mockUserRepository, mockEventBus);
+    const handler = helpHandler(mockEventBus);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
@@ -35,7 +31,7 @@ describe("helpHandler", () => {
 
   it("should work when called for /start command", async () => {
     const ctx = { message: { text: "/start" }, reply: mock(() => Promise.resolve()) };
-    const handler = helpHandler(mockUserRepository, mockEventBus);
+    const handler = helpHandler(mockEventBus);
     await handler(ctx as never);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);

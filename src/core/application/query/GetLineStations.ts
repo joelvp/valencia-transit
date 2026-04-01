@@ -24,7 +24,11 @@ export class GetLineStations {
     private readonly eventBus: EventBus,
   ) {}
 
-  async execute(lineId: string, traceId?: string): Promise<GetLineStationsResult | null> {
+  async execute(
+    lineId: string,
+    userId?: string,
+    traceId?: string,
+  ): Promise<GetLineStationsResult | null> {
     const [lines, stations] = await Promise.all([
       this.lineRepository.findAll(),
       this.stationRepository.findAll(),
@@ -55,9 +59,7 @@ export class GetLineStations {
       })
       .sort((a, b) => a.sequence - b.sequence);
 
-    const event = new LineStationsViewed(line.id.value);
-    event.traceId = traceId;
-    void this.eventBus.publish(event);
+    void this.eventBus.publish(new LineStationsViewed(line.id.value, userId, traceId));
 
     return { line, stations: lineStations };
   }
