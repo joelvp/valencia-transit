@@ -29,6 +29,8 @@ function makeCtx(data: string | undefined) {
     answerCallbackQuery: mock(() => Promise.resolve()),
     editMessageText: mock(() => Promise.resolve()),
     reply: mock(() => Promise.resolve()),
+    requestId: "test-request-id",
+    userId: "",
   };
 }
 
@@ -107,7 +109,13 @@ describe("callbackHandler", () => {
     );
     await handler(ctx as never);
 
-    expect(mockUseCase.execute).toHaveBeenCalledWith("Xàtiva", "Colón", expect.any(Date));
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Xàtiva",
+      "Colón",
+      expect.any(Date),
+      "test-request-id",
+      undefined,
+    );
   });
 
   it("should call execute with originName=parts[3] and destinationName=parts[2] for field 'd'", async () => {
@@ -125,7 +133,13 @@ describe("callbackHandler", () => {
     );
     await handler(ctx as never);
 
-    expect(mockUseCase.execute).toHaveBeenCalledWith("Colón", "Xàtiva", expect.any(Date));
+    expect(mockUseCase.execute).toHaveBeenCalledWith(
+      "Colón",
+      "Xàtiva",
+      expect.any(Date),
+      "test-request-id",
+      undefined,
+    );
   });
 
   it("should edit message with formatted departures on happy path", async () => {
@@ -279,7 +293,7 @@ describe("callbackHandler", () => {
     );
     await handler(ctx as never);
 
-    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3", expect.any(String));
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3", "test-request-id", undefined);
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const [text, opts] = ctx.reply.mock.calls[0] as unknown as [string, { parse_mode: string }];
@@ -305,7 +319,11 @@ describe("callbackHandler", () => {
     );
     await handler(ctx as never);
 
-    expect(mockGetLineStations.execute).toHaveBeenCalledWith("unknown", expect.any(String));
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith(
+      "unknown",
+      "test-request-id",
+      undefined,
+    );
     expect(ctx.reply).not.toHaveBeenCalled();
     expect(ctx.answerCallbackQuery).toHaveBeenCalledTimes(1);
     const [opts] = ctx.answerCallbackQuery.mock.calls[0] as unknown as [{ text: string }];

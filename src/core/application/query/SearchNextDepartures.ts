@@ -55,6 +55,7 @@ export class SearchNextDepartures {
     destinationName: string,
     now: Date,
     traceId?: string,
+    userId?: string,
   ): Promise<SearchResult> {
     const originResult = await this.resolveStation(originName);
     if (Array.isArray(originResult)) {
@@ -161,6 +162,7 @@ export class SearchNextDepartures {
       origin.id.value,
       destination.id.value,
       topDepartures.length,
+      userId,
     );
     departureSearchedEvent.traceId = traceId;
     void this.eventBus.publish(departureSearchedEvent);

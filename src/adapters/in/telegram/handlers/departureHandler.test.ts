@@ -31,6 +31,8 @@ function makeCtx(text: string, chatId?: number) {
     chat: { id },
     message: { text },
     reply: mock(() => Promise.resolve()),
+    requestId: "test-request-id",
+    userId: "",
   };
 }
 
@@ -106,7 +108,8 @@ describe("departureHandler", () => {
       "Xàtiva",
       "Colón",
       expect.any(Date),
-      expect.any(String),
+      "test-request-id",
+      undefined,
     );
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
     expect(response).toContain("🚇 <b>Xàtiva → Colón</b>");
@@ -209,7 +212,8 @@ describe("departureHandler", () => {
       "Àngel Guimerà",
       "Colón",
       expect.any(Date),
-      expect.any(String),
+      "test-request-id",
+      undefined,
     );
   });
 
@@ -227,7 +231,8 @@ describe("departureHandler", () => {
       "Àngel Guimerà",
       "Colón",
       expect.any(Date),
-      expect.any(String),
+      "test-request-id",
+      undefined,
     );
   });
 
@@ -353,7 +358,8 @@ describe("departureHandler", () => {
       "Xàtiva",
       "Colón",
       expect.any(Date),
-      expect.any(String),
+      "test-request-id",
+      undefined,
     );
   });
 

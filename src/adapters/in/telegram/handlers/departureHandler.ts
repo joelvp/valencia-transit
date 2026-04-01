@@ -1,4 +1,4 @@
-import type { Context } from "grammy";
+import type { ExtendedContext } from "@/adapters/in/telegram/middleware/userMiddleware";
 import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { FindStation } from "@/core/application/query/FindStation";
@@ -18,7 +18,7 @@ import { logger } from "@/config/logger";
 import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 
 export function departureHandler(useCase: SearchNextDepartures, findStation: FindStation) {
-  return async (ctx: Context): Promise<void> => {
+  return async (ctx: ExtendedContext): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(getLang(chatId));
     const text = ctx.message?.text ?? "";
@@ -85,7 +85,16 @@ export function departureHandler(useCase: SearchNextDepartures, findStation: Fin
 
         // unique
         clearConversationState(chatId);
-        await executeSearch(ctx, useCase, t, chatId, state.originName, result.stationName);
+        await executeSearch(
+          ctx,
+          useCase,
+          t,
+          chatId,
+          state.originName,
+          result.stationName,
+          ctx.requestId,
+          ctx.userId || undefined,
+        );
         return;
       }
 
@@ -97,7 +106,16 @@ export function departureHandler(useCase: SearchNextDepartures, findStation: Fin
         return;
       }
 
-      await executeSearch(ctx, useCase, t, chatId, parsed.originName, parsed.destinationName);
+      await executeSearch(
+        ctx,
+        useCase,
+        t,
+        chatId,
+        parsed.originName,
+        parsed.destinationName,
+        ctx.requestId,
+        ctx.userId || undefined,
+      );
       return;
     }
 
@@ -109,25 +127,34 @@ export function departureHandler(useCase: SearchNextDepartures, findStation: Fin
       return;
     }
 
-    await executeSearch(ctx, useCase, t, chatId, parsed.originName, parsed.destinationName);
+    await executeSearch(
+      ctx,
+      useCase,
+      t,
+      chatId,
+      parsed.originName,
+      parsed.destinationName,
+      ctx.requestId,
+      ctx.userId || undefined,
+    );
   };
 }
 
 async function executeSearch(
-  ctx: Context,
+  ctx: ExtendedContext,
   useCase: SearchNextDepartures,
   t: ReturnType<typeof getT>,
   chatId: number,
   originName: string,
   destinationName: string,
+  traceId?: string,
+  userId?: string,
 ): Promise<void> {
-  const traceId = String(chatId);
-
   logger.info({ chatId, origin: originName, dest: destinationName }, "Departure search");
   const start = Date.now();
 
   try {
-    const result = await useCase.execute(originName, destinationName, new Date(), traceId);
+    const result = await useCase.execute(originName, destinationName, new Date(), traceId, userId);
 
     if (result.type === "disambiguation") {
       logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — disambiguation");

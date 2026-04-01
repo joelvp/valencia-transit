@@ -15,7 +15,13 @@ function makeUserRepository(returnedUserId = validUserId): UserRepository {
 
 function makeCtx(overrides: {
   chatId?: number;
-  from?: { id: number; is_bot: boolean; first_name?: string; last_name?: string; username?: string };
+  from?: {
+    id: number;
+    is_bot: boolean;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+  };
 }) {
   return {
     chat: overrides.chatId !== undefined ? { id: overrides.chatId } : undefined,

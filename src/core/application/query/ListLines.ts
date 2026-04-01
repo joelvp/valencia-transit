@@ -17,7 +17,7 @@ export class ListLines {
     private readonly eventBus: EventBus,
   ) {}
 
-  async execute(traceId?: string): Promise<LineWithTerminals[]> {
+  async execute(traceId?: string, userId?: string): Promise<LineWithTerminals[]> {
     const [lines, stations] = await Promise.all([
       this.lineRepository.findAll(),
       this.stationRepository.findAll(),
@@ -49,7 +49,7 @@ export class ListLines {
       return a.line.id.value.localeCompare(b.line.id.value);
     });
 
-    const event = new LinesBrowsed();
+    const event = new LinesBrowsed(userId);
     event.traceId = traceId;
     void this.eventBus.publish(event);
 

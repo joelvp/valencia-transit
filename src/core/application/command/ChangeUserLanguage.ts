@@ -9,7 +9,7 @@ export class ChangeUserLanguage {
     private readonly eventBus: EventBus,
   ) {}
 
-  async execute(userId: UserId, lang: string): Promise<void> {
+  async execute(userId: UserId, lang: string, requestId?: string): Promise<void> {
     const now = new Date();
     await this.userRepository.upsert({
       userId,
@@ -19,7 +19,7 @@ export class ChangeUserLanguage {
     });
 
     const event = new LanguageChanged(lang, userId.value);
-    event.traceId = userId.value;
+    event.traceId = requestId;
     void this.eventBus.publish(event);
   }
 }

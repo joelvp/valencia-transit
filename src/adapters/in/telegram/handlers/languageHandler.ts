@@ -40,7 +40,7 @@ export async function handleLanguageCallback(
   if (extCtx.userId) {
     try {
       const userId = new UserId(extCtx.userId);
-      void changeUserLanguage.execute(userId, lang);
+      void changeUserLanguage.execute(userId, lang, extCtx.requestId);
     } catch {
       // Invalid userId — skip persistence, language already set in memory
     }

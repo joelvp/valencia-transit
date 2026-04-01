@@ -56,7 +56,21 @@ describe("ChangeUserLanguage", () => {
     expect(published.lang).toBe("en");
   });
 
-  it("should set userId as aggregateId and traceId in the LanguageChanged event", async () => {
+  it("should set userId as aggregateId and requestId as traceId in the LanguageChanged event", async () => {
+    const { userRepository, eventBus } = makeRepos();
+    const useCase = new ChangeUserLanguage(userRepository, eventBus);
+    const userId = new UserId(validUuid);
+    const requestId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+
+    await useCase.execute(userId, "es", requestId);
+
+    const published = (eventBus.publish as ReturnType<typeof mock>).mock
+      .calls[0]![0] as LanguageChanged;
+    expect(published.userId).toBe(validUuid);
+    expect(published.traceId).toBe(requestId);
+  });
+
+  it("should set traceId as undefined when no requestId provided", async () => {
     const { userRepository, eventBus } = makeRepos();
     const useCase = new ChangeUserLanguage(userRepository, eventBus);
     const userId = new UserId(validUuid);
@@ -65,7 +79,6 @@ describe("ChangeUserLanguage", () => {
 
     const published = (eventBus.publish as ReturnType<typeof mock>).mock
       .calls[0]![0] as LanguageChanged;
-    expect(published.userId).toBe(validUuid);
-    expect(published.traceId).toBe(validUuid);
+    expect(published.traceId).toBeUndefined();
   });
 });

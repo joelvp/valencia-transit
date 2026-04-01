@@ -1,16 +1,15 @@
-import type { Context } from "grammy";
 import type { ListLines } from "@/core/application/query/ListLines";
 import { getT } from "@/adapters/in/telegram/i18n";
 import { getLang } from "@/adapters/in/telegram/languageStore";
 import { lineNumberToEmoji } from "@/adapters/in/telegram/lineEmoji";
+import type { ExtendedContext } from "@/adapters/in/telegram/middleware/userMiddleware";
 
 export function lineHandler(listLines: ListLines) {
-  return async (ctx: Context): Promise<void> => {
+  return async (ctx: ExtendedContext): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(getLang(chatId));
 
-    const traceId = ctx.from ? String(ctx.from.id) : undefined;
-    const results = await listLines.execute(traceId);
+    const results = await listLines.execute(ctx.requestId, ctx.userId || undefined);
 
     const buttons = results.map(({ line, terminalFrom, terminalTo }) => {
       const colorEmoji = lineNumberToEmoji(line.id.value);

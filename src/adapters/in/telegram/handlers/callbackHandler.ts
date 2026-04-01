@@ -1,4 +1,4 @@
-import type { Context } from "grammy";
+import type { ExtendedContext } from "@/adapters/in/telegram/middleware/userMiddleware";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
@@ -28,13 +28,14 @@ export function callbackHandler(
   setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
   changeUserLanguage: ChangeUserLanguage,
 ) {
-  return async (ctx: Context): Promise<void> => {
+  return async (ctx: ExtendedContext): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(getLang(chatId));
     const data = ctx.callbackQuery?.data;
     if (!data) return;
 
-    const traceId = String(ctx.chat?.id ?? ctx.from?.id ?? 0);
+    const traceId = ctx.requestId;
+    const userId = ctx.userId || undefined;
     const start = Date.now();
     logger.info({ chatId, callback: data.split("|")[0] }, "Callback received");
 
@@ -58,7 +59,7 @@ export function callbackHandler(
         return;
       }
 
-      const result = await getLineStations.execute(lineId, traceId);
+      const result = await getLineStations.execute(lineId, traceId, userId);
       if (!result) {
         await ctx.answerCallbackQuery({ text: t("errLineNotFound") });
         return;
@@ -100,7 +101,7 @@ export function callbackHandler(
       }
       await ctx.answerCallbackQuery();
       await ctx.replyWithLocation(lat, lon);
-      const stationLocationRequestedEvent = new StationLocationRequested(stationId);
+      const stationLocationRequestedEvent = new StationLocationRequested(stationId, userId);
       stationLocationRequestedEvent.traceId = traceId;
       void eventBus.publish(stationLocationRequestedEvent);
       logger.info(
@@ -138,7 +139,13 @@ export function callbackHandler(
         }
         clearConversationState(chatId);
         try {
-          const result = await useCase.execute(originName, destinationName, new Date());
+          const result = await useCase.execute(
+            originName,
+            destinationName,
+            new Date(),
+            traceId,
+            userId,
+          );
 
           if (result.type === "disambiguation") {
             await ctx.answerCallbackQuery();
@@ -204,7 +211,13 @@ export function callbackHandler(
     const { originName, destinationName } = parsed;
 
     try {
-      const result = await useCase.execute(originName, destinationName, new Date());
+      const result = await useCase.execute(
+        originName,
+        destinationName,
+        new Date(),
+        traceId,
+        userId,
+      );
 
       if (result.type === "disambiguation") {
         await ctx.answerCallbackQuery();
@@ -258,7 +271,7 @@ export function callbackHandler(
 }
 
 async function answerWithError(
-  ctx: Context,
+  ctx: ExtendedContext,
   err: unknown,
   t: ReturnType<typeof getT>,
   originName: string,
