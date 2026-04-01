@@ -142,9 +142,9 @@ export class TelegramBot {
   }
 
   async restoreCommandScopes(languages: Map<string, string>): Promise<void> {
-    for (const [, lang] of languages) {
+    for (const [chatId, lang] of languages) {
       if (lang === "val" || lang === "en") {
-        // TODO: restore per-chat scopes requires chatId — needs adapter-level mapping
+        await this.setCommandsForChat(parseInt(chatId), lang as Lang);
       }
     }
     logger.info({ count: languages.size }, "Command scopes restored");
