@@ -9,11 +9,9 @@ export class ChangeUserLanguage {
     private readonly eventBus: EventBus,
   ) {}
 
-  async execute(userId: UserId, lang: string, requestId?: string): Promise<void> {
+  async execute(userId: UserId, lang: string, traceId?: string): Promise<void> {
     await this.userRepository.updateLanguage(userId, lang);
 
-    const event = new LanguageChanged(lang, userId.value);
-    event.traceId = requestId;
-    void this.eventBus.publish(event);
+    void this.eventBus.publish(new LanguageChanged(lang, userId.value, traceId));
   }
 }

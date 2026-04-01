@@ -154,7 +154,7 @@ async function executeSearch(
   const start = Date.now();
 
   try {
-    const result = await useCase.execute(originName, destinationName, new Date(), traceId, userId);
+    const result = await useCase.execute(originName, destinationName, new Date(), userId, traceId);
 
     if (result.type === "disambiguation") {
       logger.info({ chatId, durationMs: Date.now() - start }, "Departure search — disambiguation");

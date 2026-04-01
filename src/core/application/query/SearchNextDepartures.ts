@@ -54,8 +54,8 @@ export class SearchNextDepartures {
     originName: string,
     destinationName: string,
     now: Date,
-    traceId?: string,
     userId?: string,
+    traceId?: string,
   ): Promise<SearchResult> {
     const originResult = await this.resolveStation(originName);
     if (Array.isArray(originResult)) {
@@ -158,14 +158,15 @@ export class SearchNextDepartures {
     departures.sort((a, b) => a.departureTime.minutesUntilFrom(b.departureTime));
     const topDepartures = departures.slice(0, this.maxDepartures);
 
-    const departureSearchedEvent = new DepartureSearched(
-      origin.id.value,
-      destination.id.value,
-      topDepartures.length,
-      userId,
+    void this.eventBus.publish(
+      new DepartureSearched(
+        origin.id.value,
+        destination.id.value,
+        topDepartures.length,
+        userId,
+        traceId,
+      ),
     );
-    departureSearchedEvent.traceId = traceId;
-    void this.eventBus.publish(departureSearchedEvent);
 
     const firstTomorrow =
       topDepartures.length < this.maxDepartures

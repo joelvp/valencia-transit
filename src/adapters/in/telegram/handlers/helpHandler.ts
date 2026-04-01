@@ -10,8 +10,6 @@ export function helpHandler(eventBus: EventBus) {
     const t = getT(getLang(chatId));
     await ctx.reply(t("helpText"), { parse_mode: "HTML" });
 
-    const helpRequestedEvent = new HelpRequested(ctx.userId || undefined);
-    helpRequestedEvent.traceId = ctx.requestId;
-    void eventBus.publish(helpRequestedEvent);
+    void eventBus.publish(new HelpRequested(ctx.userId || undefined, ctx.requestId));
   };
 }

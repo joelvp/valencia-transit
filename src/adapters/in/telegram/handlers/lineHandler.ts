@@ -9,7 +9,7 @@ export function lineHandler(listLines: ListLines) {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(getLang(chatId));
 
-    const results = await listLines.execute(ctx.requestId, ctx.userId || undefined);
+    const results = await listLines.execute(ctx.userId || undefined, ctx.requestId);
 
     const buttons = results.map(({ line, terminalFrom, terminalTo }) => {
       const colorEmoji = lineNumberToEmoji(line.id.value);

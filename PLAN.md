@@ -185,10 +185,14 @@ Build the core domain layer: entities, value objects, and domain errors. Pure bu
 
 #### 1D — Domain Events ✅
 
-- [x] `DomainEvent` — abstract base: `occurredOn`, `eventName: DomainEventType`, optional `aggregateId`/`aggregateType` (no `eventId` — relies on DB serial)
-- [x] `DomainEventType` — enum: `DATASET_IMPORTED`, `DEPARTURE_SEARCHED`
-- [x] `DepartureSearched` — origin, destination, resultsCount, searchedAt
-- [x] `DatasetImported` — stationsCount, linesCount, tripsCount, importedAt
+- [x] `DomainEvent` — abstract base: `occurredOn`, `eventName: DomainEventType`, optional `aggregateId`/`aggregateType`, optional `traceId` (no `eventId` — relies on DB serial)
+- [x] `DomainEventType` — enum: `DATASET_IMPORTED`, `LANGUAGE_CHANGED`
+- [x] `DatasetImported` — feedId, stationsCount, linesCount, schedulesCount, tripsCount
+- [x] `LanguageChanged` — lang, userId (UUID)
+- [x] `AnalyticsEvent` — abstract base: `occurredOn`, `eventName: AnalyticsEventType`, optional `userId` (UUID), optional `traceId`
+- [x] `AnalyticsEventType` — enum: `DEPARTURE_SEARCHED`, `LINES_BROWSED`, `LINE_STATIONS_VIEWED`, `STATION_LOCATION_REQUESTED`, `HELP_REQUESTED`
+- [x] `DepartureSearched` — originStationId, destinationStationId, resultsCount, userId?
+- [x] `LinesBrowsed`, `LineStationsViewed`, `StationLocationRequested`, `HelpRequested` — userId?
 
 **Exit criteria**: ✅ All domain code compiles with zero infrastructure imports. All entity/VO tests pass. Domain layer is a self-contained, testable unit.
 
@@ -250,15 +254,20 @@ Define the Drizzle schema, generate migrations, and implement repository adapter
 - [x] `config/database.ts` — raw postgres client from `DATABASE_URL`
 - [x] `config/env.ts` — validate all env vars, export typed config
 - [x] `adapters/out/persistence/drizzle/schema.ts` — all tables:
-  - `stations` (id, feed_id, name, latitude, longitude, transport_type)
-  - `lines` (id, feed_id, name, short_name, transport_type)
-  - `line_stations` (line_id, station_id, feed_id, sequence, direction) — composite PK
-  - `schedules` (id, feed_id, monday..sunday booleans, start_date, end_date)
-  - `schedule_exceptions` (schedule_id, feed_id, date, is_active) — composite PK
-  - `trips` (id, feed_id, line_id, schedule_id, direction, headsign) — FKs
-  - `passing_times` (trip_id, station_id, feed_id, arrival_time, departure_time, sequence) — composite PK
-  - `dataset_versions` (id serial, feed_id, detected_at, validity_start, validity_end, status, error_message)
-  - `domain_events` (id serial PK, type text, occurred_on timestamp, body JSONB, aggregate_id text, aggregate_type text, trace_id text) — Event Store (migrated in Phase 4B)
+  - `stations` (id+feed_id PK, name, latitude, longitude, transport_types)
+  - `lines` (id+feed_id PK, name, color, transport_type)
+  - `line_stations` (line_id+station_id+feed_id PK, sequence) — composite PK
+  - `routes` (id+feed_id PK, transport_type, line_id)
+  - `route_stations` (route_id+station_id+feed_id PK)
+  - `schedules` (id+feed_id PK, monday..sunday booleans, start_date, end_date)
+  - `schedule_exceptions` (schedule_id+date+feed_id PK, is_active)
+  - `trips` (id+feed_id PK, route_id, schedule_id, headsign)
+  - `passing_times` (trip_id+station_id+sequence+feed_id PK, arrival_time, departure_time)
+  - `dataset_versions` (id serial PK, feed_id, detected_at, validity_start, validity_end, status, error_message)
+  - `users` (id UUID PK, language, first_seen_at, last_seen_at) — provider-agnostic identity
+  - `user_identities` (provider+provider_id PK, user_id FK→users, metadata jsonb) — maps Telegram/web IDs to internal UUID
+  - `domain_events` (id serial PK, type, occurred_on, body JSONB, aggregate_id, aggregate_type, trace_id) — append-only event store
+  - `analytics_events` (id serial PK, type, occurred_on, body JSONB, user_id nullable, trace_id) — behavioral tracking
 - [x] `adapters/out/persistence/drizzle/db.ts` — create Drizzle instance with schema
 - [x] `drizzle.config.ts` pointing to schema
 - [x] Generate initial migration: `bun run db:generate` → `drizzle/0000_normal_swarm.sql`
@@ -428,65 +437,60 @@ All items below were implemented as part of Phase 4B and 4C:
 - [x] `InMemoryEventBus.ts` — sync event bus, constructor-injected subscribers (4C)
 - [x] `DomainEventRepository` port — `save`, `findAll`, `findByType`, `findByAggregateId` (4B)
 - [x] `DomainEventRepositoryDrizzle.ts` — persists to `domain_events` Event Store (4C)
-- [x] `PersistAllEventsSubscriber` use case — generic event persistence subscriber (4C)
+- [x] `AnalyticsEventRepository` port — `save`, `findByUserId`, `findByType`
+- [x] `AnalyticsEventRepositoryDrizzle.ts` — persists to `analytics_events` table
+- [x] `PersistDomainEventsSubscriber` — persists domain events (DatasetImported, LanguageChanged)
+- [x] `PersistAnalyticsEventsSubscriber` — persists analytics events (DepartureSearched, LinesBrowsed, etc.)
 - [x] Event wiring in `src/adapters/container.ts` (4C)
 
-Analytics queries (JSONB-based) deferred to Phase 10 or post-MVP.
+Analytics queries via JSONB operators on `analytics_events.body`.
 
 ---
 
-### Phase 8 — UX & Usability
+### Phase 8 — UX & Usability ✅
 
 Improve the bot's user experience: fuzzy search, command menu, line colors, disambiguation, HTML formatting, and graceful "no more trains" messages.
 
-#### 8A — Fuzzy Station Search (pg_trgm)
+#### 8A — Fuzzy Station Search (pg_trgm) ✅
 
-- [ ] Hand-written SQL migration: `CREATE EXTENSION IF NOT EXISTS pg_trgm` + GIN index on `stations.name`
-- [ ] Update `StationRepositoryDrizzle.searchByName` — trigram similarity + `ILIKE` fallback, ordered by relevance
-- [ ] Integration tests: fuzzy matches ("Xativa" → "Xàtiva", "nou octubre" → "Nou d'Octubre")
+- [x] Hand-written SQL migration: `CREATE EXTENSION IF NOT EXISTS pg_trgm` + GIN index on `stations.name`
+- [x] Update `StationRepositoryDrizzle.searchByName` — trigram similarity + `ILIKE` fallback, ordered by relevance
+- [x] Integration tests: fuzzy matches ("Xativa" → "Xàtiva", "nou octubre" → "Nou d'Octubre")
 
-#### 8B — "Did you mean...?" with Inline Keyboards
+#### 8B — "Did you mean...?" with Inline Keyboards ✅
 
-- [ ] `SearchNextDepartures` returns discriminated union: `departures | disambiguation`
-- [ ] `departureHandler` — show inline keyboard with station candidates on ambiguity
-- [ ] New `callbackHandler` — handle button press, re-run search with resolved station
-- [ ] Register callback handler in `TelegramBot`
+- [x] `SearchNextDepartures` returns discriminated union: `departures | disambiguation | no_more_today`
+- [x] `departureHandler` — show inline keyboard with station candidates on ambiguity
+- [x] `callbackHandler` — handle button press, re-run search with resolved station, conversational wizard flow
+- [x] Register callback handler in `TelegramBot`
 
-#### 8C — Command Menu (setMyCommands)
+#### 8C — Command Menu (setMyCommands) ✅
 
-- [ ] Call `bot.api.setMyCommands()` in `TelegramBot.start()` before `bot.start()`
+- [x] `bot.api.setMyCommands()` in `TelegramBot.start()`, per-chat scopes for language variants
 
-#### 8D — Alias `/s` for `/salida`
+#### 8D — Alias `/s` for `/salida` ✅
 
-- [ ] Register `/s` command in `TelegramBot`
-- [ ] Update help text
+- [x] `/s` registered as alias command
 
-#### 8E — Line Colors
+#### 8E — Line Colors ✅
 
-- [ ] `LineColor` VO — validates hex color (6 chars, no `#` prefix)
-- [ ] `Line` entity — add `color: LineColor | null`
-- [ ] Schema migration — add `color` column to `lines` table
-- [ ] `LineMapper` — map `color` field
-- [ ] `GtfsParser` — read `route_color` from `routes.txt`
-- [ ] `LineRepository` port — add `findByStationId(stationId)`
-- [ ] `LineRepositoryDrizzle` — implement `findByStationId`
-- [ ] `ListStationsWithLines` use case — returns stations with their lines
-- [ ] `stationHandler` — format stations with line color emojis
-- [ ] Wire `ListStationsWithLines` in `TelegramBot` + `main.ts`
+- [x] `LineColor` VO — validates hex color (6 chars, no `#` prefix)
+- [x] `Line` entity — `color: LineColor | null`
+- [x] Schema: `color` column in `lines` table
+- [x] `LineMapper`, `GtfsParser` updated
+- [x] `GetLineStations`, `ListLines` use cases with terminal stations and color emojis
 
-#### 8F — Improved Departure Format (HTML)
+#### 8F — Improved Departure Format (HTML) ✅
 
-- [ ] Switch handlers to `{ parse_mode: "HTML" }`
-- [ ] Format departures with `<b>bold</b>` times and line names
-- [ ] Add line color emoji in departures
+- [x] All handlers use `{ parse_mode: "HTML" }`
+- [x] Departures formatted with bold times, line color emojis, duration suffix
 
-#### 8G — "No More Trains Today"
+#### 8G — "No More Trains Today" ✅
 
-- [ ] Extend `SearchResult` with `no_more_today` variant
-- [ ] `SearchNextDepartures` — find first departure tomorrow when empty
-- [ ] `departureHandler` — friendly "no more trains" message with first tomorrow departure
+- [x] `SearchResult` with `no_more_today` variant including first tomorrow departure
+- [x] `departureHandler` — friendly message with next day's first train
 
-**Exit criteria**: Fuzzy search works, command menu visible, disambiguation with buttons, HTML-formatted responses, stations show line colors, graceful handling of last train.
+**Exit criteria**: ✅ Fuzzy search works, command menu visible, disambiguation with buttons, HTML-formatted responses, stations show line colors, graceful handling of last train.
 
 ---
 

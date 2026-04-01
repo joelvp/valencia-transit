@@ -28,8 +28,7 @@ describe("PersistDomainEventsSubscriber", () => {
   it("should forward traceId from event.traceId to repository.save", async () => {
     const repository = makeMockRepository();
     const subscriber = new PersistDomainEventsSubscriber(repository);
-    const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
-    event.traceId = "trace-abc";
+    const event = new DatasetImported("metrovalencia", 10, 3, 5, 120, "trace-abc");
 
     await subscriber.handle(event);
 

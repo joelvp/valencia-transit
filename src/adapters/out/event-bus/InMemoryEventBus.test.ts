@@ -51,8 +51,7 @@ describe("InMemoryEventBus", () => {
     const handleMock = mock(() => Promise.resolve());
     const subscriber: EventSubscriber = { handle: handleMock };
     const bus = new InMemoryEventBus([subscriber]);
-    const event = makeEvent();
-    event.traceId = "trace-123";
+    const event = new DatasetImported("metrovalencia", 10, 3, 5, 120, "trace-123");
 
     await bus.publish(event);
 

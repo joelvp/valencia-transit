@@ -108,8 +108,8 @@ describe("departureHandler", () => {
       "Xàtiva",
       "Colón",
       expect.any(Date),
-      "test-request-id",
       undefined,
+      "test-request-id",
     );
     const response = (ctx.reply.mock.calls[0] as unknown[])[0] as string;
     expect(response).toContain("🚇 <b>Xàtiva → Colón</b>");
@@ -212,8 +212,8 @@ describe("departureHandler", () => {
       "Àngel Guimerà",
       "Colón",
       expect.any(Date),
-      "test-request-id",
       undefined,
+      "test-request-id",
     );
   });
 
@@ -231,8 +231,8 @@ describe("departureHandler", () => {
       "Àngel Guimerà",
       "Colón",
       expect.any(Date),
-      "test-request-id",
       undefined,
+      "test-request-id",
     );
   });
 
@@ -358,8 +358,8 @@ describe("departureHandler", () => {
       "Xàtiva",
       "Colón",
       expect.any(Date),
-      "test-request-id",
       undefined,
+      "test-request-id",
     );
   });
 

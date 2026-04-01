@@ -4,7 +4,7 @@ import { AnalyticsEventType } from "./AnalyticsEventType.ts";
 export class HelpRequested extends AnalyticsEvent {
   readonly eventName = AnalyticsEventType.HELP_REQUESTED;
 
-  constructor(userId?: string) {
-    super(userId);
+  constructor(userId?: string, traceId?: string) {
+    super(userId, traceId);
   }
 }

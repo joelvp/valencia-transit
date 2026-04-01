@@ -44,8 +44,7 @@ describe("AnalyticsEventMapper", () => {
     });
 
     it("should read traceId from event.traceId when set", () => {
-      const event = new DepartureSearched("station-1", "station-2", 3);
-      event.traceId = "trace-xyz";
+      const event = new DepartureSearched("station-1", "station-2", 3, undefined, "trace-xyz");
 
       const result = AnalyticsEventMapper.toPersistence(event);
 

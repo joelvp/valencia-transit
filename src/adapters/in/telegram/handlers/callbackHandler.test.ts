@@ -113,8 +113,8 @@ describe("callbackHandler", () => {
       "Xàtiva",
       "Colón",
       expect.any(Date),
-      "test-request-id",
       undefined,
+      "test-request-id",
     );
   });
 
@@ -137,8 +137,8 @@ describe("callbackHandler", () => {
       "Colón",
       "Xàtiva",
       expect.any(Date),
-      "test-request-id",
       undefined,
+      "test-request-id",
     );
   });
 
@@ -293,7 +293,7 @@ describe("callbackHandler", () => {
     );
     await handler(ctx as never);
 
-    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3", "test-request-id", undefined);
+    expect(mockGetLineStations.execute).toHaveBeenCalledWith("3", undefined, "test-request-id");
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith();
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const [text, opts] = ctx.reply.mock.calls[0] as unknown as [string, { parse_mode: string }];
@@ -321,8 +321,8 @@ describe("callbackHandler", () => {
 
     expect(mockGetLineStations.execute).toHaveBeenCalledWith(
       "unknown",
-      "test-request-id",
       undefined,
+      "test-request-id",
     );
     expect(ctx.reply).not.toHaveBeenCalled();
     expect(ctx.answerCallbackQuery).toHaveBeenCalledTimes(1);

@@ -59,7 +59,7 @@ export function callbackHandler(
         return;
       }
 
-      const result = await getLineStations.execute(lineId, traceId, userId);
+      const result = await getLineStations.execute(lineId, userId, traceId);
       if (!result) {
         await ctx.answerCallbackQuery({ text: t("errLineNotFound") });
         return;
@@ -101,9 +101,7 @@ export function callbackHandler(
       }
       await ctx.answerCallbackQuery();
       await ctx.replyWithLocation(lat, lon);
-      const stationLocationRequestedEvent = new StationLocationRequested(stationId, userId);
-      stationLocationRequestedEvent.traceId = traceId;
-      void eventBus.publish(stationLocationRequestedEvent);
+      void eventBus.publish(new StationLocationRequested(stationId, userId, traceId));
       logger.info(
         { chatId, stationId, durationMs: Date.now() - start },
         "Station location requested",
@@ -143,8 +141,8 @@ export function callbackHandler(
             originName,
             destinationName,
             new Date(),
-            traceId,
             userId,
+            traceId,
           );
 
           if (result.type === "disambiguation") {
@@ -215,8 +213,8 @@ export function callbackHandler(
         originName,
         destinationName,
         new Date(),
-        traceId,
         userId,
+        traceId,
       );
 
       if (result.type === "disambiguation") {

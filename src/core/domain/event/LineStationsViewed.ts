@@ -7,7 +7,8 @@ export class LineStationsViewed extends AnalyticsEvent {
   constructor(
     readonly lineId: string,
     userId?: string,
+    traceId?: string,
   ) {
-    super(userId);
+    super(userId, traceId);
   }
 }

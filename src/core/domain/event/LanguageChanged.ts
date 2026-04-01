@@ -7,7 +7,8 @@ export class LanguageChanged extends DomainEvent {
   constructor(
     readonly lang: string,
     readonly userId: string,
+    traceId?: string,
   ) {
-    super(userId, "user");
+    super(userId, "user", traceId);
   }
 }

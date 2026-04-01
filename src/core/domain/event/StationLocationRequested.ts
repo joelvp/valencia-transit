@@ -7,7 +7,8 @@ export class StationLocationRequested extends AnalyticsEvent {
   constructor(
     readonly stationId: string,
     userId?: string,
+    traceId?: string,
   ) {
-    super(userId);
+    super(userId, traceId);
   }
 }

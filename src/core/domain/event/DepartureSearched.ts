@@ -9,7 +9,8 @@ export class DepartureSearched extends AnalyticsEvent {
     readonly destinationStationId: string,
     readonly resultsCount: number,
     userId?: string,
+    traceId?: string,
   ) {
-    super(userId);
+    super(userId, traceId);
   }
 }

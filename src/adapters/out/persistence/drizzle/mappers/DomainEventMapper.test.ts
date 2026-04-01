@@ -62,8 +62,7 @@ describe("DomainEventMapper", () => {
     });
 
     it("should read traceId from event.traceId", () => {
-      const event = new DatasetImported("metrovalencia", 10, 3, 5, 120);
-      event.traceId = "trace-xyz";
+      const event = new DatasetImported("metrovalencia", 10, 3, 5, 120, "trace-xyz");
 
       const result = DomainEventMapper.toPersistence(event);
 
