@@ -6,6 +6,7 @@ import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartu
 import { FindStation } from "@/core/application/query/FindStation";
 import { ListLines } from "@/core/application/query/ListLines";
 import { GetLineStations } from "@/core/application/query/GetLineStations";
+import { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { initI18n } from "@/adapters/in/telegram/i18n";
 
@@ -38,6 +39,7 @@ const getLineStations = new GetLineStations(
   container.stationRepository,
   container.eventBus,
 );
+const changeUserLanguage = new ChangeUserLanguage(container.userRepository, container.eventBus);
 
 const botToken = "BOT_TOKEN" in container.secrets ? container.secrets.BOT_TOKEN : undefined;
 const bot = new TelegramBot(
@@ -47,6 +49,8 @@ const bot = new TelegramBot(
   listLines,
   getLineStations,
   container.eventBus,
+  container.userRepository,
+  changeUserLanguage,
 );
 
 const port = process.env["PORT"] ? parseInt(process.env["PORT"]) : 3000;

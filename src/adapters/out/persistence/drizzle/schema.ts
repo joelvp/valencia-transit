@@ -10,7 +10,7 @@ import {
   serial,
   timestamp,
   jsonb,
-  bigint,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 // Stations and Bus Stops (generalized as 'stations' to match domain aggregate)
@@ -202,16 +202,30 @@ export const datasetVersions = pgTable("dataset_versions", {
   errorMessage: text("error_message"),
 });
 
-// Users: Telegram users who have interacted with the bot
+// Users: provider-agnostic user records
 export const users = pgTable("users", {
-  chatId: bigint("chat_id", { mode: "number" }).primaryKey(),
-  username: text("username"),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name"),
+  id: uuid("id").primaryKey().defaultRandom(),
   language: text("language"),
   firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
   lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
 });
+
+// User identities: maps external provider IDs to internal user UUIDs
+export const userIdentities = pgTable(
+  "user_identities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(), // 'telegram', 'web'
+    providerId: text("provider_id").notNull(), // chatId as string for telegram
+    metadata: jsonb("metadata"), // provider-specific: first_name, username, last_name
+  },
+  (t) => ({
+    providerUnique: primaryKey({ columns: [t.provider, t.providerId] }),
+  }),
+);
 
 // Event Store: append-only log of all domain events
 export const domainEvents = pgTable("domain_events", {
@@ -229,7 +243,6 @@ export const analyticsEvents = pgTable("analytics_events", {
   type: text("type").notNull(),
   occurredOn: timestamp("occurred_on").notNull(),
   body: jsonb("body").notNull(),
-  aggregateId: text("aggregate_id"),
-  aggregateType: text("aggregate_type"),
+  userId: text("user_id"),
   traceId: text("trace_id"),
 });

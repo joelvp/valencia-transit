@@ -33,7 +33,7 @@ export class AnalyticsEventRepositoryDrizzle implements AnalyticsEventRepository
     const rows = await this.db
       .select()
       .from(analyticsEvents)
-      .where(eq(analyticsEvents.aggregateId, userId));
+      .where(eq(analyticsEvents.userId, userId));
     return rows.map((row) => AnalyticsEventMapper.toDomain(row));
   }
 }

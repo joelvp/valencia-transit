@@ -19,12 +19,14 @@ import { logger } from "@/config/logger";
 import { handleLanguageCallback } from "./languageHandler";
 import type { Lang } from "@/adapters/in/telegram/i18n";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 
 export function callbackHandler(
   useCase: SearchNextDepartures,
   getLineStations: GetLineStations,
   eventBus: EventBus,
   setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
+  changeUserLanguage: ChangeUserLanguage,
 ) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
@@ -43,7 +45,7 @@ export function callbackHandler(
         await ctx.answerCallbackQuery({ text: t("errInvalidData") });
         return;
       }
-      await handleLanguageCallback(ctx, lang, setCommandsForChat);
+      await handleLanguageCallback(ctx, lang, setCommandsForChat, changeUserLanguage);
       return;
     }
 

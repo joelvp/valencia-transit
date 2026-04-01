@@ -7,6 +7,7 @@ import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartu
 import { FindStation } from "@/core/application/query/FindStation";
 import { ListLines } from "@/core/application/query/ListLines";
 import { GetLineStations } from "@/core/application/query/GetLineStations";
+import { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { clearDatabase } from "../helpers/db";
 import {
@@ -87,6 +88,8 @@ describe("TelegramBot E2E", () => {
       supports_inline_queries: false,
     } as UserFromGetMe;
 
+    const changeUserLanguage = new ChangeUserLanguage(container.userRepository, container.eventBus);
+
     bot = new TelegramBot(
       "fake-token-for-testing",
       searchNextDepartures,
@@ -94,6 +97,8 @@ describe("TelegramBot E2E", () => {
       listLines,
       getLineStations,
       container.eventBus,
+      container.userRepository,
+      changeUserLanguage,
       { botInfo: fakeBotInfo, disableRateLimit: true },
     );
 

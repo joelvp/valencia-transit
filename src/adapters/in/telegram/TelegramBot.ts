@@ -5,12 +5,18 @@ import type { SearchNextDepartures } from "@/core/application/query/SearchNextDe
 import type { FindStation } from "@/core/application/query/FindStation";
 import type { ListLines } from "@/core/application/query/ListLines";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
+import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { UserRepository } from "@/core/domain/user/UserRepository";
 import { departureHandler } from "@/adapters/in/telegram/handlers/departureHandler";
 import { helpHandler } from "@/adapters/in/telegram/handlers/helpHandler";
 import { callbackHandler } from "@/adapters/in/telegram/handlers/callbackHandler";
 import { languageHandler } from "@/adapters/in/telegram/handlers/languageHandler";
 import { lineHandler } from "@/adapters/in/telegram/handlers/lineHandler";
+import {
+  createUserMiddleware,
+  type ExtendedContext,
+} from "@/adapters/in/telegram/middleware/userMiddleware";
 import { getT, type Lang } from "./i18n";
 import { getLang } from "./languageStore";
 import { LANG_COMMANDS, DEPARTURE_COMMANDS, CANCEL_COMMANDS } from "./commands";
@@ -28,7 +34,7 @@ export interface TelegramBotOptions {
 }
 
 export class TelegramBot {
-  private readonly bot: Bot;
+  private readonly bot: Bot<ExtendedContext>;
 
   constructor(
     private readonly token: string | undefined,
@@ -37,9 +43,11 @@ export class TelegramBot {
     private readonly listLines: ListLines,
     private readonly getLineStations: GetLineStations,
     private readonly eventBus: EventBus,
+    private readonly userRepository: UserRepository,
+    private readonly changeUserLanguage: ChangeUserLanguage,
     options: TelegramBotOptions = {},
   ) {
-    this.bot = new Bot(token ?? "fake-token", { botInfo: options.botInfo });
+    this.bot = new Bot<ExtendedContext>(token ?? "fake-token", { botInfo: options.botInfo });
 
     if (!options.disableRateLimit) {
       this.bot.use(
@@ -54,6 +62,9 @@ export class TelegramBot {
         }),
       );
     }
+
+    // User middleware: upsert user, attach requestId + userId to context
+    this.bot.use(createUserMiddleware(this.userRepository));
 
     this.bot.use(async (ctx, next) => {
       const start = Date.now();
@@ -110,6 +121,7 @@ export class TelegramBot {
         this.getLineStations,
         this.eventBus,
         this.setCommandsForChat.bind(this),
+        this.changeUserLanguage,
       ),
     );
     this.bot.on("message:text", departureHandler(this.searchNextDepartures, this.findStation));

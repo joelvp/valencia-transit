@@ -5,6 +5,7 @@ import type { SearchResult } from "@/core/application/query/SearchNextDepartures
 import type { GetLineStationsResult } from "@/core/application/query/GetLineStations";
 
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
+const mockChangeUserLanguage = { execute: mock(() => Promise.resolve()) };
 
 function makeStation(name: string) {
   return { name: { value: name }, id: { value: name.toLowerCase() } };
@@ -102,6 +103,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -119,6 +121,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -136,6 +139,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -161,6 +165,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -185,6 +190,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -208,6 +214,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -226,6 +233,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -245,6 +253,7 @@ describe("callbackHandler", () => {
       makeNoopGetLineStations() as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -266,6 +275,7 @@ describe("callbackHandler", () => {
       mockGetLineStations as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 
@@ -291,6 +301,7 @@ describe("callbackHandler", () => {
       mockGetLineStations as never,
       mockEventBus,
       mock(() => Promise.resolve()),
+      mockChangeUserLanguage as never,
     );
     await handler(ctx as never);
 

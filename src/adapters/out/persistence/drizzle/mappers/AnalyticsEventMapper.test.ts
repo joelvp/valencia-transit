@@ -21,17 +21,15 @@ describe("AnalyticsEventMapper", () => {
         destinationStationId: "station-2",
         resultsCount: 5,
       });
-      expect(result.aggregateId).toBeNull();
-      expect(result.aggregateType).toBeNull();
+      expect(result.userId).toBeNull();
     });
 
-    it("should set aggregateId to userId when provided", () => {
+    it("should set userId when provided", () => {
       const event = new DepartureSearched("station-1", "station-2", 5, validUserId);
 
       const result = AnalyticsEventMapper.toPersistence(event);
 
-      expect(result.aggregateId).toBe(validUserId);
-      expect(result.aggregateType).toBeNull();
+      expect(result.userId).toBe(validUserId);
     });
 
     it("should convert a LinesBrowsed event with null optional fields", () => {
@@ -41,8 +39,7 @@ describe("AnalyticsEventMapper", () => {
 
       expect(result.type).toBe(AnalyticsEventType.LINES_BROWSED);
       expect(result.occurredOn).toBeInstanceOf(Date);
-      expect(result.aggregateId).toBeNull();
-      expect(result.aggregateType).toBeNull();
+      expect(result.userId).toBeNull();
       expect(result.traceId).toBeNull();
     });
 
@@ -72,8 +69,7 @@ describe("AnalyticsEventMapper", () => {
         type: "departure.searched",
         occurredOn,
         body: { originStationId: "station-1", destinationStationId: "station-2", resultsCount: 5 },
-        aggregateId: validUserId,
-        aggregateType: null,
+        userId: validUserId,
         traceId: "trace-abc",
       };
 
@@ -98,8 +94,7 @@ describe("AnalyticsEventMapper", () => {
         type: "lines.browsed",
         occurredOn: new Date(),
         body: {},
-        aggregateId: null,
-        aggregateType: null,
+        userId: null,
         traceId: null,
       };
 
