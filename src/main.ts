@@ -6,10 +6,8 @@ import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartu
 import { FindStation } from "@/core/application/query/FindStation";
 import { ListLines } from "@/core/application/query/ListLines";
 import { GetLineStations } from "@/core/application/query/GetLineStations";
-import { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import { TelegramBot } from "@/adapters/in/telegram/TelegramBot";
 import { initI18n } from "@/adapters/in/telegram/i18n";
-import { initLanguageStore } from "@/adapters/in/telegram/languageStore";
 
 const container = createContainer();
 
@@ -18,8 +16,8 @@ await migrate(container.db, { migrationsFolder: "./drizzle" });
 logger.info("Migrations applied");
 
 await initI18n();
-const languages = await container.userRepository.findAllLanguages();
-initLanguageStore(languages);
+// TODO: restore per-chat language scopes once chatId→userId mapping is implemented
+// const languages = await container.userRepository.findAllLanguages();
 
 const searchNextDepartures = new SearchNextDepartures(
   container.stationRepository,
@@ -40,7 +38,6 @@ const getLineStations = new GetLineStations(
   container.stationRepository,
   container.eventBus,
 );
-const changeUserLanguage = new ChangeUserLanguage(container.userRepository, container.eventBus);
 
 const botToken = "BOT_TOKEN" in container.secrets ? container.secrets.BOT_TOKEN : undefined;
 const bot = new TelegramBot(
@@ -49,8 +46,6 @@ const bot = new TelegramBot(
   findStation,
   listLines,
   getLineStations,
-  changeUserLanguage,
-  container.userRepository,
   container.eventBus,
 );
 
@@ -65,6 +60,5 @@ serve({
 });
 logger.info({ port }, "Health check server listening");
 
-await bot.restoreCommandScopes(languages);
 logger.info("Bot starting");
 await bot.start();

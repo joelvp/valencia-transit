@@ -1,10 +1,10 @@
-import { AnalyticsEvent } from "./AnalyticsEvent";
-import { AnalyticsEventType } from "./AnalyticsEventType";
+import { AnalyticsEvent } from "./AnalyticsEvent.ts";
+import { AnalyticsEventType } from "./AnalyticsEventType.ts";
 
 export class HelpRequested extends AnalyticsEvent {
   readonly eventName = AnalyticsEventType.HELP_REQUESTED;
 
-  constructor() {
-    super();
+  constructor(userId?: string) {
+    super(userId);
   }
 }

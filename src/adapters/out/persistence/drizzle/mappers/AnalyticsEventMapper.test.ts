@@ -5,6 +5,8 @@ import { StoredAnalyticsEvent } from "@/core/domain/event/StoredAnalyticsEvent";
 import { DepartureSearched } from "@/core/domain/event/DepartureSearched";
 import { LinesBrowsed } from "@/core/domain/event/LinesBrowsed";
 
+const validUserId = "550e8400-e29b-41d4-a716-446655440000";
+
 describe("AnalyticsEventMapper", () => {
   describe("toPersistence", () => {
     it("should convert a DepartureSearched event to an insert shape with correct type and body", () => {
@@ -19,8 +21,17 @@ describe("AnalyticsEventMapper", () => {
         destinationStationId: "station-2",
         resultsCount: 5,
       });
-      expect(result.aggregateId).toBe("station-1-station-2");
-      expect(result.aggregateType).toBe("route");
+      expect(result.aggregateId).toBeNull();
+      expect(result.aggregateType).toBeNull();
+    });
+
+    it("should set aggregateId to userId when provided", () => {
+      const event = new DepartureSearched("station-1", "station-2", 5, validUserId);
+
+      const result = AnalyticsEventMapper.toPersistence(event);
+
+      expect(result.aggregateId).toBe(validUserId);
+      expect(result.aggregateType).toBeNull();
     });
 
     it("should convert a LinesBrowsed event with null optional fields", () => {
@@ -54,15 +65,15 @@ describe("AnalyticsEventMapper", () => {
   });
 
   describe("toDomain", () => {
-    it("should convert a DB row with all fields to a StoredAnalyticsEvent", () => {
+    it("should convert a DB row to a StoredAnalyticsEvent", () => {
       const occurredOn = new Date("2026-03-29T10:00:00Z");
       const row = {
         id: 1,
         type: "departure.searched",
         occurredOn,
         body: { originStationId: "station-1", destinationStationId: "station-2", resultsCount: 5 },
-        aggregateId: "station-1-station-2",
-        aggregateType: "route",
+        aggregateId: validUserId,
+        aggregateType: null,
         traceId: "trace-abc",
       };
 
@@ -77,8 +88,7 @@ describe("AnalyticsEventMapper", () => {
         destinationStationId: "station-2",
         resultsCount: 5,
       });
-      expect(result.aggregateId).toBe("station-1-station-2");
-      expect(result.aggregateType).toBe("route");
+      expect(result.userId).toBe(validUserId);
       expect(result.traceId).toBe("trace-abc");
     });
 
@@ -96,8 +106,7 @@ describe("AnalyticsEventMapper", () => {
       const result = AnalyticsEventMapper.toDomain(row);
 
       expect(result.type).toBe(AnalyticsEventType.LINES_BROWSED);
-      expect(result.aggregateId).toBeNull();
-      expect(result.aggregateType).toBeNull();
+      expect(result.userId).toBeNull();
       expect(result.traceId).toBeNull();
     });
   });

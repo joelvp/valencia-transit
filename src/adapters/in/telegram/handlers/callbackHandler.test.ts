@@ -4,11 +4,6 @@ import { initI18n } from "@/adapters/in/telegram/i18n";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStationsResult } from "@/core/application/query/GetLineStations";
 
-const mockUserRepository = {
-  upsert: mock(() => Promise.resolve()),
-  findAllLanguages: mock(() => Promise.resolve(new Map())),
-};
-const mockChangeUserLanguage = { execute: mock(() => Promise.resolve()) };
 const mockEventBus = { publish: mock(() => Promise.resolve()) };
 
 function makeStation(name: string) {
@@ -105,8 +100,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -124,8 +117,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -143,8 +134,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -170,8 +159,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -196,8 +183,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -221,8 +206,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -241,8 +224,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -262,8 +243,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       makeNoopGetLineStations() as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -285,8 +264,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       mockGetLineStations as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );
@@ -312,8 +289,6 @@ describe("callbackHandler", () => {
     const handler = callbackHandler(
       mockUseCase as never,
       mockGetLineStations as never,
-      mockUserRepository,
-      mockChangeUserLanguage as never,
       mockEventBus,
       mock(() => Promise.resolve()),
     );

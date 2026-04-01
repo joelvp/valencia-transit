@@ -1,9 +1,6 @@
 import type { Context } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { GetLineStations } from "@/core/application/query/GetLineStations";
-import type { UserRepository } from "@/core/domain/user/UserRepository";
-import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
-import type { EventBus } from "@/core/domain/event/EventBus";
 import { StationLocationRequested } from "@/core/domain/event/StationLocationRequested";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
@@ -21,12 +18,11 @@ import { lineNumberToEmoji, lineNumberToHeaderEmoji } from "@/adapters/in/telegr
 import { logger } from "@/config/logger";
 import { handleLanguageCallback } from "./languageHandler";
 import type { Lang } from "@/adapters/in/telegram/i18n";
+import type { EventBus } from "@/core/domain/event/EventBus";
 
 export function callbackHandler(
   useCase: SearchNextDepartures,
   getLineStations: GetLineStations,
-  userRepository: UserRepository,
-  changeUserLanguage: ChangeUserLanguage,
   eventBus: EventBus,
   setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
 ) {
@@ -40,15 +36,6 @@ export function callbackHandler(
     const start = Date.now();
     logger.info({ chatId, callback: data.split("|")[0] }, "Callback received");
 
-    if (ctx.from) {
-      await userRepository.upsert({
-        chatId: ctx.from.id,
-        username: ctx.from.username,
-        firstName: ctx.from.first_name,
-        lastName: ctx.from.last_name,
-      });
-    }
-
     // Handle language callback
     if (data.startsWith("lang|")) {
       const lang = data.split("|")[1] as Lang;
@@ -56,7 +43,7 @@ export function callbackHandler(
         await ctx.answerCallbackQuery({ text: t("errInvalidData") });
         return;
       }
-      await handleLanguageCallback(ctx, lang, setCommandsForChat, changeUserLanguage);
+      await handleLanguageCallback(ctx, lang, setCommandsForChat);
       return;
     }
 

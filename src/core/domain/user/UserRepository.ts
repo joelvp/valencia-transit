@@ -1,10 +1,12 @@
+import type { UserId } from "./UserId.ts";
+
 export interface UserRepository {
-  upsert(user: {
-    chatId: number;
-    username?: string;
-    firstName: string;
-    lastName?: string;
+  upsert(params: {
+    userId: UserId;
     language?: string;
+    firstSeenAt: Date;
+    lastSeenAt: Date;
   }): Promise<void>;
-  findAllLanguages(): Promise<Map<number, string>>;
+  findLanguageByUserId(userId: UserId): Promise<string | null>;
+  findAllLanguages(): Promise<Map<string, string>>;
 }

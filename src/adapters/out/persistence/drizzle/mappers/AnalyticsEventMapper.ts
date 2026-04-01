@@ -29,7 +29,6 @@ export const AnalyticsEventMapper = {
       row.occurredOn,
       row.body as Record<string, unknown>,
       row.aggregateId,
-      row.aggregateType,
       row.traceId,
     );
   },
@@ -39,8 +38,8 @@ export const AnalyticsEventMapper = {
       type: event.eventName,
       occurredOn: event.occurredOn,
       body: { ...event } as Record<string, unknown>,
-      aggregateId: event.aggregateId ?? null,
-      aggregateType: event.aggregateType ?? null,
+      aggregateId: event.userId ?? null,
+      aggregateType: null,
       traceId: event.traceId ?? null,
     };
   },

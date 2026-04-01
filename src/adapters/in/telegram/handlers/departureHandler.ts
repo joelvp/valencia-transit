@@ -2,7 +2,6 @@ import type { Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import type { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import type { FindStation } from "@/core/application/query/FindStation";
-import type { UserRepository } from "@/core/domain/user/UserRepository";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
@@ -18,11 +17,7 @@ import { formatDepartures, formatNoMoreToday } from "./formatters";
 import { logger } from "@/config/logger";
 import { formatDisambiguation, buildDisambiguationKeyboard } from "./disambiguation";
 
-export function departureHandler(
-  useCase: SearchNextDepartures,
-  userRepository: UserRepository,
-  findStation: FindStation,
-) {
+export function departureHandler(useCase: SearchNextDepartures, findStation: FindStation) {
   return async (ctx: Context): Promise<void> => {
     const chatId = ctx.chat?.id ?? 0;
     const t = getT(getLang(chatId));
@@ -90,15 +85,7 @@ export function departureHandler(
 
         // unique
         clearConversationState(chatId);
-        await executeSearch(
-          ctx,
-          useCase,
-          userRepository,
-          t,
-          chatId,
-          state.originName,
-          result.stationName,
-        );
+        await executeSearch(ctx, useCase, t, chatId, state.originName, result.stationName);
         return;
       }
 
@@ -110,15 +97,7 @@ export function departureHandler(
         return;
       }
 
-      await executeSearch(
-        ctx,
-        useCase,
-        userRepository,
-        t,
-        chatId,
-        parsed.originName,
-        parsed.destinationName,
-      );
+      await executeSearch(ctx, useCase, t, chatId, parsed.originName, parsed.destinationName);
       return;
     }
 
@@ -130,22 +109,13 @@ export function departureHandler(
       return;
     }
 
-    await executeSearch(
-      ctx,
-      useCase,
-      userRepository,
-      t,
-      chatId,
-      parsed.originName,
-      parsed.destinationName,
-    );
+    await executeSearch(ctx, useCase, t, chatId, parsed.originName, parsed.destinationName);
   };
 }
 
 async function executeSearch(
   ctx: Context,
   useCase: SearchNextDepartures,
-  userRepository: UserRepository,
   t: ReturnType<typeof getT>,
   chatId: number,
   originName: string,
@@ -169,14 +139,6 @@ async function executeSearch(
           result.otherName,
         ),
       });
-      if (ctx.from) {
-        await userRepository.upsert({
-          chatId: ctx.from.id,
-          username: ctx.from.username,
-          firstName: ctx.from.first_name,
-          lastName: ctx.from.last_name,
-        });
-      }
       return;
     }
 
@@ -192,14 +154,6 @@ async function executeSearch(
         ),
         { parse_mode: "HTML" },
       );
-      if (ctx.from) {
-        await userRepository.upsert({
-          chatId: ctx.from.id,
-          username: ctx.from.username,
-          firstName: ctx.from.first_name,
-          lastName: ctx.from.last_name,
-        });
-      }
       return;
     }
 
@@ -218,14 +172,6 @@ async function executeSearch(
       ),
       { parse_mode: "HTML" },
     );
-    if (ctx.from) {
-      await userRepository.upsert({
-        chatId: ctx.from.id,
-        username: ctx.from.username,
-        firstName: ctx.from.first_name,
-        lastName: ctx.from.last_name,
-      });
-    }
   } catch (err) {
     if (err instanceof StationNotFoundError) {
       const match = /^Station not found: "(.+)"$/.exec(err.message);

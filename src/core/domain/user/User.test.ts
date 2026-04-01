@@ -1,31 +1,31 @@
 import { describe, it, expect } from "bun:test";
 import { User } from "./User";
-import { ChatId } from "./ChatId";
+import { UserId } from "./UserId";
 
-function makeUser(chatId = 100n, firstName = "Ana"): User {
-  return new User(new ChatId(chatId), firstName);
+const validUuid1 = "550e8400-e29b-41d4-a716-446655440000";
+const validUuid2 = "6ba7b810-9dad-41d4-80b4-00c04fd430c8";
+
+function makeUser(uuid = validUuid1, language?: string): User {
+  return new User(new UserId(uuid), language, new Date(), new Date());
 }
 
 describe("User", () => {
   it("should create a user with required fields", () => {
     const user = makeUser();
-    expect(user.chatId.value).toBe(100n);
-    expect(user.firstName).toBe("Ana");
-    expect(user.username).toBeUndefined();
-    expect(user.lastName).toBeUndefined();
+    expect(user.userId.value).toBe(validUuid1);
+    expect(user.language).toBeUndefined();
   });
 
-  it("should create a user with all optional fields", () => {
-    const user = new User(new ChatId(200n), "Carlos", "carlos_v", "García");
-    expect(user.username).toBe("carlos_v");
-    expect(user.lastName).toBe("García");
+  it("should create a user with language", () => {
+    const user = makeUser(validUuid1, "es");
+    expect(user.language).toBe("es");
   });
 
-  it("should be equal to another user with the same chatId", () => {
-    expect(makeUser(50n, "Ana").equals(makeUser(50n, "Otro"))).toBe(true);
+  it("should be equal to another user with the same userId", () => {
+    expect(makeUser(validUuid1).equals(makeUser(validUuid1, "en"))).toBe(true);
   });
 
-  it("should not be equal to a user with a different chatId", () => {
-    expect(makeUser(50n).equals(makeUser(51n))).toBe(false);
+  it("should not be equal to a user with a different userId", () => {
+    expect(makeUser(validUuid1).equals(makeUser(validUuid2))).toBe(false);
   });
 });

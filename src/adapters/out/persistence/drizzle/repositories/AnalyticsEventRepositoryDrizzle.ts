@@ -29,11 +29,11 @@ export class AnalyticsEventRepositoryDrizzle implements AnalyticsEventRepository
     return rows.map((row) => AnalyticsEventMapper.toDomain(row));
   }
 
-  async findByAggregateId(aggregateId: string): Promise<StoredAnalyticsEvent[]> {
+  async findByUserId(userId: string): Promise<StoredAnalyticsEvent[]> {
     const rows = await this.db
       .select()
       .from(analyticsEvents)
-      .where(eq(analyticsEvents.aggregateId, aggregateId));
+      .where(eq(analyticsEvents.aggregateId, userId));
     return rows.map((row) => AnalyticsEventMapper.toDomain(row));
   }
 }

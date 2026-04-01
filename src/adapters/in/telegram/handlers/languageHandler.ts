@@ -1,7 +1,6 @@
 import type { Context } from "grammy";
 import type { Lang } from "@/adapters/in/telegram/i18n";
 import { getT } from "@/adapters/in/telegram/i18n";
-import type { ChangeUserLanguage } from "@/core/application/command/ChangeUserLanguage";
 import { setLang, getLang } from "@/adapters/in/telegram/languageStore";
 
 export function languageHandler() {
@@ -26,21 +25,11 @@ export async function handleLanguageCallback(
   ctx: Context,
   lang: Lang,
   setCommandsForChat: (chatId: number, lang: Lang) => Promise<void>,
-  changeUserLanguage: ChangeUserLanguage,
 ): Promise<void> {
   const chatId = ctx.chat?.id ?? 0;
   setLang(chatId, lang);
   const t = getT(lang);
   await ctx.answerCallbackQuery();
   await Promise.all([ctx.editMessageText(t("langChanged")), setCommandsForChat(chatId, lang)]);
-
-  if (ctx.from) {
-    await changeUserLanguage.execute(
-      ctx.from.id,
-      lang,
-      ctx.from.username,
-      ctx.from.first_name,
-      ctx.from.last_name,
-    );
-  }
+  // TODO: call ChangeUserLanguage use case once user UUID resolution is implemented
 }

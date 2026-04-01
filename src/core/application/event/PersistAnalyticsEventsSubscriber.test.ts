@@ -9,7 +9,7 @@ function makeMockRepository(): AnalyticsEventRepository {
     save: mock(() => Promise.resolve()),
     findAll: mock(() => Promise.resolve([])),
     findByType: mock(() => Promise.resolve([])),
-    findByAggregateId: mock(() => Promise.resolve([])),
+    findByUserId: mock(() => Promise.resolve([])),
   };
 }
 
