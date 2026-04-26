@@ -1,0 +1,32 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [dev, main]
+
+jobs:
+  deploy:
+    name: Deploy to Northflank
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+
+    steps:
+      - name: Deploy to Northflank
+        env:
+          NORTHFLANK_API_KEY: ${{ secrets.NORTHFLANK_API_KEY }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ "$BRANCH" = "main" ]; then
+            SERVICE_ID="prod-metrovalencia-bot"
+          else
+            SERVICE_ID="dev-metrovalencia-bot"
+          fi
+
+          curl --fail-with-body -s -X POST \
+            "https://api.northflank.com/v1/projects/valencia-transit-bot/services/$SERVICE_ID/build" \
+            -H "Authorization: Bearer $NORTHFLANK_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"branch\": \"$BRANCH\", \"sha\": \"$SHA\"}"
