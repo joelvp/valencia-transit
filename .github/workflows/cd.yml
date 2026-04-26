@@ -29,4 +29,4 @@ jobs:
             "https://api.northflank.com/v1/projects/valencia-transit-bot/services/$SERVICE_ID/build" \
             -H "Authorization: Bearer $NORTHFLANK_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"branch\": \"$BRANCH\", \"sha\": \"$SHA\"}"
+            -d "{\"sha\": \"$SHA\"}"
