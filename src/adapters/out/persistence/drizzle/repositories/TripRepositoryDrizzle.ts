@@ -1,4 +1,5 @@
 import { eq, and, gt, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { Trip } from "@/core/domain/trip/Trip";
@@ -44,38 +45,67 @@ export class TripRepositoryDrizzle implements TripRepository {
     if (activeScheduleIds.length === 0) return [];
 
     const scheduleIdValues = activeScheduleIds.map((id) => id.value);
+    const ptOrigin = alias(passingTimes, "pt_origin");
 
-    const matchingPassingTimes = await this.db
-      .select()
-      .from(passingTimes)
+    const rows = await this.db
+      .select({
+        tripId: trips.id,
+        tripFeedId: trips.feedId,
+        tripRouteId: trips.routeId,
+        tripScheduleId: trips.scheduleId,
+        tripHeadsign: trips.headsign,
+        ptTripId: passingTimes.tripId,
+        ptStationId: passingTimes.stationId,
+        ptArrivalTime: passingTimes.arrivalTime,
+        ptDepartureTime: passingTimes.departureTime,
+        ptSequence: passingTimes.sequence,
+      })
+      .from(ptOrigin)
+      .innerJoin(
+        trips,
+        and(eq(trips.id, ptOrigin.tripId), inArray(trips.scheduleId, scheduleIdValues)),
+      )
+      .innerJoin(passingTimes, eq(passingTimes.tripId, trips.id))
       .where(
-        and(
-          eq(passingTimes.stationId, stationId.value),
-          gt(passingTimes.departureTime, after.value),
-        ),
+        and(eq(ptOrigin.stationId, stationId.value), gt(ptOrigin.departureTime, after.value)),
       );
 
-    if (matchingPassingTimes.length === 0) return [];
+    if (rows.length === 0) return [];
 
-    const tripIds = [...new Set(matchingPassingTimes.map((pt) => pt.tripId))];
+    type TripRow = { id: string; routeId: string; scheduleId: string; headsign: string | null };
+    type PtRow = {
+      tripId: string;
+      stationId: string;
+      arrivalTime: string;
+      departureTime: string;
+      sequence: number;
+    };
 
-    const tripRows = await this.db
-      .select()
-      .from(trips)
-      .where(and(inArray(trips.id, tripIds), inArray(trips.scheduleId, scheduleIdValues)));
+    const tripMap = new Map<string, TripRow>();
+    const ptByTrip = new Map<string, PtRow[]>();
 
-    const allPassingTimeRows = await this.db
-      .select()
-      .from(passingTimes)
-      .where(inArray(passingTimes.tripId, tripRows.map((r) => r.id)));
-
-    const ptByTrip = new Map<string, typeof allPassingTimeRows>();
-    for (const pt of allPassingTimeRows) {
-      if (!ptByTrip.has(pt.tripId)) ptByTrip.set(pt.tripId, []);
-      ptByTrip.get(pt.tripId)!.push(pt);
+    for (const row of rows) {
+      if (!tripMap.has(row.tripId)) {
+        tripMap.set(row.tripId, {
+          id: row.tripId,
+          routeId: row.tripRouteId,
+          scheduleId: row.tripScheduleId,
+          headsign: row.tripHeadsign,
+        });
+      }
+      if (!ptByTrip.has(row.ptTripId)) ptByTrip.set(row.ptTripId, []);
+      ptByTrip.get(row.ptTripId)!.push({
+        tripId: row.ptTripId,
+        stationId: row.ptStationId,
+        arrivalTime: row.ptArrivalTime,
+        departureTime: row.ptDepartureTime,
+        sequence: row.ptSequence,
+      });
     }
 
-    return tripRows.map((row) => TripMapper.toDomain(row, ptByTrip.get(row.id) ?? []));
+    return [...tripMap.values()].map((tripRow) =>
+      TripMapper.toDomain(tripRow, ptByTrip.get(tripRow.id) ?? []),
+    );
   }
 
   async save(trip: Trip, feedId: string): Promise<void> {
