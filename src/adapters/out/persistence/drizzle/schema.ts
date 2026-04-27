@@ -11,6 +11,7 @@ import {
   timestamp,
   jsonb,
   uuid,
+  index,
 } from "drizzle-orm/pg-core";
 
 // Stations and Bus Stops (generalized as 'stations' to match domain aggregate)
@@ -164,6 +165,7 @@ export const trips = pgTable(
       columns: [t.scheduleId, t.feedId],
       foreignColumns: [schedules.id, schedules.feedId],
     }).onDelete("cascade"),
+    scheduleIdIdx: index("idx_trips_schedule_id").on(t.scheduleId),
   }),
 );
 
@@ -188,6 +190,8 @@ export const passingTimes = pgTable(
       columns: [t.stationId, t.feedId],
       foreignColumns: [stations.id, stations.feedId],
     }).onDelete("cascade"),
+    stationDepartureIdx: index("idx_passing_times_station_departure").on(t.stationId, t.departureTime),
+    tripIdIdx: index("idx_passing_times_trip_id").on(t.tripId),
   }),
 );
 
