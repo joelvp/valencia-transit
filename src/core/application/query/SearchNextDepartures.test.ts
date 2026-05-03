@@ -504,6 +504,98 @@ describe("SearchNextDepartures", () => {
     expect(result.firstTomorrow!.lineColor).toBe("FF0000");
   });
 
+  it("should include post-midnight crossover trips when current time is before threshold", async () => {
+    // 00:04 Madrid (CET, UTC+1) = 23:04 UTC on the calendar day before
+    // earlyMorning is March 18 23:04 UTC (= March 19 00:04 Madrid)
+    const earlyMorning = new Date(Date.UTC(2026, 2, 18, 23, 4, 0));
+    const crossoverTrip = new Trip(
+      new TripId("T-cross"),
+      routeId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("24:12:00"), new TimeOfDay("24:12:00"), 1),
+        new PassingTime(destId, new TimeOfDay("24:22:00"), new TimeOfDay("24:22:00"), 2),
+      ],
+      "Direction A",
+    );
+    const sameDayTrip = new Trip(
+      new TripId("T-same"),
+      routeId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("05:42:00"), new TimeOfDay("05:42:00"), 1),
+        new PassingTime(destId, new TimeOfDay("05:52:00"), new TimeOfDay("05:52:00"), 2),
+      ],
+      "Direction A",
+    );
+    const mondaySchedule = makeSchedule();
+    const tuesdaySchedule = new Schedule(
+      new ScheduleId("SC2"),
+      new Weekdays(true, true, true, true, true, true, true),
+      new DateRange("2026-01-01", "2026-12-31"),
+      [],
+    );
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findActiveOn: (date) => {
+        // earlyMorning UTC date is 18; previousDay UTC date is 17
+        if (date.getUTCDate() === 18) return Promise.resolve([tuesdaySchedule]);
+        if (date.getUTCDate() === 17) return Promise.resolve([mondaySchedule]);
+        return Promise.resolve([]);
+      },
+      findDeparturesFromStation: (stationId, after) => {
+        if (after.hours >= 24) return Promise.resolve([crossoverTrip]);
+        return Promise.resolve([sameDayTrip]);
+      },
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(2);
+    // Crossover trip (24:12 = 8 min away) must appear before same-day trip (05:42 = 338 min away)
+    expect(result.data.departures[0]!.departureTime.value).toBe("24:12:00");
+    expect(result.data.departures[0]!.minutesRemaining).toBe(8);
+    expect(result.data.departures[1]!.departureTime.value).toBe("05:42:00");
+  });
+
+  it("should not perform crossover check when current time is at or above threshold", async () => {
+    // 06:00 Madrid (CET) = 05:00 UTC — at the threshold, no crossover check
+    const morningNow = new Date(Date.UTC(2026, 2, 18, 5, 0, 0));
+    const previousDayUTC = 17; // morningNow is UTC date 18, previous day is 17
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findActiveOn: () => Promise.resolve([makeSchedule()]),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    await useCase.execute("Xàtiva", "Colón", morningNow);
+
+    const calls = (scheduleRepo.findActiveOn as ReturnType<typeof mock>).mock.calls as [Date][];
+    const crossoverCallMade = calls.some(([d]) => d.getUTCDate() === previousDayUTC);
+    expect(crossoverCallMade).toBe(false);
+  });
+
   it("should return no_more_today with null firstTomorrow when no service tomorrow", async () => {
     const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
 

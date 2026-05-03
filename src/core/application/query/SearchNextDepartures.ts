@@ -39,6 +39,8 @@ export type SearchResult =
       routeLineName: string | null;
     };
 
+const CROSSOVER_THRESHOLD_HOURS = 6;
+
 export class SearchNextDepartures {
   constructor(
     private readonly stationRepository: StationRepository,
@@ -94,6 +96,26 @@ export class SearchNextDepartures {
       activeScheduleIds,
     );
 
+    if (currentTime.hours < CROSSOVER_THRESHOLD_HOURS) {
+      const previousDay = new Date(now);
+      previousDay.setDate(previousDay.getDate() - 1);
+      const previousSchedules = await this.scheduleRepository.findActiveOn(previousDay);
+      if (previousSchedules.length > 0) {
+        const extendedTime = TimeOfDay.of(
+          currentTime.hours + 24,
+          currentTime.minutes,
+          currentTime.seconds,
+        );
+        const previousScheduleIds = previousSchedules.map((s) => s.id);
+        const crossoverTrips = await this.tripRepository.findDeparturesFromStation(
+          origin.id,
+          extendedTime,
+          previousScheduleIds,
+        );
+        trips.push(...crossoverTrips);
+      }
+    }
+
     // Get route→line mapping for all trips
     const routeIds = [...new Set(trips.map((t) => t.routeId))];
     const routeLineMap = await this.routeRepository.findLineIdsByRouteIds(routeIds);
@@ -143,19 +165,24 @@ export class SearchNextDepartures {
       const arrivalAtDest = trip.getDepartureTimeAt(destination.id);
       const durationMinutes = arrivalAtDest ? arrivalAtDest.minutesUntilFrom(departureTime) : null;
 
+      const referenceTime =
+        departureTime.hours >= 24
+          ? TimeOfDay.of(currentTime.hours + 24, currentTime.minutes, currentTime.seconds)
+          : currentTime;
+
       departures.push(
         new Departure(
           departureTime,
           lineName,
           trip.headsign,
-          currentTime,
+          referenceTime,
           lineColor,
           durationMinutes,
         ),
       );
     }
 
-    departures.sort((a, b) => a.departureTime.minutesUntilFrom(b.departureTime));
+    departures.sort((a, b) => a.minutesRemaining - b.minutesRemaining);
     const topDepartures = departures.slice(0, this.maxDepartures);
 
     void this.eventBus.publish(

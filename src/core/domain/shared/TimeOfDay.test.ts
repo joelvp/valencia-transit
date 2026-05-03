@@ -109,6 +109,23 @@ describe("TimeOfDay", () => {
     });
   });
 
+  describe("of", () => {
+    it("should create a TimeOfDay from numeric components", () => {
+      const time = TimeOfDay.of(14, 30, 0);
+      expect(time.hours).toBe(14);
+      expect(time.minutes).toBe(30);
+      expect(time.seconds).toBe(0);
+      expect(time.value).toBe("14:30:00");
+    });
+
+    it("should create extended-hour times for GTFS crossover (hours >= 24)", () => {
+      const time = TimeOfDay.of(24, 12, 0);
+      expect(time.hours).toBe(24);
+      expect(time.minutes).toBe(12);
+      expect(time.value).toBe("24:12:00");
+    });
+  });
+
   describe("fromDate", () => {
     it("should return Madrid local time from a UTC Date (winter, UTC+1)", () => {
       // UTC 13:05:03 on 18 March 2026 → Madrid CET (UTC+1) = 14:05:03

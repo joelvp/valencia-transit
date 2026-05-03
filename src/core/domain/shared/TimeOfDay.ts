@@ -50,6 +50,13 @@ export class TimeOfDay {
     return this.value === other.value;
   }
 
+  static of(hours: number, minutes: number, seconds: number): TimeOfDay {
+    const h = String(hours).padStart(2, "0");
+    const m = String(minutes).padStart(2, "0");
+    const s = String(seconds).padStart(2, "0");
+    return new TimeOfDay(`${h}:${m}:${s}`);
+  }
+
   static fromDate(date: Date, timezone = "Europe/Madrid"): TimeOfDay {
     const parts = new Intl.DateTimeFormat("en-GB", {
       timeZone: timezone,
