@@ -3,6 +3,7 @@ dist/
 drizzle/
 .git/
 bun.lock
+renovate.json
 
 # Agent configuration (managed manually, Prettier breaks frontmatter/templates)
 .claude/
