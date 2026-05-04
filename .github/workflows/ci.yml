@@ -80,6 +80,4 @@ jobs:
         run: bun test src/core src/adapters/out/persistence/drizzle/mappers
 
       - name: All tests
-        # TODO: restore --coverage once Bun fixes segfault on Linux with coverage instrumentation
-        # Tracked: https://github.com/oven-sh/bun/issues
-        run: bun test
+        run: bun test --coverage
