@@ -15,9 +15,9 @@
     "noEmit": true,
 
     // Path aliases
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"],
+      "tests/*": ["./tests/*"]
     },
 
     // Best practices
