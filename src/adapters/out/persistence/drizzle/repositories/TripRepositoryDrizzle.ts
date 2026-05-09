@@ -1,4 +1,4 @@
-import { eq, and, gt, inArray } from "drizzle-orm";
+import { eq, and, gt, lt, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
@@ -152,6 +152,29 @@ export class TripRepositoryDrizzle implements TripRepository {
     }
     await bulkInsert(this.db, trips, allTripRows);
     await bulkInsert(this.db, passingTimes, allPtRows);
+  }
+
+  async hasServiceStarted(
+    stationId: StationId,
+    before: TimeOfDay,
+    activeScheduleIds: ScheduleId[],
+  ): Promise<boolean> {
+    if (activeScheduleIds.length === 0) return false;
+
+    const scheduleIdValues = activeScheduleIds.map((id) => id.value);
+    const ptOrigin = alias(passingTimes, "pt_origin");
+
+    const rows = await this.db
+      .select({ tripId: ptOrigin.tripId })
+      .from(ptOrigin)
+      .innerJoin(
+        trips,
+        and(eq(trips.id, ptOrigin.tripId), inArray(trips.scheduleId, scheduleIdValues)),
+      )
+      .where(and(eq(ptOrigin.stationId, stationId.value), lt(ptOrigin.departureTime, before.value)))
+      .limit(1);
+
+    return rows.length > 0;
   }
 
   async deleteByFeedId(feedId: string): Promise<void> {

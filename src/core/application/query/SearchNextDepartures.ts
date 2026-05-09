@@ -4,6 +4,7 @@ import type { StationRepository } from "@/core/domain/station/StationRepository"
 import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { RouteRepository } from "@/core/domain/route/RouteRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
+import type { Trip } from "@/core/domain/trip/Trip";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { Departure } from "@/core/domain/shared/Departure";
@@ -39,7 +40,7 @@ export type SearchResult =
       routeLineName: string | null;
     };
 
-const CROSSOVER_THRESHOLD_HOURS = 6;
+const CROSSOVER_WINDOW_HOURS = 10;
 
 export class SearchNextDepartures {
   constructor(
@@ -89,38 +90,54 @@ export class SearchNextDepartures {
 
     const currentTime = TimeOfDay.fromDate(now);
     const activeScheduleIds = activeSchedules.map((s) => s.id);
+    const extendedCurrentTime = TimeOfDay.of(
+      currentTime.hours + 24,
+      currentTime.minutes,
+      currentTime.seconds,
+    );
 
-    const trips = await this.tripRepository.findDeparturesFromStation(
+    let todayTrips = await this.tripRepository.findDeparturesFromStation(
       origin.id,
       currentTime,
       activeScheduleIds,
     );
+    let crossoverTrips: Trip[] = [];
+    let crossoverReferenceTime: TimeOfDay = extendedCurrentTime;
 
-    if (currentTime.hours < CROSSOVER_THRESHOLD_HOURS) {
-      const previousDay = new Date(now);
-      previousDay.setDate(previousDay.getDate() - 1);
-      const previousSchedules = await this.scheduleRepository.findActiveOn(previousDay);
-      if (previousSchedules.length > 0) {
-        const extendedTime = TimeOfDay.of(
-          currentTime.hours + 24,
-          currentTime.minutes,
-          currentTime.seconds,
-        );
-        const previousScheduleIds = previousSchedules.map((s) => s.id);
-        const crossoverTrips = await this.tripRepository.findDeparturesFromStation(
-          origin.id,
-          extendedTime,
-          previousScheduleIds,
-        );
-        trips.push(...crossoverTrips);
+    if (currentTime.hours < CROSSOVER_WINDOW_HOURS) {
+      const serviceStarted = await this.tripRepository.hasServiceStarted(
+        origin.id,
+        currentTime,
+        activeScheduleIds,
+      );
+      if (!serviceStarted) {
+        const previousDay = new Date(now);
+        previousDay.setDate(previousDay.getDate() - 1);
+        const previousSchedules = await this.scheduleRepository.findActiveOn(previousDay);
+        if (previousSchedules.length > 0) {
+          const previousScheduleIds = previousSchedules.map((s) => s.id);
+          crossoverTrips = await this.tripRepository.findDeparturesFromStation(
+            origin.id,
+            extendedCurrentTime,
+            previousScheduleIds,
+          );
+        }
       }
     }
+
+    const trips = [...crossoverTrips, ...todayTrips];
 
     // Get route→line mapping for all trips
     const routeIds = [...new Set(trips.map((t) => t.routeId))];
     const routeLineMap = await this.routeRepository.findLineIdsByRouteIds(routeIds);
 
-    const filteredTrips = trips.filter((trip) => trip.stopsInOrder(origin.id, destination.id));
+    const filteredCrossoverTrips = crossoverTrips.filter((trip) =>
+      trip.stopsInOrder(origin.id, destination.id),
+    );
+    const filteredTodayTrips = todayTrips.filter((trip) =>
+      trip.stopsInOrder(origin.id, destination.id),
+    );
+    const filteredTrips = [...filteredCrossoverTrips, ...filteredTodayTrips];
 
     // Lines that officially serve both stations — used only for display
     const matchingLines = await this.lineRepository.findByStationIds(origin.id, destination.id);
@@ -150,9 +167,10 @@ export class SearchNextDepartures {
     }
 
     const departures: Departure[] = [];
-    for (const trip of filteredTrips) {
+
+    const buildDeparture = (trip: Trip, referenceTime: TimeOfDay): Departure | null => {
       const departureTime = trip.getDepartureTimeAt(origin.id);
-      if (!departureTime) continue;
+      if (!departureTime) return null;
 
       const lineId = routeLineMap.get(trip.routeId.value);
       const isOfficialLine = lineId !== undefined && matchingLineIds.has(lineId);
@@ -165,21 +183,23 @@ export class SearchNextDepartures {
       const arrivalAtDest = trip.getDepartureTimeAt(destination.id);
       const durationMinutes = arrivalAtDest ? arrivalAtDest.minutesUntilFrom(departureTime) : null;
 
-      const referenceTime =
-        departureTime.hours >= 24
-          ? TimeOfDay.of(currentTime.hours + 24, currentTime.minutes, currentTime.seconds)
-          : currentTime;
-
-      departures.push(
-        new Departure(
-          departureTime,
-          lineName,
-          trip.headsign,
-          referenceTime,
-          lineColor,
-          durationMinutes,
-        ),
+      return new Departure(
+        departureTime,
+        lineName,
+        trip.headsign,
+        referenceTime,
+        lineColor,
+        durationMinutes,
       );
+    };
+
+    for (const trip of filteredCrossoverTrips) {
+      const dep = buildDeparture(trip, crossoverReferenceTime);
+      if (dep) departures.push(dep);
+    }
+    for (const trip of filteredTodayTrips) {
+      const dep = buildDeparture(trip, currentTime);
+      if (dep) departures.push(dep);
     }
 
     departures.sort((a, b) => a.minutesRemaining - b.minutesRemaining);

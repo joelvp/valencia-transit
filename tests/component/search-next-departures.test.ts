@@ -4,6 +4,8 @@ import { createContainer, type Container } from "@/adapters/container";
 import { clearDatabase } from "../helpers/db";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
+import { StationId } from "@/core/domain/station/StationId";
+import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 import {
   stations,
   routes,
@@ -206,5 +208,233 @@ describe("SearchNextDepartures Component Test", () => {
     await expect(useCase.execute("Unknown", "Colón", now)).rejects.toBeInstanceOf(
       StationNotFoundError,
     );
+  });
+
+  it("should return crossover trip first when queried at 00:05 with no prior service today", async () => {
+    // Insert yesterday's schedule with exception on 2024-06-02
+    await container.db.insert(schedules).values([
+      {
+        id: "YD",
+        feedId: FEED_ID,
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: true,
+        sunday: true,
+        startDate: "2024-01-01",
+        endDate: "2024-12-31",
+      },
+    ]);
+    await container.db
+      .insert(scheduleExceptions)
+      .values([{ scheduleId: "YD", feedId: FEED_ID, date: "2024-06-02", isActive: true }]);
+
+    // Yesterday's trip: departure 24:20 from ST1→ST2
+    await container.db
+      .insert(trips)
+      .values([
+        { id: "TY1", feedId: FEED_ID, routeId: "L1", scheduleId: "YD", headsign: "Xàtiva" },
+      ]);
+    await container.db.insert(passingTimes).values([
+      {
+        tripId: "TY1",
+        stationId: "ST1",
+        feedId: FEED_ID,
+        arrivalTime: "24:20:00",
+        departureTime: "24:20:00",
+        sequence: 1,
+      },
+      {
+        tripId: "TY1",
+        stationId: "ST2",
+        feedId: FEED_ID,
+        arrivalTime: "24:25:00",
+        departureTime: "24:25:00",
+        sequence: 2,
+      },
+    ]);
+
+    // Today's trip: departure 06:00 from ST1→ST2 (existing T1 in beforeEach, already inserted)
+    // now = 2024-06-03T22:05:00Z = 00:05 Madrid CEST (UTC+2), UTC date "2024-06-03"
+    const now = new Date("2024-06-03T22:05:00Z");
+
+    const useCase = new SearchNextDepartures(
+      container.stationRepository,
+      container.lineRepository,
+      container.scheduleRepository,
+      container.tripRepository,
+      container.routeRepository,
+      container.eventBus,
+    );
+
+    const result = await useCase.execute("Colón", "Xàtiva", now);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    // Crossover trip (24:20, ~15 min) must come before today's trip (06:00, ~348 min)
+    expect(result.data.departures[0]!.departureTime.value).toBe("24:20:00");
+    expect(result.data.departures[0]!.minutesRemaining).toBeGreaterThan(0);
+    expect(result.data.departures[1]!.departureTime.value).toBe("06:00:00");
+  });
+
+  it("should return true for hasServiceStarted when a past departure exists today", async () => {
+    // Trip with departure 05:00 from ST1, querying at 06:30 → service has started
+    await container.db
+      .insert(trips)
+      .values([
+        { id: "T_PAST", feedId: FEED_ID, routeId: "L1", scheduleId: "WD", headsign: "Xàtiva" },
+      ]);
+    await container.db.insert(passingTimes).values([
+      {
+        tripId: "T_PAST",
+        stationId: "ST1",
+        feedId: FEED_ID,
+        arrivalTime: "05:00:00",
+        departureTime: "05:00:00",
+        sequence: 1,
+      },
+      {
+        tripId: "T_PAST",
+        stationId: "ST2",
+        feedId: FEED_ID,
+        arrivalTime: "05:05:00",
+        departureTime: "05:05:00",
+        sequence: 2,
+      },
+    ]);
+
+    // 06:30 Madrid CEST (UTC+2) = 04:30 UTC. UTC date "2024-06-03" → schedule "WD" is active.
+    const now = new Date("2024-06-03T04:30:00Z");
+    const activeIds = (await container.scheduleRepository.findActiveOn(now)).map((s) => s.id);
+    const before = new TimeOfDay("06:30:00");
+
+    const started = await container.tripRepository.hasServiceStarted(
+      new StationId("ST1"),
+      before,
+      activeIds,
+    );
+    expect(started).toBe(true);
+  });
+
+  it("should return false for hasServiceStarted when only future departures exist today", async () => {
+    // T1 in beforeEach has departure 06:00 from ST1. Querying at 05:00 → no past departures.
+    const now = new Date("2024-06-03T03:00:00Z"); // 05:00 Madrid CEST
+    const activeIds = (await container.scheduleRepository.findActiveOn(now)).map((s) => s.id);
+    const before = new TimeOfDay("05:00:00");
+
+    const started = await container.tripRepository.hasServiceStarted(
+      new StationId("ST1"),
+      before,
+      activeIds,
+    );
+    expect(started).toBe(false);
+  });
+
+  it("should not return duplicate entries for the same trip time", async () => {
+    // Insert yesterday's schedule with exception on 2024-06-02
+    await container.db.insert(schedules).values([
+      {
+        id: "YD2",
+        feedId: FEED_ID,
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: true,
+        sunday: true,
+        startDate: "2024-01-01",
+        endDate: "2024-12-31",
+      },
+    ]);
+    await container.db
+      .insert(scheduleExceptions)
+      .values([{ scheduleId: "YD2", feedId: FEED_ID, date: "2024-06-02", isActive: true }]);
+
+    // Yesterday trip at 24:16 ST1→ST2
+    await container.db
+      .insert(trips)
+      .values([
+        {
+          id: "TY_DUP_YEST",
+          feedId: FEED_ID,
+          routeId: "L1",
+          scheduleId: "YD2",
+          headsign: "Xàtiva",
+        },
+      ]);
+    await container.db.insert(passingTimes).values([
+      {
+        tripId: "TY_DUP_YEST",
+        stationId: "ST1",
+        feedId: FEED_ID,
+        arrivalTime: "24:16:00",
+        departureTime: "24:16:00",
+        sequence: 1,
+      },
+      {
+        tripId: "TY_DUP_YEST",
+        stationId: "ST2",
+        feedId: FEED_ID,
+        arrivalTime: "24:21:00",
+        departureTime: "24:21:00",
+        sequence: 2,
+      },
+    ]);
+
+    // Today trip at 24:16 ST1→ST2 — same clock time, different schedule
+    await container.db
+      .insert(trips)
+      .values([
+        {
+          id: "TY_DUP_TODAY",
+          feedId: FEED_ID,
+          routeId: "L1",
+          scheduleId: "WD",
+          headsign: "Xàtiva",
+        },
+      ]);
+    await container.db.insert(passingTimes).values([
+      {
+        tripId: "TY_DUP_TODAY",
+        stationId: "ST1",
+        feedId: FEED_ID,
+        arrivalTime: "24:16:00",
+        departureTime: "24:16:00",
+        sequence: 1,
+      },
+      {
+        tripId: "TY_DUP_TODAY",
+        stationId: "ST2",
+        feedId: FEED_ID,
+        arrivalTime: "24:21:00",
+        departureTime: "24:21:00",
+        sequence: 2,
+      },
+    ]);
+
+    // now = 00:05 Madrid
+    const now = new Date("2024-06-03T22:05:00Z");
+    const useCase = new SearchNextDepartures(
+      container.stationRepository,
+      container.lineRepository,
+      container.scheduleRepository,
+      container.tripRepository,
+      container.routeRepository,
+      container.eventBus,
+    );
+
+    const result = await useCase.execute("Colón", "Xàtiva", now);
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+
+    // The crossover trip (24:16 yesterday, ~11 min) and today's 24:16 (1451 min) are different
+    // entries. Verify no two departures have the same ~11 min remaining (i.e., no duplicates
+    // of the crossover trip).
+    const shortEntries = result.data.departures.filter((d) => d.minutesRemaining < 60);
+    expect(shortEntries).toHaveLength(1);
+    expect(shortEntries[0]!.departureTime.value).toBe("24:16:00");
   });
 });

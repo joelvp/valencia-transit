@@ -85,6 +85,7 @@ function makeMocks() {
   const tripRepository: TripRepository = {
     findByRouteAndSchedule: mock(() => Promise.resolve([])),
     findDeparturesFromStation: mock(() => Promise.resolve([])),
+    hasServiceStarted: mock(() => Promise.resolve(false)),
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
     deleteByFeedId: mock(() => Promise.resolve()),

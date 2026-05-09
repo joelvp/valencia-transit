@@ -82,6 +82,7 @@ function makeRepos(
     findActiveOn: (date: Date) => Promise<Schedule[]>;
     /* eslint-disable @typescript-eslint/no-explicit-any */
     findDeparturesFromStation: (...args: any[]) => Promise<Trip[]>;
+    hasServiceStarted: (...args: any[]) => Promise<boolean>;
   }>,
 ): {
   stationRepo: StationRepository;
@@ -124,6 +125,7 @@ function makeRepos(
     findDeparturesFromStation: mock(
       overrides.findDeparturesFromStation ?? (() => Promise.resolve([trip])),
     ),
+    hasServiceStarted: mock(overrides.hasServiceStarted ?? (() => Promise.resolve(true))),
     findByRouteAndSchedule: mock(() => Promise.resolve([])),
     save: mock(() => Promise.resolve()),
     saveAll: mock(() => Promise.resolve()),
@@ -549,6 +551,7 @@ describe("SearchNextDepartures", () => {
         if (after.hours >= 24) return Promise.resolve([crossoverTrip]);
         return Promise.resolve([sameDayTrip]);
       },
+      hasServiceStarted: () => Promise.resolve(false),
     });
 
     const useCase = new SearchNextDepartures(
@@ -623,5 +626,345 @@ describe("SearchNextDepartures", () => {
     expect(result.type).toBe("no_more_today");
     if (result.type !== "no_more_today") return;
     expect(result.firstTomorrow).toBeNull();
+  });
+
+  it("should merge crossover and today trips and slice to maxDepartures", async () => {
+    // 00:05 Madrid (CET+1) = 2026-03-19 23:05 UTC
+    const earlyMorning = new Date(Date.UTC(2026, 2, 19, 23, 5, 0));
+    const sc2 = new Schedule(
+      new ScheduleId("SC2"),
+      new Weekdays(true, true, true, true, true, true, true),
+      new DateRange("2026-01-01", "2026-12-31"),
+      [],
+    );
+
+    const makeTrip = (id: string, time: string) =>
+      new Trip(
+        new TripId(id),
+        routeId,
+        scheduleId,
+        [
+          new PassingTime(originId, new TimeOfDay(time), new TimeOfDay(time), 1),
+          new PassingTime(destId, new TimeOfDay(time), new TimeOfDay(time), 2),
+        ],
+        "Direction A",
+      );
+
+    // 2 crossover trips from yesterday: 24:09, 24:40
+    const crossTrip1 = makeTrip("TC1", "24:09:00");
+    const crossTrip2 = makeTrip("TC2", "24:40:00");
+    // 4 today trips: 05:30, 06:00, 06:30, 07:00
+    const todayTrip1 = makeTrip("TD1", "05:30:00");
+    const todayTrip2 = makeTrip("TD2", "06:00:00");
+    const todayTrip3 = makeTrip("TD3", "06:30:00");
+    const todayTrip4 = makeTrip("TD4", "07:00:00");
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findActiveOn: (date) => {
+        if (date.getUTCDate() === 19) return Promise.resolve([makeSchedule()]);
+        if (date.getUTCDate() === 18) return Promise.resolve([sc2]);
+        return Promise.resolve([]);
+      },
+      findDeparturesFromStation: (_stationId, after) => {
+        if (after.hours >= 24) return Promise.resolve([crossTrip1, crossTrip2]);
+        return Promise.resolve([todayTrip1, todayTrip2, todayTrip3, todayTrip4]);
+      },
+      hasServiceStarted: () => Promise.resolve(false),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+      5,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(5);
+    expect(result.data.departures[0]!.departureTime.value).toBe("24:09:00");
+    expect(result.data.departures[1]!.departureTime.value).toBe("24:40:00");
+    expect(result.data.departures[2]!.departureTime.value).toBe("05:30:00");
+    expect(result.data.departures[3]!.departureTime.value).toBe("06:00:00");
+    expect(result.data.departures[4]!.departureTime.value).toBe("06:30:00");
+  });
+
+  it("should return only crossover trips when they fill maxDepartures", async () => {
+    // 00:05 Madrid = 2026-03-19 23:05 UTC
+    const earlyMorning = new Date(Date.UTC(2026, 2, 19, 23, 5, 0));
+    const sc2 = new Schedule(
+      new ScheduleId("SC2"),
+      new Weekdays(true, true, true, true, true, true, true),
+      new DateRange("2026-01-01", "2026-12-31"),
+      [],
+    );
+
+    const makeTrip = (id: string, time: string) =>
+      new Trip(
+        new TripId(id),
+        routeId,
+        scheduleId,
+        [
+          new PassingTime(originId, new TimeOfDay(time), new TimeOfDay(time), 1),
+          new PassingTime(destId, new TimeOfDay(time), new TimeOfDay(time), 2),
+        ],
+        "Direction A",
+      );
+
+    // 6 crossover trips from yesterday, every 10 min from 24:06
+    const crossTrips = ["24:06:00", "24:16:00", "24:26:00", "24:36:00", "24:46:00", "24:56:00"].map(
+      (t, i) => makeTrip(`TC${i}`, t),
+    );
+    // 3 today trips
+    const todayTrips = ["05:00:00", "06:00:00", "07:00:00"].map((t, i) => makeTrip(`TD${i}`, t));
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findActiveOn: (date) => {
+        if (date.getUTCDate() === 19) return Promise.resolve([makeSchedule()]);
+        if (date.getUTCDate() === 18) return Promise.resolve([sc2]);
+        return Promise.resolve([]);
+      },
+      findDeparturesFromStation: (_stationId, after) => {
+        if (after.hours >= 24) return Promise.resolve(crossTrips);
+        return Promise.resolve(todayTrips);
+      },
+      hasServiceStarted: () => Promise.resolve(false),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+      5,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(5);
+    result.data.departures.forEach((d) => {
+      expect(d.departureTime.hours).toBeGreaterThanOrEqual(24);
+    });
+  });
+
+  it("should not call hasServiceStarted when current time is at or above the threshold", async () => {
+    // 11:00 Madrid (CET) = 10:00 UTC
+    const midMorning = new Date(Date.UTC(2026, 2, 19, 10, 0, 0));
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    await useCase.execute("Xàtiva", "Colón", midMorning);
+
+    expect(tripRepo.hasServiceStarted).not.toHaveBeenCalled();
+  });
+
+  it("should use only today trips when service has started within the crossover window", async () => {
+    // 06:30 Madrid (CET) = 05:30 UTC
+    const morningStarted = new Date(Date.UTC(2026, 2, 19, 5, 30, 0));
+    const trip700 = new Trip(
+      new TripId("T700"),
+      routeId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("07:00:00"), new TimeOfDay("07:00:00"), 1),
+        new PassingTime(destId, new TimeOfDay("07:10:00"), new TimeOfDay("07:10:00"), 2),
+      ],
+      "Direction A",
+    );
+    const trip730 = new Trip(
+      new TripId("T730"),
+      routeId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("07:30:00"), new TimeOfDay("07:30:00"), 1),
+        new PassingTime(destId, new TimeOfDay("07:40:00"), new TimeOfDay("07:40:00"), 2),
+      ],
+      "Direction A",
+    );
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findDeparturesFromStation: () => Promise.resolve([trip700, trip730]),
+      hasServiceStarted: () => Promise.resolve(true),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", morningStarted);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    // No previous-day query — only today trips
+    const findActiveCalls = (scheduleRepo.findActiveOn as ReturnType<typeof mock>).mock.calls as [
+      Date,
+    ][];
+    const queriedUTCDates = findActiveCalls.map(([d]) => d.getUTCDate());
+    // previousDay UTC = 18, should not appear
+    expect(queriedUTCDates).not.toContain(18);
+    // minutesRemaining must be positive
+    result.data.departures.forEach((d) => {
+      expect(d.minutesRemaining).toBeGreaterThan(0);
+    });
+  });
+
+  it("should use only today trips when previous-day schedules are empty", async () => {
+    // 00:05 Madrid = 2026-03-19 23:05 UTC
+    const earlyMorning = new Date(Date.UTC(2026, 2, 19, 23, 5, 0));
+    const todayTrip = new Trip(
+      new TripId("TD1"),
+      routeId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("05:00:00"), new TimeOfDay("05:00:00"), 1),
+        new PassingTime(destId, new TimeOfDay("05:10:00"), new TimeOfDay("05:10:00"), 2),
+      ],
+      "Direction A",
+    );
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findActiveOn: (date) => {
+        // Only the "today" query (UTC date 19) returns schedules; yesterday returns []
+        if (date.getUTCDate() === 19) return Promise.resolve([makeSchedule()]);
+        return Promise.resolve([]);
+      },
+      findDeparturesFromStation: () => Promise.resolve([todayTrip]),
+      hasServiceStarted: () => Promise.resolve(false),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(1);
+    expect(result.data.departures[0]!.departureTime.value).toBe("05:00:00");
+  });
+
+  it("should compute minutesRemaining correctly for a 24:xx crossover trip", async () => {
+    // 00:08 Madrid (CET) = 2026-03-18 23:08 UTC
+    const earlyMorning = new Date(Date.UTC(2026, 2, 18, 23, 8, 0));
+    const sc2 = new Schedule(
+      new ScheduleId("SC2"),
+      new Weekdays(true, true, true, true, true, true, true),
+      new DateRange("2026-01-01", "2026-12-31"),
+      [],
+    );
+    const crossTrip = new Trip(
+      new TripId("TCX"),
+      routeId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("24:16:00"), new TimeOfDay("24:16:00"), 1),
+        new PassingTime(destId, new TimeOfDay("24:26:00"), new TimeOfDay("24:26:00"), 2),
+      ],
+      "Direction A",
+    );
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findActiveOn: (date) => {
+        if (date.getUTCDate() === 18) return Promise.resolve([makeSchedule()]);
+        if (date.getUTCDate() === 17) return Promise.resolve([sc2]);
+        return Promise.resolve([]);
+      },
+      findDeparturesFromStation: (_stationId, after) => {
+        if (after.hours >= 24) return Promise.resolve([crossTrip]);
+        return Promise.resolve([]);
+      },
+      hasServiceStarted: () => Promise.resolve(false),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(1);
+    // extendedCurrentTime = 24:08, departure at 24:16 → 8 min
+    expect(result.data.departures[0]!.minutesRemaining).toBe(8);
+  });
+
+  it("should compute minutesRemaining correctly for a normal trip when service has started", async () => {
+    // 06:30 Madrid (CET) = 05:30 UTC
+    const morningStarted = new Date(Date.UTC(2026, 2, 19, 5, 30, 0));
+    const trip715 = new Trip(
+      new TripId("T715"),
+      routeId,
+      scheduleId,
+      [
+        new PassingTime(originId, new TimeOfDay("07:15:00"), new TimeOfDay("07:15:00"), 1),
+        new PassingTime(destId, new TimeOfDay("07:25:00"), new TimeOfDay("07:25:00"), 2),
+      ],
+      "Direction A",
+    );
+
+    const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+      findByName: (name) =>
+        Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      findDeparturesFromStation: () => Promise.resolve([trip715]),
+      hasServiceStarted: () => Promise.resolve(true),
+    });
+
+    const useCase = new SearchNextDepartures(
+      stationRepo,
+      lineRepo,
+      scheduleRepo,
+      tripRepo,
+      routeRepo,
+      eventBus,
+    );
+    const result = await useCase.execute("Xàtiva", "Colón", morningStarted);
+
+    expect(result.type).toBe("departures");
+    if (result.type !== "departures") return;
+    expect(result.data.departures).toHaveLength(1);
+    // currentTime = 06:30, departure at 07:15 → 45 min
+    expect(result.data.departures[0]!.minutesRemaining).toBe(45);
   });
 });
