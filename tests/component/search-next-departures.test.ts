@@ -354,17 +354,15 @@ describe("SearchNextDepartures Component Test", () => {
       .values([{ scheduleId: "YD2", feedId: FEED_ID, date: "2024-06-02", isActive: true }]);
 
     // Yesterday trip at 24:16 ST1→ST2
-    await container.db
-      .insert(trips)
-      .values([
-        {
-          id: "TY_DUP_YEST",
-          feedId: FEED_ID,
-          routeId: "L1",
-          scheduleId: "YD2",
-          headsign: "Xàtiva",
-        },
-      ]);
+    await container.db.insert(trips).values([
+      {
+        id: "TY_DUP_YEST",
+        feedId: FEED_ID,
+        routeId: "L1",
+        scheduleId: "YD2",
+        headsign: "Xàtiva",
+      },
+    ]);
     await container.db.insert(passingTimes).values([
       {
         tripId: "TY_DUP_YEST",
@@ -385,17 +383,15 @@ describe("SearchNextDepartures Component Test", () => {
     ]);
 
     // Today trip at 24:16 ST1→ST2 — same clock time, different schedule
-    await container.db
-      .insert(trips)
-      .values([
-        {
-          id: "TY_DUP_TODAY",
-          feedId: FEED_ID,
-          routeId: "L1",
-          scheduleId: "WD",
-          headsign: "Xàtiva",
-        },
-      ]);
+    await container.db.insert(trips).values([
+      {
+        id: "TY_DUP_TODAY",
+        feedId: FEED_ID,
+        routeId: "L1",
+        scheduleId: "WD",
+        headsign: "Xàtiva",
+      },
+    ]);
     await container.db.insert(passingTimes).values([
       {
         tripId: "TY_DUP_TODAY",
