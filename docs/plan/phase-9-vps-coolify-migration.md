@@ -17,10 +17,14 @@ The project outgrew Railway (Phase 2) and later moved to Northflank, but free/ch
 
 ## 9C — Automate deploys
 
-- [ ] Grab the auto-deploy webhook URL from Coolify
-- [ ] Register the webhook on the GitHub repo (or call it from a workflow step)
-- [ ] Rewrite `.github/workflows/cd.yml` — replace the Northflank `curl` step with a call to the Coolify webhook
-- [ ] Verify: push to `dev`/`main` triggers an automatic redeploy
+- [x] Rewrite `.github/workflows/cd.yml` — replaced the Northflank `curl` step with a call to Coolify's `POST /api/v1/deploy` API. Guarded with a placeholder check: if the secrets below aren't set, it logs a warning and exits cleanly instead of failing the run.
+- [ ] Once the Coolify resource exists, create a **deploy-scoped API token** (Coolify → Keys & Tokens) and grab the resource's UUID (Coolify → your app → General)
+- [ ] Add these as GitHub repo secrets (Settings → Secrets and variables → Actions):
+  - `COOLIFY_URL` — base URL of your Coolify instance
+  - `COOLIFY_TOKEN` — the deploy-scoped API token
+  - `COOLIFY_PROD_RESOURCE_UUID` — resource UUID for the `main`-branch app
+  - `COOLIFY_DEV_RESOURCE_UUID` — resource UUID for the `dev`-branch app
+- [ ] Verify: push to `dev`/`main` triggers an automatic redeploy (the CD run should stop showing the "secrets not configured" warning)
 
 ## 9D — Cut over and clean up
 
