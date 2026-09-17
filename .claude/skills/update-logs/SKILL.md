@@ -41,14 +41,15 @@ echo "
 - Be concise but specific
 - Mark deviations with ⚠️
 
-### 2. PLAN.md (only if applicable)
+### 2. docs/plan/phase-N-*.md (only if applicable)
 
-Only read PLAN.md if the task was explicitly about completing items from it. If so:
+Roadmap checklists live in `docs/plan/`, one file per phase — `PLAN.md` is just a short index linking to them. Only read a phase file if the task was explicitly about completing items from it:
+- Use `PLAN.md`'s phase table to find the right file — don't read the whole index either if you already know the phase
 - Find items completed in this task
 - Mark them with `[x]`
 - Adjust text if reality differed
 
-**Important**: If no PLAN.md items apply, skip reading PLAN.md entirely.
+**Important**: If no phase items apply, skip reading `PLAN.md`/`docs/plan/` entirely.
 
 ## Example
 

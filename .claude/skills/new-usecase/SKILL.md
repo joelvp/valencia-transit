@@ -79,4 +79,4 @@ With the use case created, wire it in the container when creating the handler:
 Place the use case in the most relevant context folder under `src/core/application/`:
 - If the folder exists, use it
 - If not, create a new one named after the business capability
-- Check `PLAN.md` for the current list of contexts
+- Check `docs/plan/phase-0-scaffold.md` for the current list of contexts
