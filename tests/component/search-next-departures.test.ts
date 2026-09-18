@@ -257,8 +257,9 @@ describe("SearchNextDepartures Component Test", () => {
     ]);
 
     // Today's trip: departure 06:00 from ST1→ST2 (existing T1 in beforeEach, already inserted)
-    // now = 2024-06-03T22:05:00Z = 00:05 Madrid CEST (UTC+2), UTC date "2024-06-03"
-    const now = new Date("2024-06-03T22:05:00Z");
+    // now = 2024-06-02T22:05:00Z = 00:05 Madrid CEST (UTC+2) on the 3rd — schedule day
+    // resolution is Madrid-based, so this correctly lands on "today" = WD (2024-06-03).
+    const now = new Date("2024-06-02T22:05:00Z");
 
     const useCase = new SearchNextDepartures(
       container.stationRepository,
@@ -411,8 +412,8 @@ describe("SearchNextDepartures Component Test", () => {
       },
     ]);
 
-    // now = 00:05 Madrid
-    const now = new Date("2024-06-03T22:05:00Z");
+    // now = 00:05 Madrid on the 3rd
+    const now = new Date("2024-06-02T22:05:00Z");
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
