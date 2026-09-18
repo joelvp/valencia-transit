@@ -77,6 +77,84 @@ describe("Trip", () => {
     });
   });
 
+  describe("firstStop", () => {
+    it("should return the stop with the lowest sequence", () => {
+      expect(trip.firstStop()!.stationId.value).toBe("A");
+    });
+
+    it("should return undefined for a trip with no passing times", () => {
+      const empty = new Trip(new TripId("T9"), new RouteId("R1"), new ScheduleId("SCH1"), []);
+      expect(empty.firstStop()).toBeUndefined();
+    });
+  });
+
+  describe("isTruncatedCopyOf", () => {
+    function run(id: string, stops: [station: string, time: string][], scheduleId = "SCH1"): Trip {
+      const times = stops.map(
+        ([station, time], index) =>
+          new PassingTime(
+            new StationId(station),
+            new TimeOfDay(time),
+            new TimeOfDay(time),
+            index + 1,
+          ),
+      );
+      return new Trip(new TripId(id), new RouteId("R1"), new ScheduleId(scheduleId), times);
+    }
+
+    const short = run("SHORT", [
+      ["A", "22:00:00"],
+      ["B", "22:10:00"],
+    ]);
+    const long = run("LONG", [
+      ["A", "22:00:00"],
+      ["B", "22:10:00"],
+      ["C", "22:20:00"],
+    ]);
+
+    it("should be true when the shared stops and times match", () => {
+      expect(short.isTruncatedCopyOf(long)).toBe(true);
+    });
+
+    it("should be false for the longer trip against the shorter one", () => {
+      expect(long.isTruncatedCopyOf(short)).toBe(false);
+    });
+
+    it("should be false when a shared stop has a different time", () => {
+      const shifted = run("SHIFTED", [
+        ["A", "22:00:00"],
+        ["B", "22:11:00"],
+        ["C", "22:20:00"],
+      ]);
+
+      expect(short.isTruncatedCopyOf(shifted)).toBe(false);
+    });
+
+    it("should be false when they run on different service days", () => {
+      const otherDay = run(
+        "OTHER_DAY",
+        [
+          ["A", "22:00:00"],
+          ["B", "22:10:00"],
+          ["C", "22:20:00"],
+        ],
+        "SCH2",
+      );
+
+      expect(short.isTruncatedCopyOf(otherDay)).toBe(false);
+    });
+
+    it("should be false when they start at different stations", () => {
+      const fromZ = run("FROM_Z", [
+        ["Z", "21:50:00"],
+        ["A", "22:00:00"],
+        ["B", "22:10:00"],
+      ]);
+
+      expect(short.isTruncatedCopyOf(fromZ)).toBe(false);
+    });
+  });
+
   describe("equals", () => {
     it("should be equal to another trip with the same id", () => {
       const other = new Trip(new TripId("T1"), new RouteId("R2"), new ScheduleId("SCH2"), []);

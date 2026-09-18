@@ -7,6 +7,7 @@ import type { EventBus } from "@/core/domain/event/EventBus";
 import type { GtfsData } from "@/core/domain/shared/GtfsData";
 import { DatasetImported } from "@/core/domain/event/DatasetImported";
 import { BuildLines } from "@/core/domain/line/BuildLines";
+import { DeduplicateTrips } from "@/core/domain/trip/DeduplicateTrips";
 import { TransportType } from "@/core/domain/shared/TransportType";
 import { createLogger } from "@/config/logger";
 
@@ -34,7 +35,13 @@ export class ImportTransitData {
   async execute(data: GtfsData, feedId: string): Promise<ImportSummary> {
     log.info({ feedId }, "Starting import");
 
-    const lines = BuildLines.fromRoutesAndTrips(data.routes, data.trips);
+    const trips = DeduplicateTrips.removeTruncatedCopies(data.trips);
+    const duplicatesRemoved = data.trips.length - trips.length;
+    if (duplicatesRemoved > 0) {
+      log.info({ duplicatesRemoved }, "Dropped truncated duplicate trips");
+    }
+
+    const lines = BuildLines.fromRoutesAndTrips(data.routes, trips);
 
     // Delete in FK-safe order:
     // trips (cascades passing_times) → routes (cascades route_stations, refs lines) → lines (cascades line_stations) → schedules → stations
@@ -63,8 +70,8 @@ export class ImportTransitData {
     await this.routeRepository.saveMany(data.routes, feedId);
     log.info("Routes done");
 
-    log.info({ count: data.trips.length }, "Importing trips");
-    await this.tripRepository.saveAll(data.trips, feedId);
+    log.info({ count: trips.length }, "Importing trips");
+    await this.tripRepository.saveAll(trips, feedId);
     log.info("Trips done");
 
     // Post-process: derive station transport types from lines
@@ -91,7 +98,7 @@ export class ImportTransitData {
         data.stations.length,
         lines.length,
         data.schedules.length,
-        data.trips.length,
+        trips.length,
       ),
     );
 
@@ -101,7 +108,7 @@ export class ImportTransitData {
       routesImported: data.routes.length,
       linesImported: lines.length,
       schedulesImported: data.schedules.length,
-      tripsImported: data.trips.length,
+      tripsImported: trips.length,
     };
   }
 }

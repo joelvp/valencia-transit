@@ -32,6 +32,37 @@ export class Trip {
     return originPt.sequence < destPt.sequence;
   }
 
+  /**
+   * True when this trip is the same run as `other`, published truncated at an
+   * earlier station: same service day, and every stop and departure time
+   * matches `other` up to where this one ends. FGV publishes these when a run
+   * matches two official route patterns; their journey planner resolves the
+   * full run, so the truncated copy is not a separate departure.
+   */
+  isTruncatedCopyOf(other: Trip): boolean {
+    if (!this.scheduleId.equals(other.scheduleId)) return false;
+
+    const own = this.stopsInSequence();
+    const theirs = other.stopsInSequence();
+    if (own.length >= theirs.length) return false;
+
+    return own.every((stop, index) => {
+      const counterpart = theirs[index]!;
+      return (
+        stop.stationId.equals(counterpart.stationId) &&
+        stop.departureTime.equals(counterpart.departureTime)
+      );
+    });
+  }
+
+  firstStop(): PassingTime | undefined {
+    return this.stopsInSequence()[0];
+  }
+
+  private stopsInSequence(): PassingTime[] {
+    return [...this.passingTimes].sort((a, b) => a.sequence - b.sequence);
+  }
+
   equals(other: Trip): boolean {
     return this.id.equals(other.id);
   }
