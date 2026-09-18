@@ -15,10 +15,6 @@ export class DateRange {
     }
   }
 
-  contains(date: string): boolean {
-    return date >= this.startDate && date <= this.endDate;
-  }
-
   equals(other: DateRange): boolean {
     return this.startDate === other.startDate && this.endDate === other.endDate;
   }

@@ -9,19 +9,6 @@ export class Weekdays {
     readonly sunday: boolean,
   ) {}
 
-  isActiveOnDay(dayOfWeek: number): boolean {
-    const days = [
-      this.sunday,
-      this.monday,
-      this.tuesday,
-      this.wednesday,
-      this.thursday,
-      this.friday,
-      this.saturday,
-    ];
-    return days[dayOfWeek] ?? false;
-  }
-
   equals(other: Weekdays): boolean {
     return (
       this.monday === other.monday &&
