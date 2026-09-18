@@ -6,6 +6,7 @@ import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { StationId } from "@/core/domain/station/StationId";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
+import { ServiceDate } from "@/core/domain/shared/ServiceDate";
 import {
   stations,
   routes,
@@ -147,6 +148,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Colón", "Xàtiva", now);
@@ -167,6 +169,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -187,6 +190,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     await expect(useCase.execute("Colón", "Xàtiva", now)).rejects.toBeInstanceOf(
@@ -203,6 +207,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     await expect(useCase.execute("Unknown", "Colón", now)).rejects.toBeInstanceOf(
@@ -268,6 +273,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Colón", "Xàtiva", now);
@@ -306,9 +312,10 @@ describe("SearchNextDepartures Component Test", () => {
       },
     ]);
 
-    // 06:30 Madrid CEST (UTC+2) = 04:30 UTC. UTC date "2024-06-03" → schedule "WD" is active.
-    const now = new Date("2024-06-03T04:30:00Z");
-    const activeIds = (await container.scheduleRepository.findActiveOn(now)).map((s) => s.id);
+    // Schedule "WD" is active on 2024-06-03
+    const activeIds = (
+      await container.scheduleRepository.findActiveOn(new ServiceDate("2024-06-03"))
+    ).map((s) => s.id);
     const before = new TimeOfDay("06:30:00");
 
     const started = await container.tripRepository.hasServiceStarted(
@@ -321,8 +328,9 @@ describe("SearchNextDepartures Component Test", () => {
 
   it("should return false for hasServiceStarted when only future departures exist today", async () => {
     // T1 in beforeEach has departure 06:00 from ST1. Querying at 05:00 → no past departures.
-    const now = new Date("2024-06-03T03:00:00Z"); // 05:00 Madrid CEST
-    const activeIds = (await container.scheduleRepository.findActiveOn(now)).map((s) => s.id);
+    const activeIds = (
+      await container.scheduleRepository.findActiveOn(new ServiceDate("2024-06-03"))
+    ).map((s) => s.id);
     const before = new TimeOfDay("05:00:00");
 
     const started = await container.tripRepository.hasServiceStarted(
@@ -421,6 +429,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Colón", "Xàtiva", now);

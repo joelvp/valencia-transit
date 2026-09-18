@@ -66,6 +66,7 @@ describe("TelegramBot E2E", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
     const findStation = new FindStation(container.stationRepository);
     const listLines = new ListLines(

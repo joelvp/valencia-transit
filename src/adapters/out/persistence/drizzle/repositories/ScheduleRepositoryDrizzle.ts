@@ -4,7 +4,7 @@ import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleReposito
 import type { Schedule } from "@/core/domain/schedule/Schedule";
 import type { ScheduleId } from "@/core/domain/schedule/ScheduleId";
 import { ScheduleMapper } from "@/adapters/out/persistence/drizzle/mappers/ScheduleMapper";
-import { toMadridDateString } from "@/core/domain/shared/toMadridDateString";
+import type { ServiceDate } from "@/core/domain/shared/ServiceDate";
 import { schedules, scheduleExceptions } from "@/adapters/out/persistence/drizzle/schema";
 import type * as schema from "@/adapters/out/persistence/drizzle/schema";
 import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
@@ -28,17 +28,13 @@ export class ScheduleRepositoryDrizzle implements ScheduleRepository {
     return ScheduleMapper.toDomain(scheduleRow, exceptionRows);
   }
 
-  async findActiveOn(date: Date): Promise<Schedule[]> {
-    // GTFS service days are civil days in the feed's own timezone (Madrid), not
-    // UTC. toISOString() would extract the UTC calendar date instead, which is
-    // up to 2 hours behind Madrid's — wrong for the whole window between
-    // Madrid midnight and UTC midnight, every single night.
-    const dateStr = toMadridDateString(date);
-
+  async findActiveOn(serviceDate: ServiceDate): Promise<Schedule[]> {
     const activeExceptions = await this.db
       .select()
       .from(scheduleExceptions)
-      .where(and(eq(scheduleExceptions.date, dateStr), eq(scheduleExceptions.isActive, true)));
+      .where(
+        and(eq(scheduleExceptions.date, serviceDate.value), eq(scheduleExceptions.isActive, true)),
+      );
 
     if (activeExceptions.length === 0) return [];
 

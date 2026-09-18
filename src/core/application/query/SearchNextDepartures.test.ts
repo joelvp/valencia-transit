@@ -29,6 +29,8 @@ import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnec
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { TransportType } from "@/core/domain/shared/TransportType";
+import { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
+import type { ServiceDate } from "@/core/domain/shared/ServiceDate";
 
 const originId = new StationId("S1");
 const destId = new StationId("S2");
@@ -53,6 +55,8 @@ const line = new Line(lineId, new LineName("L3"), [
 ]);
 
 const now = new Date(Date.UTC(2026, 2, 18, 13, 0, 0)); // 13:00 UTC = 14:00 Madrid (CET)
+const calendar = new ServiceCalendar("Europe/Madrid");
+const dayOf = (serviceDate: ServiceDate) => Number(serviceDate.value.slice(8, 10));
 
 const trip = new Trip(
   new TripId("T1"),
@@ -79,7 +83,7 @@ function makeRepos(
     findByName: (name: string) => Promise<Station | null>;
     searchByName: (query: string) => Promise<Station[]>;
     findByStationIds: () => Promise<Line[]>;
-    findActiveOn: (date: Date) => Promise<Schedule[]>;
+    findActiveOn: (serviceDate: ServiceDate) => Promise<Schedule[]>;
     /* eslint-disable @typescript-eslint/no-explicit-any */
     findDeparturesFromStation: (...args: any[]) => Promise<Trip[]>;
     hasServiceStarted: (...args: any[]) => Promise<boolean>;
@@ -151,6 +155,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
@@ -177,6 +182,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     await useCase.execute("Xàtiva", "Colón", now);
 
@@ -197,6 +203,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
@@ -219,6 +226,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     expect(useCase.execute("Unknown", "Colón", now)).rejects.toBeInstanceOf(StationNotFoundError);
   });
@@ -243,6 +251,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
@@ -273,6 +282,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
 
@@ -298,6 +308,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(
       StationsNotConnectedError,
@@ -318,6 +329,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(NoServiceError);
   });
@@ -336,6 +348,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     expect(useCase.execute("Xàtiva", "Colón", now)).rejects.toBeInstanceOf(NoActiveServiceError);
   });
@@ -379,6 +392,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
       3,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -419,6 +433,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", lateNow);
 
@@ -451,6 +466,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     // trip has correct passing_times: origin seq=1, dest seq=2
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -497,6 +513,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", lateNow);
 
@@ -542,9 +559,9 @@ describe("SearchNextDepartures", () => {
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findActiveOn: (date) => {
-        // earlyMorning UTC date is 18; previousDay UTC date is 17
-        if (date.getUTCDate() === 18) return Promise.resolve([tuesdaySchedule]);
-        if (date.getUTCDate() === 17) return Promise.resolve([mondaySchedule]);
+        // 23:04 UTC on the 18th is already 00:04 Madrid on the 19th
+        if (dayOf(date) === 19) return Promise.resolve([tuesdaySchedule]);
+        if (dayOf(date) === 18) return Promise.resolve([mondaySchedule]);
         return Promise.resolve([]);
       },
       findDeparturesFromStation: (stationId, after) => {
@@ -561,6 +578,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
 
@@ -591,11 +609,14 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     await useCase.execute("Xàtiva", "Colón", morningNow);
 
-    const calls = (scheduleRepo.findActiveOn as ReturnType<typeof mock>).mock.calls as [Date][];
-    const crossoverCallMade = calls.some(([d]) => d.getUTCDate() === previousDayUTC);
+    const calls = (scheduleRepo.findActiveOn as ReturnType<typeof mock>).mock.calls as [
+      ServiceDate,
+    ][];
+    const crossoverCallMade = calls.some(([d]) => dayOf(d) === previousDayUTC);
     expect(crossoverCallMade).toBe(false);
   });
 
@@ -608,7 +629,7 @@ describe("SearchNextDepartures", () => {
       findDeparturesFromStation: () => Promise.resolve([]),
       findActiveOn: (date) => {
         // Only today has service, tomorrow doesn't
-        if (date.getDate() === 18) return Promise.resolve([makeSchedule()]);
+        if (dayOf(date) === 18) return Promise.resolve([makeSchedule()]);
         return Promise.resolve([]);
       },
     });
@@ -620,6 +641,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", lateNow);
 
@@ -663,8 +685,8 @@ describe("SearchNextDepartures", () => {
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findActiveOn: (date) => {
-        if (date.getUTCDate() === 19) return Promise.resolve([makeSchedule()]);
-        if (date.getUTCDate() === 18) return Promise.resolve([sc2]);
+        if (dayOf(date) === 20) return Promise.resolve([makeSchedule()]);
+        if (dayOf(date) === 19) return Promise.resolve([sc2]);
         return Promise.resolve([]);
       },
       findDeparturesFromStation: (_stationId, after) => {
@@ -681,6 +703,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
       5,
     );
     const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
@@ -728,8 +751,8 @@ describe("SearchNextDepartures", () => {
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findActiveOn: (date) => {
-        if (date.getUTCDate() === 19) return Promise.resolve([makeSchedule()]);
-        if (date.getUTCDate() === 18) return Promise.resolve([sc2]);
+        if (dayOf(date) === 20) return Promise.resolve([makeSchedule()]);
+        if (dayOf(date) === 19) return Promise.resolve([sc2]);
         return Promise.resolve([]);
       },
       findDeparturesFromStation: (_stationId, after) => {
@@ -746,6 +769,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
       5,
     );
     const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
@@ -774,6 +798,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     await useCase.execute("Xàtiva", "Colón", midMorning);
 
@@ -818,6 +843,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", morningStarted);
 
@@ -825,9 +851,9 @@ describe("SearchNextDepartures", () => {
     if (result.type !== "departures") return;
     // No previous-day query — only today trips
     const findActiveCalls = (scheduleRepo.findActiveOn as ReturnType<typeof mock>).mock.calls as [
-      Date,
+      ServiceDate,
     ][];
-    const queriedUTCDates = findActiveCalls.map(([d]) => d.getUTCDate());
+    const queriedUTCDates = findActiveCalls.map(([d]) => dayOf(d));
     // previousDay UTC = 18, should not appear
     expect(queriedUTCDates).not.toContain(18);
     // minutesRemaining must be positive
@@ -854,8 +880,8 @@ describe("SearchNextDepartures", () => {
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findActiveOn: (date) => {
-        // Only the "today" query (UTC date 19) returns schedules; yesterday returns []
-        if (date.getUTCDate() === 19) return Promise.resolve([makeSchedule()]);
+        // Only the "today" query (Madrid date 20) returns schedules; yesterday returns []
+        if (dayOf(date) === 20) return Promise.resolve([makeSchedule()]);
         return Promise.resolve([]);
       },
       findDeparturesFromStation: () => Promise.resolve([todayTrip]),
@@ -869,6 +895,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
 
@@ -902,8 +929,8 @@ describe("SearchNextDepartures", () => {
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findActiveOn: (date) => {
-        if (date.getUTCDate() === 18) return Promise.resolve([makeSchedule()]);
-        if (date.getUTCDate() === 17) return Promise.resolve([sc2]);
+        if (dayOf(date) === 19) return Promise.resolve([makeSchedule()]);
+        if (dayOf(date) === 18) return Promise.resolve([sc2]);
         return Promise.resolve([]);
       },
       findDeparturesFromStation: (_stationId, after) => {
@@ -920,6 +947,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
 
@@ -958,6 +986,7 @@ describe("SearchNextDepartures", () => {
       tripRepo,
       routeRepo,
       eventBus,
+      calendar,
     );
     const result = await useCase.execute("Xàtiva", "Colón", morningStarted);
 
