@@ -85,7 +85,12 @@ export class SearchNextDepartures {
     const destination = destResult;
 
     const today = this.serviceCalendar.serviceDateOf(now);
-    const activeSchedules = await this.scheduleRepository.findActiveOn(today);
+
+    // Yesterday's schedule may still have pending post-midnight (24:xx) departures.
+    const [activeSchedules, previousSchedules] = await Promise.all([
+      this.scheduleRepository.findActiveOn(today),
+      this.scheduleRepository.findActiveOn(today.previous()),
+    ]);
     if (activeSchedules.length === 0) {
       throw new NoActiveServiceError(today);
     }
@@ -97,14 +102,6 @@ export class SearchNextDepartures {
       currentTime.minutes,
       currentTime.seconds,
     );
-
-    // Yesterday's service can still have trips pending (GTFS expresses them as
-    // 24:xx+ past midnight). No need to guess a cutoff hour for when that stops
-    // being possible — findDeparturesFromStation already only returns trips
-    // whose departureTime is after the reference time, so querying yesterday's
-    // schedule unconditionally is safe and self-limiting: once nothing from
-    // yesterday could still be pending, it just comes back empty.
-    const previousSchedules = await this.scheduleRepository.findActiveOn(today.previous());
     const previousScheduleIds = previousSchedules.map((s) => s.id);
 
     const [todayTrips, crossoverTrips] = await Promise.all([

@@ -127,10 +127,7 @@ function makeRepos(
   const tripRepo: TripRepository = {
     findDeparturesFromStation: mock(
       overrides.findDeparturesFromStation ??
-        // Real repositories filter by `after`, so the default fixture `trip` (a
-        // plain 14:30 same-day time) must not also match the crossover query
-        // (after.hours >= 24) — otherwise tests using every default would see
-        // it duplicated now that the crossover query always runs.
+        // Excludes the crossover query (after.hours >= 24) so the default fixture isn't duplicated.
         ((_stationId: unknown, after: TimeOfDay) =>
           Promise.resolve(after.hours >= 24 ? [] : [trip])),
     ),
@@ -451,8 +448,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should find departures even when line_stations has merged bidirectional sequences", async () => {
-    // Regression: line_stations may store both directions merged, giving dest a lower seq than origin.
-    // The use case must rely on trip.stopsInOrder (passing_times) — not line.connectsInOrder.
+    // Regression: must rely on trip.stopsInOrder, not line.connectsInOrder, which can be merged.
     const lineWithMergedSeqs = new Line(lineId, new LineName("L3"), [
       new LineStop(destId, 1), // destination appears first (wrong order in line_stations)
       new LineStop(originId, 7), // origin appears later
@@ -529,8 +525,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should include post-midnight crossover trips from yesterday's schedule", async () => {
-    // 00:04 Madrid (CET, UTC+1) = 23:04 UTC on the calendar day before
-    // earlyMorning is March 18 23:04 UTC (= March 19 00:04 Madrid)
+    // 00:04 Madrid (CET+1) = 2026-03-18 23:04 UTC
     const earlyMorning = new Date(Date.UTC(2026, 2, 18, 23, 4, 0));
     const crossoverTrip = new Trip(
       new TripId("T-cross"),
@@ -596,10 +591,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should query yesterday's schedule for crossover trips even in the afternoon (returns none)", async () => {
-    // 14:00 Madrid (CET) = 13:00 UTC — well outside any plausible crossover range.
-    // There's no hardcoded cutoff hour anymore: yesterday's schedule is still
-    // queried, it's just expected to come back empty since no real GTFS feed
-    // has departure times that late.
+    // 14:00 Madrid (CET) = 13:00 UTC
     const afternoon = new Date(Date.UTC(2026, 2, 18, 13, 0, 0));
 
     const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
@@ -791,10 +783,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should still include a pending crossover trip when today's schedule already had an earlier departure", async () => {
-    // Regression test: today's own schedule already produced a departure before
-    // "now" (an early owl trip), which used to make the old hasServiceStarted
-    // gate skip checking yesterday's schedule entirely — silently dropping a
-    // still-pending late-night trip from yesterday. There's no such gate anymore.
+    // Regression: an earlier departure today no longer hides yesterday's pending crossover trip.
     // 00:30 Madrid (CET+1) = 2026-03-18 23:30 UTC
     const earlyMorning = new Date(Date.UTC(2026, 2, 18, 23, 30, 0));
     const yesterdaySchedule = new Schedule(
@@ -815,9 +804,7 @@ describe("SearchNextDepartures", () => {
       ],
       "Direction A",
     );
-    // Today's future trip: 06:00 (today's schedule already had an earlier,
-    // now-past departure too — that one is simply excluded by the "after"
-    // filter, same as it would be in the real repository)
+    // Today's future trip: 06:00
     const todayTrip = new Trip(
       new TripId("T-today"),
       routeId,
