@@ -42,8 +42,6 @@ export type SearchResult =
       routeLineName: string | null;
     };
 
-const CROSSOVER_WINDOW_HOURS = 10;
-
 export class SearchNextDepartures {
   constructor(
     private readonly stationRepository: StationRepository,
@@ -100,32 +98,26 @@ export class SearchNextDepartures {
       currentTime.seconds,
     );
 
-    let todayTrips = await this.tripRepository.findDeparturesFromStation(
-      origin.id,
-      currentTime,
-      activeScheduleIds,
-    );
-    let crossoverTrips: Trip[] = [];
-    let crossoverReferenceTime: TimeOfDay = extendedCurrentTime;
+    // Yesterday's service can still have trips pending (GTFS expresses them as
+    // 24:xx+ past midnight). No need to guess a cutoff hour for when that stops
+    // being possible — findDeparturesFromStation already only returns trips
+    // whose departureTime is after the reference time, so querying yesterday's
+    // schedule unconditionally is safe and self-limiting: once nothing from
+    // yesterday could still be pending, it just comes back empty.
+    const previousSchedules = await this.scheduleRepository.findActiveOn(today.previous());
+    const previousScheduleIds = previousSchedules.map((s) => s.id);
 
-    if (currentTime.hours < CROSSOVER_WINDOW_HOURS) {
-      const serviceStarted = await this.tripRepository.hasServiceStarted(
-        origin.id,
-        currentTime,
-        activeScheduleIds,
-      );
-      if (!serviceStarted) {
-        const previousSchedules = await this.scheduleRepository.findActiveOn(today.previous());
-        if (previousSchedules.length > 0) {
-          const previousScheduleIds = previousSchedules.map((s) => s.id);
-          crossoverTrips = await this.tripRepository.findDeparturesFromStation(
+    const [todayTrips, crossoverTrips] = await Promise.all([
+      this.tripRepository.findDeparturesFromStation(origin.id, currentTime, activeScheduleIds),
+      previousScheduleIds.length > 0
+        ? this.tripRepository.findDeparturesFromStation(
             origin.id,
             extendedCurrentTime,
             previousScheduleIds,
-          );
-        }
-      }
-    }
+          )
+        : Promise.resolve<Trip[]>([]),
+    ]);
+    const crossoverReferenceTime = extendedCurrentTime;
 
     const trips = [...crossoverTrips, ...todayTrips];
 

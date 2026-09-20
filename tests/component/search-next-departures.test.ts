@@ -4,9 +4,6 @@ import { createContainer, type Container } from "@/adapters/container";
 import { clearDatabase } from "../helpers/db";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
-import { StationId } from "@/core/domain/station/StationId";
-import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
-import { ServiceDate } from "@/core/domain/shared/ServiceDate";
 import {
   stations,
   routes,
@@ -284,61 +281,6 @@ describe("SearchNextDepartures Component Test", () => {
     expect(result.data.departures[0]!.departureTime.value).toBe("24:20:00");
     expect(result.data.departures[0]!.minutesRemaining).toBeGreaterThan(0);
     expect(result.data.departures[1]!.departureTime.value).toBe("06:00:00");
-  });
-
-  it("should return true for hasServiceStarted when a past departure exists today", async () => {
-    // Trip with departure 05:00 from ST1, querying at 06:30 → service has started
-    await container.db
-      .insert(trips)
-      .values([
-        { id: "T_PAST", feedId: FEED_ID, routeId: "L1", scheduleId: "WD", headsign: "Xàtiva" },
-      ]);
-    await container.db.insert(passingTimes).values([
-      {
-        tripId: "T_PAST",
-        stationId: "ST1",
-        feedId: FEED_ID,
-        arrivalTime: "05:00:00",
-        departureTime: "05:00:00",
-        sequence: 1,
-      },
-      {
-        tripId: "T_PAST",
-        stationId: "ST2",
-        feedId: FEED_ID,
-        arrivalTime: "05:05:00",
-        departureTime: "05:05:00",
-        sequence: 2,
-      },
-    ]);
-
-    // Schedule "WD" is active on 2024-06-03
-    const activeIds = (
-      await container.scheduleRepository.findActiveOn(new ServiceDate("2024-06-03"))
-    ).map((s) => s.id);
-    const before = new TimeOfDay("06:30:00");
-
-    const started = await container.tripRepository.hasServiceStarted(
-      new StationId("ST1"),
-      before,
-      activeIds,
-    );
-    expect(started).toBe(true);
-  });
-
-  it("should return false for hasServiceStarted when only future departures exist today", async () => {
-    // T1 in beforeEach has departure 06:00 from ST1. Querying at 05:00 → no past departures.
-    const activeIds = (
-      await container.scheduleRepository.findActiveOn(new ServiceDate("2024-06-03"))
-    ).map((s) => s.id);
-    const before = new TimeOfDay("05:00:00");
-
-    const started = await container.tripRepository.hasServiceStarted(
-      new StationId("ST1"),
-      before,
-      activeIds,
-    );
-    expect(started).toBe(false);
   });
 
   it("should not return duplicate entries for the same trip time", async () => {
