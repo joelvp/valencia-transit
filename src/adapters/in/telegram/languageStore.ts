@@ -12,9 +12,3 @@ export function getLang(chatId: number): Lang {
 export function setLang(chatId: number, lang: Lang): void {
   store.set(chatId, lang);
 }
-
-export function initLanguageStore(languages: Map<number, string>): void {
-  for (const [chatId, lang] of languages) {
-    store.set(chatId, lang as Lang);
-  }
-}
