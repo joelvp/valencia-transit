@@ -34,7 +34,7 @@ Entry point    Use case    Adapters    Infra
 ```
 
 | Type            | Location                 | What it tests                                           | Mocking                                      |
-| --------------- | ------------------------ | ------------------------------------------------------- | --------------------------------------------- |
+| --------------- | ------------------------ | ------------------------------------------------------- | -------------------------------------------- |
 | **Unit**        | Co-located (`*.test.ts`) | Domain logic, use case orchestration, mappers, adapters | Ports (for use cases), nothing (for domain)  |
 | **Integration** | Co-located (`*.test.ts`) | One adapter against its real infra                      | Nothing — real DB/filesystem                 |
 | **Component**   | `tests/component/`       | Use case + real adapters + real DB, no entry point      | Nothing — real everything except entry point |
@@ -60,20 +60,20 @@ Entry point    Use case    Adapters    Infra
 
 Detailed checklists live in [`docs/plan/`](./docs/plan/), one file per phase — read only the one you need instead of this whole document.
 
-| Phase | Title                                          | Status         | File                                                                              |
-| ----- | ----------------------------------------------- | -------------- | ---------------------------------------------------------------------------------- |
-| 0     | Project Scaffold & Tooling                     | ✅ Done        | [phase-0-scaffold.md](./docs/plan/phase-0-scaffold.md)                           |
-| 1     | Domain Model (Entities + VOs + Tests)          | ✅ Done        | [phase-1-domain-model.md](./docs/plan/phase-1-domain-model.md)                   |
-| 2     | CI/CD & Railway Deployment                     | ✅ Historical  | [phase-2-cicd-railway.md](./docs/plan/phase-2-cicd-railway.md)                   |
-| 3     | Database Schema & Persistence Adapters         | ✅ Done        | [phase-3-database-persistence.md](./docs/plan/phase-3-database-persistence.md)   |
-| 4     | GTFS Import Pipeline                           | ✅ Done        | [phase-4-gtfs-import.md](./docs/plan/phase-4-gtfs-import.md)                     |
-| 5     | Departure Calculation & Station Queries        | ✅ Done        | [phase-5-departure-calculation.md](./docs/plan/phase-5-departure-calculation.md) |
-| 6     | Telegram Bot                                   | ✅ Done        | [phase-6-telegram-bot.md](./docs/plan/phase-6-telegram-bot.md)                   |
-| 7     | Event Bus & Event Store                        | ✅ Done        | [phase-7-event-bus.md](./docs/plan/phase-7-event-bus.md)                         |
-| 8     | UX & Usability                                 | ✅ Done        | [phase-8-ux-usability.md](./docs/plan/phase-8-ux-usability.md)                   |
+| Phase | Title                                                      | Status                             | File                                                                             |
+| ----- | ---------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------- |
+| 0     | Project Scaffold & Tooling                                 | ✅ Done                            | [phase-0-scaffold.md](./docs/plan/phase-0-scaffold.md)                           |
+| 1     | Domain Model (Entities + VOs + Tests)                      | ✅ Done                            | [phase-1-domain-model.md](./docs/plan/phase-1-domain-model.md)                   |
+| 2     | CI/CD & Railway Deployment                                 | ✅ Historical                      | [phase-2-cicd-railway.md](./docs/plan/phase-2-cicd-railway.md)                   |
+| 3     | Database Schema & Persistence Adapters                     | ✅ Done                            | [phase-3-database-persistence.md](./docs/plan/phase-3-database-persistence.md)   |
+| 4     | GTFS Import Pipeline                                       | ✅ Done                            | [phase-4-gtfs-import.md](./docs/plan/phase-4-gtfs-import.md)                     |
+| 5     | Departure Calculation & Station Queries                    | ✅ Done                            | [phase-5-departure-calculation.md](./docs/plan/phase-5-departure-calculation.md) |
+| 6     | Telegram Bot                                               | ✅ Done                            | [phase-6-telegram-bot.md](./docs/plan/phase-6-telegram-bot.md)                   |
+| 7     | Event Bus & Event Store                                    | ✅ Done                            | [phase-7-event-bus.md](./docs/plan/phase-7-event-bus.md)                         |
+| 8     | UX & Usability                                             | ✅ Done                            | [phase-8-ux-usability.md](./docs/plan/phase-8-ux-usability.md)                   |
 | 9     | **Migrate Deployment: Northflank → Hetzner VPS + Coolify** | 🔵 **In progress — current focus** | [phase-9-vps-coolify-migration.md](./docs/plan/phase-9-vps-coolify-migration.md) |
-| 10    | Automatic GTFS Download & Version Detection    | ⏸️ Postponed (after Phase 9) | [phase-10-gtfs-auto-download.md](./docs/plan/phase-10-gtfs-auto-download.md)     |
-| 11    | Hardening                                      | ⬜ Not started | [phase-11-hardening.md](./docs/plan/phase-11-hardening.md)                       |
+| 10    | Automatic GTFS Download & Version Detection                | ⏸️ Postponed (after Phase 9)       | [phase-10-gtfs-auto-download.md](./docs/plan/phase-10-gtfs-auto-download.md)     |
+| 11    | Hardening                                                  | ⬜ Not started                     | [phase-11-hardening.md](./docs/plan/phase-11-hardening.md)                       |
 
 ---
 
@@ -104,7 +104,7 @@ Not prioritized yet — growth directions.
 ## Risks and Mitigations
 
 | Risk                                         | Mitigation                                                                    |
-| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
 | MetroValencia GTFS unavailable or incomplete | Verify data source before starting Phase 4. Have sample fixtures for testing. |
 | Schedules don't match reality                | Disclaimer in bot: "Planned schedules. Real times may vary."                  |
 | Ambiguous station names                      | Fuzzy search with confirmation. "Did you mean Xàtiva?"                        |
