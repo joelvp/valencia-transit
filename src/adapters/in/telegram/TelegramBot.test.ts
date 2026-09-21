@@ -52,7 +52,7 @@ describe("TelegramBot", () => {
       const bot = makeBot();
       const calls: Array<{ method: string; chatId?: number; commands?: unknown }> = [];
 
-      bot["bot"].api.config.use((prev, method, payload) => {
+      bot["bot"].api.config.use((_prev, method, payload) => {
         if (method === "setMyCommands") {
           const p = payload as { scope?: { chat_id?: number }; commands: unknown };
           calls.push({ method, chatId: p.scope?.chat_id, commands: p.commands });
@@ -76,7 +76,7 @@ describe("TelegramBot", () => {
       const bot = makeBot();
       const calls: Array<{ method: string; chatId?: number }> = [];
 
-      bot["bot"].api.config.use((prev, method, payload) => {
+      bot["bot"].api.config.use((_prev, method, payload) => {
         if (method === "setMyCommands") {
           const p = payload as { scope?: { chat_id?: number } };
           calls.push({ method, chatId: p.scope?.chat_id });
@@ -96,7 +96,7 @@ describe("TelegramBot", () => {
       const bot = makeBot();
       const calls: string[] = [];
 
-      bot["bot"].api.config.use((prev, method) => {
+      bot["bot"].api.config.use((_prev, method) => {
         calls.push(method);
         return Promise.resolve({ ok: true, result: true } as never);
       });
@@ -115,7 +115,7 @@ describe("TelegramBot", () => {
       const bot = makeBot();
       const chatIds: number[] = [];
 
-      bot["bot"].api.config.use((prev, method, payload) => {
+      bot["bot"].api.config.use((_prev, method, payload) => {
         if (method === "setMyCommands") {
           const p = payload as { scope?: { chat_id?: number } };
           if (p.scope?.chat_id !== undefined) {
@@ -143,7 +143,7 @@ describe("TelegramBot", () => {
       const bot = makeBot();
       const calls: string[] = [];
 
-      bot["bot"].api.config.use((prev, method) => {
+      bot["bot"].api.config.use((_prev, method) => {
         calls.push(method);
         return Promise.resolve({ ok: true, result: true } as never);
       });
