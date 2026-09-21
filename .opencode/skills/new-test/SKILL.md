@@ -22,14 +22,29 @@ Determine test type based on the source file location:
 - Test orchestration: correct calls, correct order, correct results
 - Use real domain entities, only mock infrastructure ports
 
-### `adapters/out/**` → Integration Test
-- **Mock nothing** — use real database
+### `adapters/out/**` (repositories, persistence) → Integration Test
+- **Mock nothing** — use real database/filesystem
 - Test SQL queries, mappers, data integrity
 - Set up database cleanup in `beforeEach`/`afterEach`
 
-### `adapters/in/**` → Integration Test
+### `adapters/in/**` (handlers, controllers) → Unit Test
 - **Mock use cases** (the application layer)
 - Test input parsing, response formatting, error handling
+- **Not all files in `adapters/in/` need tests** — only handlers with real logic. Infrastructure wiring files (entry point class, command registration, i18n setup, in-memory stores) have no testable behavior and are correctly excluded.
+
+### `tests/component/` → Component Test
+- **Use case + real adapters + real DB**, no entry point
+- Test the use case with all its real dependencies wired together
+- Happy path + unhappy paths (not found, validation errors, domain violations)
+- **Seed data via repositories directly** — call `repository.save(entity, feedId)` in `beforeEach`. Never use another use case (e.g. `ImportTransitData` + ZIP) to seed data unless the use case under test is specifically about importing. Using a use case to seed data creates a hidden dependency: if the importer breaks, the unrelated test breaks too.
+- Use `clearDatabase(container.db)` (not `clearTables`) — component tests touch multiple aggregates
+- Clean in **both** `beforeEach` (clean slate before each test) **and** `afterAll` (avoid leaving dirty DB after the last test)
+
+### `tests/e2e/` → E2E Test
+- **Full flow from entry point to response** — nothing mocked
+- Entry point (Telegram/HTTP/CLI) → handler → use case → DB → response
+- Use `clearDatabase(container.db)` (not `clearTables`) — e2e tests touch multiple aggregates
+- Clean in **both** `beforeEach` (clean slate before each test) **and** `afterAll` (avoid leaving dirty DB after the last test)
 
 ## File Creation
 
@@ -55,6 +70,7 @@ describe("<ClassName>", () => {
 - **No shared mutable fixtures** — create test data inside each test
 - **Co-located**: test file lives next to the source file
 - Read the source file first to understand what behaviors to test
+- **Unused mock/callback parameter needed only to satisfy a fixed signature** (a port method, a library callback like grammY middleware): prefix it with `_` (e.g. `_stationId`, `_prev`). `noUnusedLocals`/`noUnusedParameters` are enabled in `tsconfig.json` and fail the build on an unused parameter unless prefixed.
 
 ## Database Cleanup (Integration Tests)
 
@@ -64,28 +80,35 @@ Strategy in order of preference:
 2. **Truncate in `beforeEach`** — if transactions aren't feasible.
 3. **Dedicated test database** — `metrovalencia_test`, fully wiped between runs.
 
+**Never use `expect(promise).resolves.toBeUndefined()` for `Promise<void>` operations.** Use `await` directly — if the promise rejects, `await` throws and the test fails anyway. To verify the operation worked, assert on side effects: query the DB after saving and check the data is there, or for empty-array calls check that pre-existing rows are untouched.
+
 ### Integration Test DB Connection Pattern
 
 **Critical**: Never export a module-level DB singleton shared across test files. When one file's `afterAll` calls `sql.end()`, it terminates the shared connection and all subsequent test files fail with `CONNECTION_ENDED`.
 
-**Correct pattern** — `createTestSetup()` factory, one connection per test file:
+**Correct pattern** — `createContainer()` factory, one connection per test file:
 
 ```typescript
-import { createTestSetup } from "./test-db-helper";
-import { stations } from "../schema";
+import { createContainer, type Container } from "@/adapters/container";
+import { clearTables } from "tests/helpers/db";
 
 describe("StationRepositoryDrizzle", () => {
-  const { db, cleanDatabase, closeDatabase } = createTestSetup();
+  let container: Container;
+
+  beforeAll(() => {
+    container = createContainer();
+  });
 
   beforeEach(async () => {
-    await cleanDatabase(); // truncate relevant tables
+    await clearTables(container.db, "stations"); // only tables owned by this repo
   });
 
   afterAll(async () => {
-    await closeDatabase();
+    await container.dispose();
   });
 
   it("should save and retrieve a station", async () => {
+    const repo = new StationRepositoryDrizzle(container.db);
     // Arrange + Act + Assert inside the test
   });
 });
@@ -131,51 +154,3 @@ Not all VOs need their own test file. Test a VO only if it has meaningful logic 
 | Enums | No | No logic to test |
 | Pure composite VOs (just group other VOs) | No | Only hold data |
 | VOs with trivial boolean getters | No | Test via entity that uses them |
-
----
-
-## Test Types (Architecture Pattern)
-
-Based on the project's testing strategy:
-
-### Unit Tests — `src/core/domain/**/*.test.ts` (co-located)
-- **What**: Domain logic, entities, value objects
-- **Mocking**: None — pure business logic
-- **Examples**: Entity behavior, VO validation, domain rules
-
-### Integration Tests — `src/adapters/out/**/*.test.ts` (co-located)
-- **What**: Adapter ↔ infrastructure (repo ↔ DB, event bus ↔ event store)
-- **Mocking**: None — real database, real HTTP, etc.
-- **Examples**: SQL queries, mappers, data integrity
-
-### Component Tests — `tests/component/` or `src/core/application/**/*.test.ts`
-- **What**: Use cases — full paths a user can take through the application
-- **Mocking**: Mock repositories, event bus, external services
-- **Patterns**:
-  - Happy path (success case)
-  - Unhappy paths: validation errors, domain rule violations, not found, no service
-- **Examples**: `SearchNextDepartures` with mocked repos, covering all error scenarios
-
-### Technical Tests — `tests/technical/`
-- **What**: ETL scripts, background jobs, technical processes
-- **Mocking**: None — real execution
-- **Examples**: Import GTFS script, run with sample data, verify data loaded
-
-### E2E Tests — `tests/e2e/`
-- **What**: Full application flow (Telegram bot end-to-end)
-- **Mocking**: Nothing — real everything
-- **Examples**: Bot command → use case → database → response
-
----
-
-## Test Type by Layer
-
-| Layer | Test Type | Location | Mocking |
-|-------|-----------|----------|---------|
-| `core/domain/**` | Unit | Co-located | Nothing |
-| `core/application/**` | Component | Co-located or `tests/component/` | Mock repos/eventBus |
-| `adapters/out/**` (repos) | Integration | Co-located | Nothing |
-| `adapters/out/**` (HTTP clients) | Integration | `tests/integration/` | Mock server or real |
-| `adapters/in/**` (handlers) | Component | `tests/component/` | Mock use cases |
-| `scripts/**` | Technical | `tests/technical/` | Nothing |
-| Telegram bot | E2E | `tests/e2e/` | Nothing |

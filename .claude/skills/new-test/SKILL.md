@@ -76,6 +76,7 @@ describe("<ClassName>", () => {
 - **No shared mutable fixtures** — create test data inside each test
 - **Co-located**: test file lives next to the source file
 - Read the source file first to understand what behaviors to test
+- **Unused mock/callback parameter needed only to satisfy a fixed signature** (a port method, a library callback like grammY middleware): prefix it with `_` (e.g. `_stationId`, `_prev`). `noUnusedLocals`/`noUnusedParameters` are enabled in `tsconfig.json` and fail the build on an unused parameter unless prefixed.
 
 ## Database Cleanup (Integration Tests)
 

@@ -1,0 +1,4 @@
+bun run format
+git add -u
+bun x tsc --noEmit
+bun run lint

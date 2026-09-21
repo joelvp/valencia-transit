@@ -11,7 +11,7 @@ Workflow: @.opencode/rules/workflow.md
 
 Transit information system for Valencia's metro. Tells users next departures with line, time, and minutes remaining. Telegram bot first, designed for multi-transport, multi-interface growth.
 
-**Stack**: TypeScript (strict) + Bun · PostgreSQL · Drizzle ORM · grammY · Railway
+**Stack**: TypeScript (strict) + Bun · PostgreSQL · Drizzle ORM · grammY · Coolify (Hetzner VPS)
 **Architecture**: Hexagonal + DDD
 
 ---
