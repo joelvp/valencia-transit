@@ -31,6 +31,7 @@ import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import { TransportType } from "@/core/domain/shared/TransportType";
 import { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
 import type { ServiceDate } from "@/core/domain/shared/ServiceDate";
+import { serviceInstant } from "tests/helpers/serviceTime";
 
 const originId = new StationId("S1");
 const destId = new StationId("S2");
@@ -54,7 +55,7 @@ const line = new Line(lineId, new LineName("L3"), [
   new LineStop(destId, 2),
 ]);
 
-const now = new Date(Date.UTC(2026, 2, 18, 13, 0, 0)); // 13:00 UTC = 14:00 Madrid (CET)
+const now = serviceInstant("2026-03-18", "14:00:00");
 const calendar = new ServiceCalendar("Europe/Madrid");
 const dayOf = (serviceDate: ServiceDate) => Number(serviceDate.value.slice(8, 10));
 
@@ -406,7 +407,7 @@ describe("SearchNextDepartures", () => {
 
   it("should return no_more_today when no departures remain and find first tomorrow", async () => {
     // Trips only at 06:00 — querying at 23:00 yields nothing today
-    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
+    const lateNow = serviceInstant("2026-03-18", "23:00:00");
     const earlyTrip = new Trip(
       new TripId("T-early"),
       routeId,
@@ -478,7 +479,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should propagate lineColor in no_more_today firstTomorrow", async () => {
-    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
+    const lateNow = serviceInstant("2026-03-18", "23:00:00");
     const lineWithColor = new Line(
       lineId,
       new LineName("L3"),
@@ -525,8 +526,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should include post-midnight crossover trips from yesterday's schedule", async () => {
-    // 00:04 Madrid (CET+1) = 2026-03-18 23:04 UTC
-    const earlyMorning = new Date(Date.UTC(2026, 2, 18, 23, 4, 0));
+    const earlyMorning = serviceInstant("2026-03-19", "00:04:00");
     const crossoverTrip = new Trip(
       new TripId("T-cross"),
       routeId,
@@ -591,8 +591,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should query yesterday's schedule for crossover trips even in the afternoon (returns none)", async () => {
-    // 14:00 Madrid (CET) = 13:00 UTC
-    const afternoon = new Date(Date.UTC(2026, 2, 18, 13, 0, 0));
+    const afternoon = serviceInstant("2026-03-18", "14:00:00");
 
     const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
@@ -623,7 +622,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should return no_more_today with null firstTomorrow when no service tomorrow", async () => {
-    const lateNow = new Date(Date.UTC(2026, 2, 18, 22, 0, 0)); // 22:00 UTC = 23:00 Madrid (CET);
+    const lateNow = serviceInstant("2026-03-18", "23:00:00");
 
     const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
@@ -653,8 +652,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should merge crossover and today trips and slice to maxDepartures", async () => {
-    // 00:05 Madrid (CET+1) = 2026-03-19 23:05 UTC
-    const earlyMorning = new Date(Date.UTC(2026, 2, 19, 23, 5, 0));
+    const earlyMorning = serviceInstant("2026-03-20", "00:05:00");
     const sc2 = new Schedule(
       new ScheduleId("SC2"),
       new Weekdays(true, true, true, true, true, true, true),
@@ -720,8 +718,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should return only crossover trips when they fill maxDepartures", async () => {
-    // 00:05 Madrid = 2026-03-19 23:05 UTC
-    const earlyMorning = new Date(Date.UTC(2026, 2, 19, 23, 5, 0));
+    const earlyMorning = serviceInstant("2026-03-20", "00:05:00");
     const sc2 = new Schedule(
       new ScheduleId("SC2"),
       new Weekdays(true, true, true, true, true, true, true),
@@ -784,8 +781,7 @@ describe("SearchNextDepartures", () => {
 
   it("should still include a pending crossover trip when today's schedule already had an earlier departure", async () => {
     // Regression: an earlier departure today no longer hides yesterday's pending crossover trip.
-    // 00:30 Madrid (CET+1) = 2026-03-18 23:30 UTC
-    const earlyMorning = new Date(Date.UTC(2026, 2, 18, 23, 30, 0));
+    const earlyMorning = serviceInstant("2026-03-19", "00:30:00");
     const yesterdaySchedule = new Schedule(
       new ScheduleId("SC2"),
       new Weekdays(true, true, true, true, true, true, true),
@@ -851,8 +847,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should use only today trips when previous-day schedules are empty", async () => {
-    // 00:05 Madrid = 2026-03-19 23:05 UTC
-    const earlyMorning = new Date(Date.UTC(2026, 2, 19, 23, 5, 0));
+    const earlyMorning = serviceInstant("2026-03-20", "00:05:00");
     const todayTrip = new Trip(
       new TripId("TD1"),
       routeId,
@@ -893,8 +888,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should compute minutesRemaining correctly for a 24:xx crossover trip", async () => {
-    // 00:08 Madrid (CET) = 2026-03-18 23:08 UTC
-    const earlyMorning = new Date(Date.UTC(2026, 2, 18, 23, 8, 0));
+    const earlyMorning = serviceInstant("2026-03-19", "00:08:00");
     const sc2 = new Schedule(
       new ScheduleId("SC2"),
       new Weekdays(true, true, true, true, true, true, true),
@@ -945,8 +939,7 @@ describe("SearchNextDepartures", () => {
   });
 
   it("should compute minutesRemaining correctly for a normal trip when service has started", async () => {
-    // 06:30 Madrid (CET) = 05:30 UTC
-    const morningStarted = new Date(Date.UTC(2026, 2, 19, 5, 30, 0));
+    const morningStarted = serviceInstant("2026-03-19", "06:30:00");
     const trip715 = new Trip(
       new TripId("T715"),
       routeId,

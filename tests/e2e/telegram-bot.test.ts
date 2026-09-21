@@ -188,8 +188,8 @@ describe("TelegramBot E2E", () => {
       },
     ]);
 
-    // schedule_exceptions: WD active today (dynamic — departureHandler uses new Date())
-    const today = new Date().toISOString().split("T")[0]!;
+    // Madrid civil date, same as departureHandler — the UTC day would flake near midnight.
+    const today = container.serviceCalendar.serviceDateOf(new Date()).value;
     await container.db
       .insert(scheduleExceptions)
       .values([{ scheduleId: "WD", feedId: FEED_ID, date: today, isActive: true }]);

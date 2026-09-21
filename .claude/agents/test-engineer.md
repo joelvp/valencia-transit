@@ -41,6 +41,7 @@ You are the testing specialist for Valencia Transit. You write and maintain test
 - Use `createContainer()` from `@/adapters/container` — NOT a module-level singleton (prevents CONNECTION_ENDED errors)
 - Call `container.dispose()` in `afterAll`
 - **Component test seeding**: always seed data via `repository.save(entity, feedId)` directly. Never use another use case (e.g. `ImportTransitData` + ZIP) to seed data — it creates a hidden cross-use-case dependency that causes unrelated test failures when the importer changes.
+- **Dates through `ServiceCalendar`**: build with `serviceInstant(dateStr, timeStr)` from `tests/helpers/serviceTime`, never a hand-computed UTC offset or `new Date().toISOString()` for "today" — both break silently across a DST change.
 
 ### DB cleanup helpers (`tests/helpers/db`)
 
