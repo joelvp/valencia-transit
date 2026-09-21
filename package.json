@@ -6,6 +6,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "prepare": "husky",
     "dev": "bun run src/main.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -37,6 +38,7 @@
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
     "prettier": "^3.8.1",
     "typescript": "^6.0.0"
   },
