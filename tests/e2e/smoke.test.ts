@@ -74,7 +74,7 @@ describe("TelegramBot smoke — crossover midnight logic", () => {
     );
 
     replies = [];
-    bot["bot"].api.config.use((prev, method, payload) => {
+    bot["bot"].api.config.use((_prev, method, payload) => {
       if (method === "sendMessage") {
         replies.push((payload as { text: string }).text);
       }

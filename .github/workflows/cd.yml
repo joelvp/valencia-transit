@@ -8,25 +8,36 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to Northflank
+    name: Deploy via Coolify
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
 
     steps:
-      - name: Deploy to Northflank
+      - name: Trigger Coolify deployment
         env:
-          NORTHFLANK_API_KEY: ${{ secrets.NORTHFLANK_API_KEY }}
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_PROD_RESOURCE_UUID: ${{ secrets.COOLIFY_PROD_RESOURCE_UUID }}
+          COOLIFY_DEV_RESOURCE_UUID: ${{ secrets.COOLIFY_DEV_RESOURCE_UUID }}
           BRANCH: ${{ github.event.workflow_run.head_branch }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           if [ "$BRANCH" = "main" ]; then
-            SERVICE_ID="prod-metrovalencia-bot"
+            RESOURCE_UUID="$COOLIFY_PROD_RESOURCE_UUID"
           else
-            SERVICE_ID="dev-metrovalencia-bot"
+            RESOURCE_UUID="$COOLIFY_DEV_RESOURCE_UUID"
           fi
 
-          curl --fail-with-body -s -X POST \
-            "https://api.northflank.com/v1/projects/valencia-transit-bot/services/$SERVICE_ID/build" \
-            -H "Authorization: Bearer $NORTHFLANK_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"sha\": \"$SHA\"}"
+          # Placeholder guard: these secrets don't exist yet (no Coolify instance
+          # set up). Once Phase 9 (docs/plan/phase-9-vps-coolify-migration.md) is
+          # done, add COOLIFY_URL, COOLIFY_TOKEN, COOLIFY_PROD_RESOURCE_UUID and
+          # COOLIFY_DEV_RESOURCE_UUID as repo secrets and this check passes through.
+          if [ -z "$COOLIFY_URL" ] || [ -z "$COOLIFY_TOKEN" ] || [ -z "$RESOURCE_UUID" ]; then
+            echo "::warning::Coolify secrets not configured yet for branch '$BRANCH' — skipping deploy (see docs/plan/phase-9-vps-coolify-migration.md)"
+            exit 0
+          fi
+
+          curl --fail-with-body -s --request POST \
+            "$COOLIFY_URL/api/v1/deploy" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data "{\"uuid\": \"$RESOURCE_UUID\"}"

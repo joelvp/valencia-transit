@@ -421,7 +421,7 @@ describe("SearchNextDepartures", () => {
     const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
-      findDeparturesFromStation: (stationId, after) => {
+      findDeparturesFromStation: (_stationId, after) => {
         // After 23:00 → no trips. After 00:00 (tomorrow query) → return earlyTrip
         if (after.value === "00:00:00") return Promise.resolve([earlyTrip]);
         return Promise.resolve([]);
@@ -501,7 +501,7 @@ describe("SearchNextDepartures", () => {
       findByName: (name) =>
         Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
       findByStationIds: () => Promise.resolve([lineWithColor]),
-      findDeparturesFromStation: (stationId, after) => {
+      findDeparturesFromStation: (_stationId, after) => {
         if (after.value === "00:00:00") return Promise.resolve([earlyTrip]);
         return Promise.resolve([]);
       },
@@ -564,7 +564,7 @@ describe("SearchNextDepartures", () => {
         if (dayOf(date) === 18) return Promise.resolve([mondaySchedule]);
         return Promise.resolve([]);
       },
-      findDeparturesFromStation: (stationId, after) => {
+      findDeparturesFromStation: (_stationId, after) => {
         if (after.hours >= 24) return Promise.resolve([crossoverTrip]);
         return Promise.resolve([sameDayTrip]);
       },

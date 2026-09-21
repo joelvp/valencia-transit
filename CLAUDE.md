@@ -11,7 +11,7 @@ Model strategy: @.claude/rules/model-strategy.md
 
 Transit information system for Valencia's metro. Tells users next departures with line, time, and minutes remaining. Telegram bot first, designed for multi-transport, multi-interface growth.
 
-**Stack**: TypeScript (strict) + Bun · PostgreSQL · Drizzle ORM · grammY · Railway
+**Stack**: TypeScript (strict) + Bun · PostgreSQL · Drizzle ORM · grammY · Coolify (Hetzner VPS)
 **Architecture**: Hexagonal + DDD
 
 ---
@@ -80,7 +80,7 @@ Two separate channels — never mixed:
 
 | Concept           | Where it lives                               | Examples                               |
 | ----------------- | -------------------------------------------- | -------------------------------------- |
-| **Secrets**       | env vars (`.env` local, Railway dashboard)   | `DATABASE_URL`, `BOT_TOKEN`, passwords |
+| **Secrets**       | env vars (`.env` local, Coolify dashboard)   | `DATABASE_URL`, `BOT_TOKEN`, passwords |
 | **Public config** | committed files (`src/config/environments/`) | feature flags, limits, timeouts        |
 
 - Secrets per environment: `src/config/env.ts` → `loadSecrets()`
