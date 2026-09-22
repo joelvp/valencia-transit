@@ -126,29 +126,6 @@ describe("TimeOfDay", () => {
     });
   });
 
-  describe("fromDate", () => {
-    it("should return Madrid local time from a UTC Date (winter, UTC+1)", () => {
-      // UTC 13:05:03 on 18 March 2026 → Madrid CET (UTC+1) = 14:05:03
-      const date = new Date(Date.UTC(2026, 2, 18, 13, 5, 3));
-      const time = TimeOfDay.fromDate(date);
-      expect(time.value).toBe("14:05:03");
-    });
-
-    it("should return Madrid local time from a UTC Date (summer, UTC+2)", () => {
-      // UTC 13:00:00 on 18 July 2026 → Madrid CEST (UTC+2) = 15:00:00
-      const date = new Date(Date.UTC(2026, 6, 18, 13, 0, 0));
-      const time = TimeOfDay.fromDate(date);
-      expect(time.value).toBe("15:00:00");
-    });
-
-    it("should use a custom timezone when provided", () => {
-      // UTC 13:00:00 → UTC = 13:00:00
-      const date = new Date(Date.UTC(2026, 2, 18, 13, 0, 0));
-      const time = TimeOfDay.fromDate(date, "UTC");
-      expect(time.value).toBe("13:00:00");
-    });
-  });
-
   describe("equals", () => {
     it("should be equal when values match", () => {
       const a = new TimeOfDay("14:30:00");

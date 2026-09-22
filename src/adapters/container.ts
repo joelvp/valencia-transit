@@ -1,6 +1,9 @@
 import { loadSecrets } from "@/config/env";
 import type { Secrets } from "@/config/env";
+import { loadPublicConfig } from "@/config/environments";
+import type { PublicConfig } from "@/config/environments";
 import { createSqlConnection } from "@/config/database";
+import { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
 import { createDatabase } from "@/adapters/out/persistence/drizzle/db";
 import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
 import { StationRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/StationRepositoryDrizzle";
@@ -24,6 +27,8 @@ import type { EventBus } from "@/core/domain/event/EventBus";
 
 export interface Container {
   secrets: Secrets;
+  publicConfig: PublicConfig;
+  serviceCalendar: ServiceCalendar;
   stationRepository: StationRepository;
   lineRepository: LineRepository;
   routeRepository: RouteRepository;
@@ -37,6 +42,8 @@ export interface Container {
 
 export function createContainer(): Container {
   const secrets = loadSecrets();
+  const publicConfig = loadPublicConfig(secrets.APP_ENV);
+  const serviceCalendar = new ServiceCalendar(publicConfig.timezone);
   const sql = createSqlConnection(secrets.DATABASE_URL);
   const db = createDatabase(sql);
 
@@ -55,6 +62,8 @@ export function createContainer(): Container {
 
   return {
     secrets,
+    publicConfig,
+    serviceCalendar,
     stationRepository,
     lineRepository,
     routeRepository,

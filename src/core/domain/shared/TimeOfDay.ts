@@ -57,19 +57,6 @@ export class TimeOfDay {
     return new TimeOfDay(`${h}:${m}:${s}`);
   }
 
-  static fromDate(date: Date, timezone = "Europe/Madrid"): TimeOfDay {
-    const parts = new Intl.DateTimeFormat("en-GB", {
-      timeZone: timezone,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).formatToParts(date);
-
-    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
-    return new TimeOfDay(`${get("hour")}:${get("minute")}:${get("second")}`);
-  }
-
   toString(): string {
     return this.value;
   }

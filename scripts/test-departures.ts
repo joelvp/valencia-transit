@@ -55,6 +55,7 @@ const useCase = new SearchNextDepartures(
   container.tripRepository,
   container.routeRepository,
   container.eventBus,
+  container.serviceCalendar,
 );
 
 log.info(

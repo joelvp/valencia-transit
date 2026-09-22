@@ -77,6 +77,7 @@ describe("<ClassName>", () => {
 - **Co-located**: test file lives next to the source file
 - Read the source file first to understand what behaviors to test
 - **Unused mock/callback parameter needed only to satisfy a fixed signature** (a port method, a library callback like grammY middleware): prefix it with `_` (e.g. `_stationId`, `_prev`). `noUnusedLocals`/`noUnusedParameters` are enabled in `tsconfig.json` and fail the build on an unused parameter unless prefixed.
+- **Dates through `ServiceCalendar`**: build with `serviceInstant(dateStr, timeStr)` from `tests/helpers/serviceTime`, never a hand-computed UTC offset or `new Date().toISOString()` for "today" — both break silently across a DST change.
 
 ## Database Cleanup (Integration Tests)
 

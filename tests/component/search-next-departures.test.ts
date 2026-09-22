@@ -2,10 +2,9 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from "bun:test"
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import { createContainer, type Container } from "@/adapters/container";
 import { clearDatabase } from "../helpers/db";
+import { serviceInstant } from "../helpers/serviceTime";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
-import { StationId } from "@/core/domain/station/StationId";
-import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 import {
   stations,
   routes,
@@ -139,7 +138,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should return next departure from Colón to Xàtiva on a weekday", async () => {
-    const now = new Date("2024-06-03T03:55:00Z"); // 03:55 UTC = 05:55 Madrid (CEST); // Monday
+    const now = serviceInstant("2024-06-03", "05:55:00"); // Monday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -147,6 +146,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Colón", "Xàtiva", now);
@@ -159,7 +159,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should return next departure from Xàtiva to Colón on a weekday", async () => {
-    const now = new Date("2024-06-03T04:05:00Z"); // 04:05 UTC = 06:05 Madrid (CEST); // Monday
+    const now = serviceInstant("2024-06-03", "06:05:00"); // Monday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -167,6 +167,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -179,7 +180,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should throw NoActiveServiceError on a Saturday", async () => {
-    const now = new Date("2024-06-01T03:55:00Z"); // 03:55 UTC = 05:55 Madrid (CEST); // Saturday
+    const now = serviceInstant("2024-06-01", "05:55:00"); // Saturday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -187,6 +188,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     await expect(useCase.execute("Colón", "Xàtiva", now)).rejects.toBeInstanceOf(
@@ -195,7 +197,7 @@ describe("SearchNextDepartures Component Test", () => {
   });
 
   it("should throw StationNotFoundError for unknown station", async () => {
-    const now = new Date("2024-06-03T03:55:00Z"); // 03:55 UTC = 05:55 Madrid (CEST); // Monday
+    const now = serviceInstant("2024-06-03", "05:55:00"); // Monday
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -203,6 +205,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     await expect(useCase.execute("Unknown", "Colón", now)).rejects.toBeInstanceOf(
@@ -257,8 +260,8 @@ describe("SearchNextDepartures Component Test", () => {
     ]);
 
     // Today's trip: departure 06:00 from ST1→ST2 (existing T1 in beforeEach, already inserted)
-    // now = 2024-06-03T22:05:00Z = 00:05 Madrid CEST (UTC+2), UTC date "2024-06-03"
-    const now = new Date("2024-06-03T22:05:00Z");
+    // Schedule day resolution is Madrid-based, so this correctly lands on "today" = WD (2024-06-03).
+    const now = serviceInstant("2024-06-03", "00:05:00");
 
     const useCase = new SearchNextDepartures(
       container.stationRepository,
@@ -267,6 +270,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Colón", "Xàtiva", now);
@@ -277,59 +281,6 @@ describe("SearchNextDepartures Component Test", () => {
     expect(result.data.departures[0]!.departureTime.value).toBe("24:20:00");
     expect(result.data.departures[0]!.minutesRemaining).toBeGreaterThan(0);
     expect(result.data.departures[1]!.departureTime.value).toBe("06:00:00");
-  });
-
-  it("should return true for hasServiceStarted when a past departure exists today", async () => {
-    // Trip with departure 05:00 from ST1, querying at 06:30 → service has started
-    await container.db
-      .insert(trips)
-      .values([
-        { id: "T_PAST", feedId: FEED_ID, routeId: "L1", scheduleId: "WD", headsign: "Xàtiva" },
-      ]);
-    await container.db.insert(passingTimes).values([
-      {
-        tripId: "T_PAST",
-        stationId: "ST1",
-        feedId: FEED_ID,
-        arrivalTime: "05:00:00",
-        departureTime: "05:00:00",
-        sequence: 1,
-      },
-      {
-        tripId: "T_PAST",
-        stationId: "ST2",
-        feedId: FEED_ID,
-        arrivalTime: "05:05:00",
-        departureTime: "05:05:00",
-        sequence: 2,
-      },
-    ]);
-
-    // 06:30 Madrid CEST (UTC+2) = 04:30 UTC. UTC date "2024-06-03" → schedule "WD" is active.
-    const now = new Date("2024-06-03T04:30:00Z");
-    const activeIds = (await container.scheduleRepository.findActiveOn(now)).map((s) => s.id);
-    const before = new TimeOfDay("06:30:00");
-
-    const started = await container.tripRepository.hasServiceStarted(
-      new StationId("ST1"),
-      before,
-      activeIds,
-    );
-    expect(started).toBe(true);
-  });
-
-  it("should return false for hasServiceStarted when only future departures exist today", async () => {
-    // T1 in beforeEach has departure 06:00 from ST1. Querying at 05:00 → no past departures.
-    const now = new Date("2024-06-03T03:00:00Z"); // 05:00 Madrid CEST
-    const activeIds = (await container.scheduleRepository.findActiveOn(now)).map((s) => s.id);
-    const before = new TimeOfDay("05:00:00");
-
-    const started = await container.tripRepository.hasServiceStarted(
-      new StationId("ST1"),
-      before,
-      activeIds,
-    );
-    expect(started).toBe(false);
   });
 
   it("should not return duplicate entries for the same trip time", async () => {
@@ -411,8 +362,7 @@ describe("SearchNextDepartures Component Test", () => {
       },
     ]);
 
-    // now = 00:05 Madrid
-    const now = new Date("2024-06-03T22:05:00Z");
+    const now = serviceInstant("2024-06-03", "00:05:00");
     const useCase = new SearchNextDepartures(
       container.stationRepository,
       container.lineRepository,
@@ -420,6 +370,7 @@ describe("SearchNextDepartures Component Test", () => {
       container.tripRepository,
       container.routeRepository,
       container.eventBus,
+      container.serviceCalendar,
     );
 
     const result = await useCase.execute("Colón", "Xàtiva", now);

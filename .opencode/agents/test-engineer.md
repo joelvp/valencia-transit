@@ -35,7 +35,9 @@ You are the testing specialist for Valencia Transit. You write and maintain test
 - Domain tests: mock nothing (pure logic)
 - Application tests: mock ALL ports
 - Integration tests: real database, clean up in beforeEach/afterEach
-- Use `createTestSetup()` factory — NOT a module-level singleton (prevents CONNECTION_ENDED errors)
+- Use `createContainer()` from `@/adapters/container` — NOT a module-level singleton (prevents CONNECTION_ENDED errors)
+- Call `container.dispose()` in `afterAll`
+- Dates through `ServiceCalendar`: build with `serviceInstant(dateStr, timeStr)` from `tests/helpers/serviceTime`, never a hand-computed UTC offset or `new Date().toISOString()` for "today" — both break silently across a DST change.
 
 ## Test Location Convention
 - `src/core/domain/**` → unit test, mock nothing

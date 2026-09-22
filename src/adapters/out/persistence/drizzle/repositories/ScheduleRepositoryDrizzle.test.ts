@@ -8,6 +8,7 @@ import { Weekdays } from "@/core/domain/schedule/Weekdays";
 import { DateRange } from "@/core/domain/schedule/DateRange";
 import { schedules, scheduleExceptions } from "@/adapters/out/persistence/drizzle/schema";
 import { ScheduleMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/ScheduleMother";
+import { ServiceDate } from "@/core/domain/shared/ServiceDate";
 
 const FEED_ID = "metrovalencia";
 
@@ -52,7 +53,7 @@ describe("ScheduleRepositoryDrizzle", () => {
 
   it("should return schedules active on a weekday (Monday 2025-03-03)", async () => {
     // 2025-03-03 is a Monday — SC1 (Mon–Fri) should match, SC2 (Sat–Sun) should not
-    const monday = new Date("2025-03-03T12:00:00Z");
+    const monday = new ServiceDate("2025-03-03");
     const result = await repo.findActiveOn(monday);
 
     expect(result.length).toBe(1);
@@ -61,7 +62,7 @@ describe("ScheduleRepositoryDrizzle", () => {
 
   it("should exclude schedule removed by exception on that date", async () => {
     // 2025-03-10 is a Monday but SC1 has an exception marking it inactive
-    const mondayWithException = new Date("2025-03-10T12:00:00Z");
+    const mondayWithException = new ServiceDate("2025-03-10");
     const result = await repo.findActiveOn(mondayWithException);
 
     expect(result).toEqual([]);
@@ -69,7 +70,7 @@ describe("ScheduleRepositoryDrizzle", () => {
 
   it("should return empty array when no schedule matches the given date", async () => {
     // Out of range entirely
-    const outOfRange = new Date("2030-01-01T12:00:00Z");
+    const outOfRange = new ServiceDate("2030-01-01");
     const result = await repo.findActiveOn(outOfRange);
 
     expect(result).toEqual([]);

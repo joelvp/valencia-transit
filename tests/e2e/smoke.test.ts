@@ -58,6 +58,7 @@ describe("TelegramBot smoke — crossover midnight logic", () => {
         container.tripRepository,
         container.routeRepository,
         container.eventBus,
+        container.serviceCalendar,
       ),
       new FindStation(container.stationRepository),
       new ListLines(container.lineRepository, container.stationRepository, container.eventBus),

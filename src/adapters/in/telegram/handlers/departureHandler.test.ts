@@ -3,6 +3,7 @@ import { departureHandler } from "./departureHandler";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
+import { ServiceDate } from "@/core/domain/shared/ServiceDate";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
 import type { SearchResult } from "@/core/application/query/SearchNextDepartures";
 import type { FindStationResult } from "@/core/application/query/FindStation";
@@ -459,7 +460,7 @@ describe("departureHandler", () => {
 
   it("should handle NoActiveServiceError", async () => {
     const mockUseCase = {
-      execute: mock(() => Promise.reject(new NoActiveServiceError(new Date()))),
+      execute: mock(() => Promise.reject(new NoActiveServiceError(new ServiceDate("2026-03-18")))),
     };
     const mockFindStation = { execute: mock(() => Promise.resolve(notFoundResult)) };
 

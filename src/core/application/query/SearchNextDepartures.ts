@@ -9,6 +9,8 @@ import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import { Departure } from "@/core/domain/shared/Departure";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
+import type { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
+import type { ServiceDate } from "@/core/domain/shared/ServiceDate";
 import { DepartureSearched } from "@/core/domain/event/DepartureSearched";
 import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
@@ -40,8 +42,6 @@ export type SearchResult =
       routeLineName: string | null;
     };
 
-const CROSSOVER_WINDOW_HOURS = 10;
-
 export class SearchNextDepartures {
   constructor(
     private readonly stationRepository: StationRepository,
@@ -50,6 +50,7 @@ export class SearchNextDepartures {
     private readonly tripRepository: TripRepository,
     private readonly routeRepository: RouteRepository,
     private readonly eventBus: EventBus,
+    private readonly serviceCalendar: ServiceCalendar,
     private readonly maxDepartures: number = 5,
   ) {}
 
@@ -83,47 +84,37 @@ export class SearchNextDepartures {
     const origin = originResult;
     const destination = destResult;
 
-    const activeSchedules = await this.scheduleRepository.findActiveOn(now);
+    const today = this.serviceCalendar.serviceDateOf(now);
+
+    // Yesterday's schedule may still have pending post-midnight (24:xx) departures.
+    const [activeSchedules, previousSchedules] = await Promise.all([
+      this.scheduleRepository.findActiveOn(today),
+      this.scheduleRepository.findActiveOn(today.previous()),
+    ]);
     if (activeSchedules.length === 0) {
-      throw new NoActiveServiceError(now);
+      throw new NoActiveServiceError(today);
     }
 
-    const currentTime = TimeOfDay.fromDate(now);
+    const currentTime = this.serviceCalendar.timeOfDayOf(now);
     const activeScheduleIds = activeSchedules.map((s) => s.id);
     const extendedCurrentTime = TimeOfDay.of(
       currentTime.hours + 24,
       currentTime.minutes,
       currentTime.seconds,
     );
+    const previousScheduleIds = previousSchedules.map((s) => s.id);
 
-    let todayTrips = await this.tripRepository.findDeparturesFromStation(
-      origin.id,
-      currentTime,
-      activeScheduleIds,
-    );
-    let crossoverTrips: Trip[] = [];
-    let crossoverReferenceTime: TimeOfDay = extendedCurrentTime;
-
-    if (currentTime.hours < CROSSOVER_WINDOW_HOURS) {
-      const serviceStarted = await this.tripRepository.hasServiceStarted(
-        origin.id,
-        currentTime,
-        activeScheduleIds,
-      );
-      if (!serviceStarted) {
-        const previousDay = new Date(now);
-        previousDay.setDate(previousDay.getDate() - 1);
-        const previousSchedules = await this.scheduleRepository.findActiveOn(previousDay);
-        if (previousSchedules.length > 0) {
-          const previousScheduleIds = previousSchedules.map((s) => s.id);
-          crossoverTrips = await this.tripRepository.findDeparturesFromStation(
+    const [todayTrips, crossoverTrips] = await Promise.all([
+      this.tripRepository.findDeparturesFromStation(origin.id, currentTime, activeScheduleIds),
+      previousScheduleIds.length > 0
+        ? this.tripRepository.findDeparturesFromStation(
             origin.id,
             extendedCurrentTime,
             previousScheduleIds,
-          );
-        }
-      }
-    }
+          )
+        : Promise.resolve<Trip[]>([]),
+    ]);
+    const crossoverReferenceTime = extendedCurrentTime;
 
     const trips = [...crossoverTrips, ...todayTrips];
 
@@ -145,7 +136,7 @@ export class SearchNextDepartures {
 
     if (filteredTrips.length === 0) {
       const firstTomorrow = await this.findFirstTomorrowDeparture(
-        now,
+        today,
         origin,
         destination,
         matchingLines,
@@ -155,9 +146,7 @@ export class SearchNextDepartures {
         if (matchingLines.length === 0) {
           throw new StationsNotConnectedError(originName, destinationName);
         }
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowSchedules = await this.scheduleRepository.findActiveOn(tomorrow);
+        const tomorrowSchedules = await this.scheduleRepository.findActiveOn(today.next());
         if (tomorrowSchedules.length > 0) {
           throw new NoServiceError(originName, destinationName);
         }
@@ -217,7 +206,7 @@ export class SearchNextDepartures {
 
     const firstTomorrow =
       topDepartures.length < this.maxDepartures
-        ? await this.findFirstTomorrowDeparture(now, origin, destination, matchingLines)
+        ? await this.findFirstTomorrowDeparture(today, origin, destination, matchingLines)
         : null;
 
     const routeLineName = matchingLines[0]?.id.value ?? null;
@@ -235,15 +224,12 @@ export class SearchNextDepartures {
   }
 
   private async findFirstTomorrowDeparture(
-    now: Date,
+    today: ServiceDate,
     origin: Station,
     destination: Station,
     matchingLines: Line[],
   ): Promise<Departure | null> {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const tomorrowSchedules = await this.scheduleRepository.findActiveOn(tomorrow);
+    const tomorrowSchedules = await this.scheduleRepository.findActiveOn(today.next());
     if (tomorrowSchedules.length === 0) return null;
 
     const tomorrowScheduleIds = tomorrowSchedules.map((s) => s.id);

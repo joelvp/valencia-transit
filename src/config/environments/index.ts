@@ -1,21 +1,25 @@
 import type { AppEnv } from "@/config/env";
+import localConfig from "./local";
+import devConfig from "./dev";
+import prodConfig from "./prod";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- will be populated with feature flags, limits, etc.
-export interface PublicConfig {}
+export interface PublicConfig {
+  /**
+   * IANA timezone the transit feed's service days and times are expressed in.
+   * Every civil date and time in the app is resolved from this, via
+   * ServiceCalendar. GTFS declares it per agency in agency.txt
+   * (`agency_timezone`); MetroValencia publishes "Europe/Madrid".
+   */
+  timezone: string;
+}
 
-export async function loadPublicConfig(appEnv: AppEnv): Promise<PublicConfig> {
+export function loadPublicConfig(appEnv: AppEnv): PublicConfig {
   switch (appEnv) {
-    case "local": {
-      const { default: config } = await import("./local");
-      return config;
-    }
-    case "dev": {
-      const { default: config } = await import("./dev");
-      return config;
-    }
-    case "prod": {
-      const { default: config } = await import("./prod");
-      return config;
-    }
+    case "local":
+      return localConfig;
+    case "dev":
+      return devConfig;
+    case "prod":
+      return prodConfig;
   }
 }
