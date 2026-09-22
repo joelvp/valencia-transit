@@ -5,10 +5,16 @@
  * Usage:
  *   bun run scripts/test-departures.ts "Xàtiva" "Colón"
  *   bun run scripts/test-departures.ts "Xàtiva" "Colón" 08:30
+ *   bun run scripts/test-departures.ts "Xàtiva" "Colón" 2026-03-19
+ *   bun run scripts/test-departures.ts "Xàtiva" "Colón" 2026-03-19 00:30
+ *
+ * Date/time (either, both, or neither) default to "now" — always resolved
+ * in the configured timezone (ServiceCalendar), never the machine's own.
  */
 
 import "@/config/logger";
 import { createContainer } from "@/adapters/container";
+import type { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
 import { SearchNextDepartures } from "@/core/application/query/SearchNextDepartures";
 import { initI18n, getT } from "@/adapters/in/telegram/i18n";
 import { formatDepartures, formatNoMoreToday } from "@/adapters/in/telegram/handlers/formatters";
@@ -19,10 +25,12 @@ import { createLogger } from "@/config/logger";
 
 const log = createLogger("test-departures");
 
-const [originArg, destinationArg, timeArg] = process.argv.slice(2);
+const [originArg, destinationArg, ...rest] = process.argv.slice(2);
 
 if (!originArg || !destinationArg) {
-  log.error("Usage: bun run scripts/test-departures.ts <origin> <destination> [HH:MM]");
+  log.error(
+    "Usage: bun run scripts/test-departures.ts <origin> <destination> [YYYY-MM-DD] [HH:MM]",
+  );
   process.exit(1);
 }
 
@@ -30,23 +38,41 @@ function stripHtml(text: string): string {
   return text.replace(/<[^>]+>/g, "");
 }
 
-function buildNow(timeArg?: string): Date {
-  if (!timeArg) return new Date();
-  const match = /^(\d{1,2}):(\d{2})$/.exec(timeArg);
-  if (!match) {
-    log.error({ timeArg }, `Invalid time format. Expected HH:MM`);
-    process.exit(1);
+function parseDateTimeArgs(args: string[]): { dateArg?: string; timeArg?: string } {
+  let dateArg: string | undefined;
+  let timeArg: string | undefined;
+  for (const arg of args) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(arg)) {
+      dateArg = arg;
+    } else if (/^\d{1,2}:\d{2}$/.test(arg)) {
+      timeArg = arg;
+    } else {
+      log.error({ arg }, "Unrecognized argument. Expected YYYY-MM-DD and/or HH:MM");
+      process.exit(1);
+    }
   }
-  const now = new Date();
-  now.setHours(parseInt(match[1]!, 10), parseInt(match[2]!, 10), 0, 0);
-  return now;
+  return { dateArg, timeArg };
 }
 
-const now = buildNow(timeArg);
+// Builds the requested civil date+time via ServiceCalendar — never the machine's own timezone.
+function resolveNow(calendar: ServiceCalendar, dateArg?: string, timeArg?: string): Date {
+  const nowReal = new Date();
+  const dateStr = dateArg ?? calendar.serviceDateOf(nowReal).value;
+  const timeStr = timeArg ? `${timeArg}:00` : calendar.timeOfDayOf(nowReal).value;
+  const guess = new Date(`${dateStr}T${timeStr}Z`);
+  const guessedAsZoned = new Date(
+    `${calendar.serviceDateOf(guess).value}T${calendar.timeOfDayOf(guess).value}Z`,
+  );
+  const offsetMs = guessedAsZoned.getTime() - guess.getTime();
+  return new Date(guess.getTime() - offsetMs);
+}
+
+const { dateArg, timeArg } = parseDateTimeArgs(rest);
 await initI18n();
 const t = getT("es");
 
 const container = createContainer();
+const now = resolveNow(container.serviceCalendar, dateArg, timeArg);
 
 const useCase = new SearchNextDepartures(
   container.stationRepository,
@@ -59,7 +85,12 @@ const useCase = new SearchNextDepartures(
 );
 
 log.info(
-  { origin: originArg, destination: destinationArg, time: now.toLocaleTimeString("es-ES") },
+  {
+    origin: originArg,
+    destination: destinationArg,
+    queryDate: container.serviceCalendar.serviceDateOf(now).value,
+    queryTime: container.serviceCalendar.timeOfDayOf(now).value,
+  },
   "Searching departures",
 );
 
@@ -108,5 +139,9 @@ try {
     log.error({ err }, "Error inesperado");
   }
 } finally {
+  // SearchNextDepartures publishes analytics fire-and-forget (by design — see
+  // design-principles.md #8); give that in-flight write a moment to finish
+  // before closing the pool, or it fails with CONNECTION_ENDED.
+  await new Promise((resolve) => setTimeout(resolve, 100));
   await container.dispose();
 }
