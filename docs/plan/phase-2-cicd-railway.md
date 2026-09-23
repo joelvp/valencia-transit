@@ -1,6 +1,6 @@
 # Phase 2 — CI/CD & Railway Deployment ✅ (historical — superseded by Phase 9)
 
-> This phase is kept as-is for history. The project has since moved off Railway (and later Northflank) — see [phase-9-vps-coolify-migration.md](./phase-9-vps-coolify-migration.md) for the current deployment target.
+> This phase is kept as-is for history. The project has since moved off Railway (and later Northflank) — see [phase-10-vps-coolify-migration.md](./phase-10-vps-coolify-migration.md) for the current deployment target.
 
 Set up continuous integration with GitHub Actions and continuous deployment to Railway via Dockerfile. At this stage there's no database — CI runs lint, format check, typecheck, and unit tests. Railway deploys the app container (which just prints "Starting...").
 

@@ -62,6 +62,6 @@ Download GTFS data from the NAP portal and import it into the database. This is 
 - [x] Structural validation already covered: parser throws on missing CSVs, VOs throw on malformed data
 - [x] No automated E2E test needed — departures query will be validated in Phase 5 with real imported data
 
-> Anomaly detection (dataset shrinks suspiciously, lines disappear, schedules don't cover today) is **Phase 10** responsibility — `CheckDatasetVersion` will compare incoming dataset against existing DB before committing the import.
+> Anomaly detection (dataset shrinks suspiciously, lines disappear, schedules don't cover today) is **Phase 11** responsibility — `CheckDatasetVersion` will compare incoming dataset against existing DB before committing the import.
 
-**Exit criteria**: ✅ Manual run succeeds. Structural errors already caught by parser + VOs. Anomaly detection deferred to Phase 10.
+**Exit criteria**: ✅ Manual run succeeds. Structural errors already caught by parser + VOs. Anomaly detection deferred to Phase 11.
