@@ -1,5 +1,8 @@
 import type { TimeOfDay } from "./TimeOfDay";
 
+/** Provenance of a Departure: fetched from a real-time provider, or derived from GTFS-static schedule. */
+export type DepartureSource = "live" | "scheduled";
+
 export class Departure {
   readonly minutesRemaining: number;
 
@@ -10,6 +13,7 @@ export class Departure {
     readonly currentTime: TimeOfDay,
     readonly lineColor: string | null = null,
     readonly durationMinutes: number | null = null,
+    readonly source: DepartureSource = "scheduled",
   ) {
     this.minutesRemaining = departureTime.minutesUntilFrom(currentTime);
   }

@@ -1,6 +1,6 @@
-# Phase 11 — Hardening
+# Phase 12 — Hardening
 
-> Renumbered from the original Phase 10.
+> Renumbered from Phase 11 (originally Phase 10) to make room for [Phase 9 — Live Departures](./phase-9-live-departures-fgv.md).
 
 - [ ] Rate limiting (grammY built-in throttling)
 - [ ] Logging (structured logs, differentiate local/dev/prod)
