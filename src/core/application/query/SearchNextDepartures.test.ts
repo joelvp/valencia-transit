@@ -6,6 +6,8 @@ import type { RouteRepository } from "@/core/domain/route/RouteRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { LiveDepartureProvider } from "@/core/domain/shared/LiveDepartureProvider";
+import { LiveArrival } from "@/core/domain/shared/LiveArrival";
 import { Station } from "@/core/domain/station/Station";
 import { StationId } from "@/core/domain/station/StationId";
 import { StationName } from "@/core/domain/station/StationName";
@@ -974,5 +976,367 @@ describe("SearchNextDepartures", () => {
     expect(result.data.departures).toHaveLength(1);
     // currentTime = 06:30, departure at 07:15 → 45 min
     expect(result.data.departures[0]!.minutesRemaining).toBe(45);
+  });
+
+  describe("with liveDepartureProvider", () => {
+    function makeLiveProvider(
+      findLiveArrivals: LiveDepartureProvider["findLiveArrivals"],
+    ): LiveDepartureProvider {
+      return { findLiveArrivals: mock(findLiveArrivals) };
+    }
+
+    it("should use only live departures when live returns >= maxDepartures valid matches", async () => {
+      const liveArrivals = [1, 2, 3, 4, 5].map(
+        (minutes) => new LiveArrival(lineId, "Direction A", minutes),
+      );
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(5);
+      result.data.departures.forEach((d) => expect(d.source).toBe("live"));
+      expect(result.data.departures.map((d) => d.minutesRemaining)).toEqual([1, 2, 3, 4, 5]);
+      expect(result.data.departures[0]!.lineName).toBe("L3");
+      expect(result.data.departures[0]!.headsign).toBe("Direction A");
+    });
+
+    it("should top up with scheduled departures when live returns fewer than maxDepartures", async () => {
+      const liveArrivals = [1, 2].map((minutes) => new LiveArrival(lineId, null, minutes));
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      // 4 scheduled trips (headsign null, like the live arrivals) far enough from the live
+      // departures (>5 min after) to fall outside the dedup match window, at 14:10, 14:13,
+      // 14:16, 14:19
+      const scheduledTrips = ["14:10:00", "14:13:00", "14:16:00", "14:19:00"].map(
+        (time, i) =>
+          new Trip(
+            new TripId(`TS${i}`),
+            routeId,
+            scheduleId,
+            [
+              new PassingTime(originId, new TimeOfDay(time), new TimeOfDay(time), 1),
+              new PassingTime(destId, new TimeOfDay(time), new TimeOfDay(time), 2),
+            ],
+            null,
+          ),
+      );
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+        findDeparturesFromStation: (_stationId, after) =>
+          Promise.resolve(after.hours >= 24 ? [] : scheduledTrips),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(5);
+      expect(result.data.departures.map((d) => d.source)).toEqual([
+        "live",
+        "live",
+        "scheduled",
+        "scheduled",
+        "scheduled",
+      ]);
+      expect(result.data.departures.slice(0, 2).map((d) => d.minutesRemaining)).toEqual([1, 2]);
+    });
+
+    it("should fall back to scheduled departures when the live provider throws", async () => {
+      const liveProvider = makeLiveProvider(() => Promise.reject(new Error("FGV unreachable")));
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(1);
+      expect(result.data.departures[0]!.source).toBe("scheduled");
+      expect(result.data.departures[0]!.lineName).toBe("L3");
+      expect(result.data.departures[0]!.headsign).toBe("Direction A");
+    });
+
+    it("should ignore live arrivals whose line is not among matchingLines", async () => {
+      const liveArrivals = [new LiveArrival(new LineId("OTHER"), "Direction A", 1)];
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(1);
+      expect(result.data.departures[0]!.source).toBe("scheduled");
+    });
+
+    it("should ignore live arrivals whose headsign does not match the confirmed direction", async () => {
+      const liveArrivals = [new LiveArrival(lineId, "Wrong Direction", 1)];
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(1);
+      expect(result.data.departures[0]!.source).toBe("scheduled");
+    });
+
+    it("should suppress a static departure that matches a live delayed train within the match window", async () => {
+      // Live says this train is now 27 min away; the static entry (5 min away, before dedup)
+      // is 22 min earlier than the live departureTime — within the -30..+5 window.
+      const liveArrivals = [new LiveArrival(lineId, "Direction A", 27)];
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      const delayedTrip = new Trip(
+        new TripId("T-delayed"),
+        routeId,
+        scheduleId,
+        [
+          new PassingTime(originId, new TimeOfDay("14:05:00"), new TimeOfDay("14:05:00"), 1),
+          new PassingTime(destId, new TimeOfDay("14:15:00"), new TimeOfDay("14:15:00"), 2),
+        ],
+        "Direction A",
+      );
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+        findDeparturesFromStation: (_stationId, after) =>
+          Promise.resolve(after.hours >= 24 ? [] : [delayedTrip]),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(1);
+      expect(result.data.departures[0]!.source).toBe("live");
+      expect(result.data.departures[0]!.minutesRemaining).toBe(27);
+    });
+
+    it("should NOT suppress a static departure 35 minutes before the live departure (outside window)", async () => {
+      const liveArrivals = [new LiveArrival(lineId, "Direction A", 40)];
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      // Static departure at 14:05 is 35 min before the live departureTime (14:40) — outside the
+      // -30 min lower bound, so it must not be pruned.
+      const earlyTrip = new Trip(
+        new TripId("T-early2"),
+        routeId,
+        scheduleId,
+        [
+          new PassingTime(originId, new TimeOfDay("14:05:00"), new TimeOfDay("14:05:00"), 1),
+          new PassingTime(destId, new TimeOfDay("14:15:00"), new TimeOfDay("14:15:00"), 2),
+        ],
+        "Direction A",
+      );
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+        findDeparturesFromStation: (_stationId, after) =>
+          Promise.resolve(after.hours >= 24 ? [] : [earlyTrip]),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(2);
+      expect(result.data.departures[0]!.source).toBe("scheduled");
+      expect(result.data.departures[0]!.minutesRemaining).toBe(5);
+      expect(result.data.departures[1]!.source).toBe("live");
+      expect(result.data.departures[1]!.minutesRemaining).toBe(40);
+    });
+
+    it("should NOT suppress a static departure 6 minutes after the live departure (outside window)", async () => {
+      const liveArrivals = [new LiveArrival(lineId, "Direction A", 10)];
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      // Static departure at 14:16 is 6 min after the live departureTime (14:10) — outside the
+      // +5 min upper bound, so it must not be pruned.
+      const lateTrip = new Trip(
+        new TripId("T-late2"),
+        routeId,
+        scheduleId,
+        [
+          new PassingTime(originId, new TimeOfDay("14:16:00"), new TimeOfDay("14:16:00"), 1),
+          new PassingTime(destId, new TimeOfDay("14:26:00"), new TimeOfDay("14:26:00"), 2),
+        ],
+        "Direction A",
+      );
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+        findDeparturesFromStation: (_stationId, after) =>
+          Promise.resolve(after.hours >= 24 ? [] : [lateTrip]),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(2);
+      expect(result.data.departures[0]!.source).toBe("live");
+      expect(result.data.departures[0]!.minutesRemaining).toBe(10);
+      expect(result.data.departures[1]!.source).toBe("scheduled");
+      expect(result.data.departures[1]!.minutesRemaining).toBe(16);
+    });
+
+    it("should return the merged live+static list sorted chronologically regardless of source order", async () => {
+      // Live departure (55 min away) is inserted before the fast static one in the array
+      // ([...live, ...static]), but the fast static departure (5 min away) must sort first.
+      const liveArrivals = [new LiveArrival(lineId, "Direction A", 55)];
+      const liveProvider = makeLiveProvider(() => Promise.resolve(liveArrivals));
+
+      const fastTrip = new Trip(
+        new TripId("T-fast"),
+        routeId,
+        scheduleId,
+        [
+          new PassingTime(originId, new TimeOfDay("14:05:00"), new TimeOfDay("14:05:00"), 1),
+          new PassingTime(destId, new TimeOfDay("14:15:00"), new TimeOfDay("14:15:00"), 2),
+        ],
+        "Direction A",
+      );
+
+      const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+        findByName: (name) =>
+          Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+        findDeparturesFromStation: (_stationId, after) =>
+          Promise.resolve(after.hours >= 24 ? [] : [fastTrip]),
+      });
+
+      const useCase = new SearchNextDepartures(
+        stationRepo,
+        lineRepo,
+        scheduleRepo,
+        tripRepo,
+        routeRepo,
+        eventBus,
+        calendar,
+        5,
+        liveProvider,
+      );
+      const result = await useCase.execute("Xàtiva", "Colón", now);
+
+      expect(result.type).toBe("departures");
+      if (result.type !== "departures") return;
+      expect(result.data.departures).toHaveLength(2);
+      expect(result.data.departures[0]!.source).toBe("scheduled");
+      expect(result.data.departures[0]!.minutesRemaining).toBe(5);
+      expect(result.data.departures[1]!.source).toBe("live");
+      expect(result.data.departures[1]!.minutesRemaining).toBe(55);
+    });
   });
 });

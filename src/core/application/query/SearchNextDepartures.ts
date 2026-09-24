@@ -1,5 +1,6 @@
 import type { Station } from "@/core/domain/station/Station";
 import type { Line } from "@/core/domain/line/Line";
+import type { StationId } from "@/core/domain/station/StationId";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { RouteRepository } from "@/core/domain/route/RouteRepository";
@@ -7,6 +8,8 @@ import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleReposito
 import type { Trip } from "@/core/domain/trip/Trip";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { LiveDepartureProvider } from "@/core/domain/shared/LiveDepartureProvider";
+import type { LiveArrival } from "@/core/domain/shared/LiveArrival";
 import { Departure } from "@/core/domain/shared/Departure";
 import { TimeOfDay } from "@/core/domain/shared/TimeOfDay";
 import type { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
@@ -43,6 +46,12 @@ export type SearchResult =
     };
 
 export class SearchNextDepartures {
+  // Window used to match a live departure against its likely static counterpart: wide looking
+  // backward (a live estimate is almost always the same physical train running late), narrow
+  // looking forward (static is rarely later than live by more than a couple minutes).
+  private static readonly LIVE_MATCH_MINUTES_BEFORE = 30;
+  private static readonly LIVE_MATCH_MINUTES_AFTER = 5;
+
   constructor(
     private readonly stationRepository: StationRepository,
     private readonly lineRepository: LineRepository,
@@ -52,6 +61,7 @@ export class SearchNextDepartures {
     private readonly eventBus: EventBus,
     private readonly serviceCalendar: ServiceCalendar,
     private readonly maxDepartures: number = 5,
+    private readonly liveDepartureProvider?: LiveDepartureProvider,
   ) {}
 
   async execute(
@@ -155,44 +165,39 @@ export class SearchNextDepartures {
       return { type: "no_more_today", origin, destination, firstTomorrow, routeLineName };
     }
 
-    const departures: Departure[] = [];
+    const scheduledDepartures = this.buildScheduledDepartures(
+      filteredCrossoverTrips,
+      crossoverReferenceTime,
+      filteredTodayTrips,
+      currentTime,
+      origin.id,
+      destination.id,
+      routeLineMap,
+      matchingLines,
+      matchingLineIds,
+    );
 
-    const buildDeparture = (trip: Trip, referenceTime: TimeOfDay): Departure | null => {
-      const departureTime = trip.getDepartureTimeAt(origin.id);
-      if (!departureTime) return null;
+    const liveDepartures = await this.tryLiveDepartures(
+      origin.id,
+      now,
+      currentTime,
+      filteredTrips,
+      matchingLines,
+      matchingLineIds,
+    );
 
-      const lineId = routeLineMap.get(trip.routeId.value);
-      const isOfficialLine = lineId !== undefined && matchingLineIds.has(lineId);
-      const matchingLine = isOfficialLine
-        ? matchingLines.find((l) => l.id.value === lineId)
-        : undefined;
-      const lineName = matchingLine ? matchingLine.id.value : null;
-      const lineColor = matchingLine?.color?.value ?? null;
+    // No cross-source id exists to correlate a live arrival with its static counterpart (FGV
+    // doesn't expose one reliably), so we approximate: same line+headsign, static departureTime
+    // within a window around the live one (wide looking backward, narrow looking forward — a
+    // live estimate is almost always the same physical train running late, rarely earlier).
+    const prunedScheduledDepartures = this.pruneStaticDuplicates(
+      liveDepartures,
+      scheduledDepartures,
+    );
 
-      const arrivalAtDest = trip.getDepartureTimeAt(destination.id);
-      const durationMinutes = arrivalAtDest ? arrivalAtDest.minutesUntilFrom(departureTime) : null;
-
-      return new Departure(
-        departureTime,
-        lineName,
-        trip.headsign,
-        referenceTime,
-        lineColor,
-        durationMinutes,
-      );
-    };
-
-    for (const trip of filteredCrossoverTrips) {
-      const dep = buildDeparture(trip, crossoverReferenceTime);
-      if (dep) departures.push(dep);
-    }
-    for (const trip of filteredTodayTrips) {
-      const dep = buildDeparture(trip, currentTime);
-      if (dep) departures.push(dep);
-    }
-
-    departures.sort((a, b) => a.minutesRemaining - b.minutesRemaining);
-    const topDepartures = departures.slice(0, this.maxDepartures);
+    const topDepartures = [...liveDepartures, ...prunedScheduledDepartures]
+      .sort((a, b) => a.minutesRemaining - b.minutesRemaining)
+      .slice(0, this.maxDepartures);
 
     void this.eventBus.publish(
       new DepartureSearched(
@@ -276,6 +281,168 @@ export class SearchNextDepartures {
     }
 
     return earliest;
+  }
+
+  /**
+   * Removes, from `staticDepartures`, the single closest static candidate for each live
+   * departure — same lineName + headsign, and a departureTime within
+   * [-LIVE_MATCH_MINUTES_BEFORE, +LIVE_MATCH_MINUTES_AFTER] minutes of the live one. This is an
+   * approximate heuristic (no cross-source trip id exists): a wrong match at worst prunes a
+   * static entry that wasn't the true counterpart, but the top-up still fills from whatever
+   * remains, so no real departure silently disappears.
+   */
+  private pruneStaticDuplicates(
+    liveDepartures: Departure[],
+    staticDepartures: Departure[],
+  ): Departure[] {
+    const remaining = [...staticDepartures];
+
+    for (const live of liveDepartures) {
+      let bestIndex = -1;
+      let bestDiff = Infinity;
+
+      for (let i = 0; i < remaining.length; i++) {
+        const candidate = remaining[i]!;
+        if (candidate.lineName !== live.lineName || candidate.headsign !== live.headsign) continue;
+
+        const diffMinutes = candidate.departureTime.minutesUntilFrom(live.departureTime);
+        if (
+          diffMinutes < -SearchNextDepartures.LIVE_MATCH_MINUTES_BEFORE ||
+          diffMinutes > SearchNextDepartures.LIVE_MATCH_MINUTES_AFTER
+        ) {
+          continue;
+        }
+
+        const absDiff = Math.abs(diffMinutes);
+        if (absDiff < bestDiff) {
+          bestDiff = absDiff;
+          bestIndex = i;
+        }
+      }
+
+      if (bestIndex !== -1) {
+        remaining.splice(bestIndex, 1);
+      }
+    }
+
+    return remaining;
+  }
+
+  private buildScheduledDepartures(
+    filteredCrossoverTrips: Trip[],
+    crossoverReferenceTime: TimeOfDay,
+    filteredTodayTrips: Trip[],
+    currentTime: TimeOfDay,
+    originId: StationId,
+    destinationId: StationId,
+    routeLineMap: Map<string, string>,
+    matchingLines: Line[],
+    matchingLineIds: Set<string>,
+  ): Departure[] {
+    const buildOne = (trip: Trip, referenceTime: TimeOfDay): Departure | null => {
+      const departureTime = trip.getDepartureTimeAt(originId);
+      if (!departureTime) return null;
+
+      const lineId = routeLineMap.get(trip.routeId.value);
+      const isOfficialLine = lineId !== undefined && matchingLineIds.has(lineId);
+      const matchingLine = isOfficialLine
+        ? matchingLines.find((l) => l.id.value === lineId)
+        : undefined;
+      const lineName = matchingLine ? matchingLine.id.value : null;
+      const lineColor = matchingLine?.color?.value ?? null;
+
+      const arrivalAtDest = trip.getDepartureTimeAt(destinationId);
+      const durationMinutes = arrivalAtDest ? arrivalAtDest.minutesUntilFrom(departureTime) : null;
+
+      return new Departure(
+        departureTime,
+        lineName,
+        trip.headsign,
+        referenceTime,
+        lineColor,
+        durationMinutes,
+        "scheduled",
+      );
+    };
+
+    const departures: Departure[] = [];
+    for (const trip of filteredCrossoverTrips) {
+      const dep = buildOne(trip, crossoverReferenceTime);
+      if (dep) departures.push(dep);
+    }
+    for (const trip of filteredTodayTrips) {
+      const dep = buildOne(trip, currentTime);
+      if (dep) departures.push(dep);
+    }
+
+    departures.sort((a, b) => a.minutesRemaining - b.minutesRemaining);
+    return departures;
+  }
+
+  /** Trusts a live arrival only once its line+direction matches what filteredTrips already confirmed; any failure falls back to []. */
+  private async tryLiveDepartures(
+    originId: StationId,
+    now: Date,
+    currentTime: TimeOfDay,
+    filteredTrips: Trip[],
+    matchingLines: Line[],
+    matchingLineIds: Set<string>,
+  ): Promise<Departure[]> {
+    if (!this.liveDepartureProvider) return [];
+
+    try {
+      const validHeadsigns = new Set(
+        filteredTrips.map((trip) => trip.headsign).filter((h): h is string => h !== null),
+      );
+
+      const arrivals = await this.liveDepartureProvider.findLiveArrivals(originId, now);
+
+      return arrivals
+        .filter(
+          (arrival) =>
+            matchingLineIds.has(arrival.lineId.value) &&
+            (validHeadsigns.size === 0 ||
+              (arrival.headsign !== null && validHeadsigns.has(arrival.headsign))),
+        )
+        .sort((a, b) => a.minutesRemaining - b.minutesRemaining)
+        .map((arrival) => this.buildLiveDeparture(arrival, currentTime, matchingLines));
+    } catch {
+      return [];
+    }
+  }
+
+  private buildLiveDeparture(
+    arrival: LiveArrival,
+    currentTime: TimeOfDay,
+    matchingLines: Line[],
+  ): Departure {
+    const matchingLine = matchingLines.find((l) => l.id.equals(arrival.lineId));
+    const lineName = matchingLine ? matchingLine.id.value : null;
+    const lineColor = matchingLine?.color?.value ?? null;
+    const departureTime = SearchNextDepartures.addMinutes(currentTime, arrival.minutesRemaining);
+
+    return new Departure(
+      departureTime,
+      lineName,
+      arrival.headsign,
+      currentTime,
+      lineColor,
+      null,
+      "live",
+    );
+  }
+
+  /** Synthesizes a TimeOfDay `minutes` ahead of `base`, clamped to avoid a negative time. */
+  private static addMinutes(base: TimeOfDay, minutes: number): TimeOfDay {
+    const totalSeconds = Math.max(
+      base.hours * 3600 + base.minutes * 60 + base.seconds + Math.round(minutes) * 60,
+      0,
+    );
+    return TimeOfDay.of(
+      Math.floor(totalSeconds / 3600),
+      Math.floor((totalSeconds % 3600) / 60),
+      totalSeconds % 60,
+    );
   }
 
   private async resolveStation(name: string): Promise<Station | Station[]> {
