@@ -24,6 +24,14 @@ import type { RouteRepository } from "@/core/domain/route/RouteRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
+import {
+  FgvApiClient,
+  FGV_BASE_URL,
+} from "@/adapters/out/live-departures/provider-fgv/FgvApiClient";
+import { FgvStationMatcher } from "@/adapters/out/live-departures/provider-fgv/FgvStationMatcher";
+import { LiveStationMappingFgv } from "@/adapters/out/live-departures/provider-fgv/LiveStationMappingFgv";
+import { FgvStationIdRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/FgvStationIdRepositoryDrizzle";
+import type { LiveStationMapping } from "@/core/domain/shared/LiveStationMapping";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
 
@@ -39,6 +47,7 @@ export interface Container {
   userRepository: UserRepository;
   eventBus: EventBus;
   transactionManager: TransactionManager;
+  liveStationMapping: LiveStationMapping;
   db: AppDatabase;
   dispose(): Promise<void>;
 }
@@ -64,6 +73,14 @@ export function createContainer(): Container {
   const persistAnalyticsEvents = new PersistAnalyticsEventsSubscriber(analyticsEventRepository);
   const eventBus = new InMemoryEventBus([persistDomainEvents, persistAnalyticsEvents]);
 
+  const liveStationMapping = new LiveStationMappingFgv(
+    new FgvApiClient(fetch, FGV_BASE_URL, 30_000),
+    new FgvStationMatcher(),
+    new FgvStationIdRepositoryDrizzle(db),
+    transactionManager,
+    "metrovalencia",
+  );
+
   return {
     secrets,
     publicConfig,
@@ -76,6 +93,7 @@ export function createContainer(): Container {
     userRepository,
     eventBus,
     transactionManager,
+    liveStationMapping,
     db,
     dispose: () => sql.end(),
   };

@@ -11,6 +11,7 @@ export class TransactionManagerDrizzle implements TransactionManager {
   async run<T>(work: () => Promise<T>): Promise<T> {
     // Nested run joins the outer transaction instead of opening a second one.
     if (this.storage.getStore()) return work();
+    // The tx object lacks some root-db members (e.g. `$client`): repositories must only use query-builder methods.
     return this.rootDb.transaction((tx) => this.storage.run(tx as unknown as AppDatabase, work));
   }
 

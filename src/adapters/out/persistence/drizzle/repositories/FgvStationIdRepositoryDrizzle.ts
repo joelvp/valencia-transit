@@ -4,15 +4,12 @@ import type * as schema from "@/adapters/out/persistence/drizzle/schema";
 import { fgvStationIds } from "@/adapters/out/persistence/drizzle/schema";
 import { bulkInsert } from "@/adapters/out/persistence/drizzle/bulkInsert";
 import { StationId } from "@/core/domain/station/StationId";
+import type {
+  FgvStationIdMapping,
+  FgvStationIdStore,
+} from "@/adapters/out/live-departures/provider-fgv/FgvStationIdStore";
 
-/** Adapter-internal mapping (no domain port — no ubiquitous-language concept behind it) between
- *  our station ids and FGV's own numeric estacion_id. */
-export interface FgvStationIdMapping {
-  stationId: StationId;
-  fgvStationId: number;
-}
-
-export class FgvStationIdRepositoryDrizzle {
+export class FgvStationIdRepositoryDrizzle implements FgvStationIdStore {
   constructor(private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   async findFgvStationId(stationId: StationId, feedId: string): Promise<number | null> {
@@ -34,7 +31,7 @@ export class FgvStationIdRepositoryDrizzle {
     }));
   }
 
-  /** Truncate + re-insert. Wrap in `TransactionManager.run()` to keep the previous mapping on failure. */
+  /** Truncate + re-insert; the caller wraps it in a transaction to keep the old mapping on failure. */
   async saveAll(mappings: FgvStationIdMapping[], feedId: string): Promise<void> {
     await this.deleteByFeedId(feedId);
     if (mappings.length === 0) return;

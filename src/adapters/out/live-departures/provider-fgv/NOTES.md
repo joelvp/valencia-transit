@@ -1,8 +1,14 @@
 # FGV live-departure provider — endpoints & usage notes
 
-`LiveDepartureProviderFgv` calls FGV's (Ferrocarrils de la Generalitat Valenciana /
+The FGV adapters call FGV's (Ferrocarrils de la Generalitat Valenciana /
 Metrovalencia) undocumented mobile-app API — it isn't a published public API, so this is
 documented here in the open rather than left implicit in code.
+
+## Structure
+
+- `FgvApiClient` — HTTP + session handling (cookies, retry, timeout, User-Agent).
+- `LiveDepartureProviderFgv` — station-id lookup + mapping to `LiveArrival`.
+- `FgvStationMatcher` / `LiveStationMappingFgv` — match our stations to FGV's and persist via `FgvStationIdStore`.
 
 ## Endpoints called
 
@@ -13,8 +19,8 @@ All under `https://www.fgv.es/fgv/app/ca/api/v1/V`:
   `destino` (headsign) and a line number. Mapped to the domain-shaped `LiveArrival` — no FGV
   field names or vocabulary cross the `LiveDepartureProvider` port boundary.
 - `GET /estaciones` — full station catalogue with FGV's own numeric `estacion_id_FGV`, name, and
-  coordinates. Public, no session required. Used by `scripts/sync-fgv-station-ids.ts` for the
-  mapping, and by this adapter purely to prime a session (see below).
+  coordinates. Public, no session required. Used by `LiveStationMappingFgv` (via `scripts/sync-fgv-station-ids.ts`)
+  for the mapping, and by `FgvApiClient` purely to prime a session (see below).
 
 ## Session handling
 
@@ -46,7 +52,7 @@ the cookie and retries exactly once before giving up. Every request has a short 
 - Endpoints touching personal or financial data (`tarjetas*`, `usuarios/*`, `mensajes/*`,
   purchase/account flows) are out of scope and are never called by this adapter.
 - Mitigations we commit to, mirroring how we'd want a third party to treat our own service: an
-  honest `User-Agent` naming the bot (`FGV_USER_AGENT` in `LiveDepartureProviderFgv.ts` — never
+  honest `User-Agent` naming the bot (`FGV_USER_AGENT` in `FgvApiClient.ts` — never
   impersonating the official app), conservative polling (throttled by config, no tighter than the
   bot actually needs), and isolating this FGV-specific client entirely behind the
   `LiveDepartureProvider` port so it can be swapped out or disabled without touching the rest of
