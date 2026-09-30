@@ -6,6 +6,7 @@ import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
 import type { GtfsData } from "@/core/domain/shared/GtfsData";
 import { DatasetImported } from "@/core/domain/event/DatasetImported";
 import { Station } from "@/core/domain/station/Station";
@@ -98,7 +99,12 @@ function makeMocks() {
     }),
   };
 
+  const transactionManager: TransactionManager = {
+    run: mock((work: () => Promise<unknown>) => work()) as TransactionManager["run"],
+  };
+
   return {
+    transactionManager,
     stationRepository,
     routeRepository,
     lineRepository,
@@ -119,6 +125,7 @@ describe("ImportTransitData", () => {
       mocks.scheduleRepository,
       mocks.tripRepository,
       mocks.eventBus,
+      mocks.transactionManager,
     );
     const data = makeGtfsData();
 
@@ -143,6 +150,7 @@ describe("ImportTransitData", () => {
       mocks.scheduleRepository,
       mocks.tripRepository,
       mocks.eventBus,
+      mocks.transactionManager,
     );
 
     await useCase.execute(makeGtfsData(), "feed-2026");
@@ -170,6 +178,7 @@ describe("ImportTransitData", () => {
       mocks.scheduleRepository,
       mocks.tripRepository,
       mocks.eventBus,
+      mocks.transactionManager,
     );
 
     await useCase.execute(makeGtfsData(), "feed-2026");
@@ -188,6 +197,7 @@ describe("ImportTransitData", () => {
       mocks.scheduleRepository,
       mocks.tripRepository,
       mocks.eventBus,
+      mocks.transactionManager,
     );
 
     await useCase.execute(makeGtfsData(), "feed-2026");
@@ -198,5 +208,66 @@ describe("ImportTransitData", () => {
     expect(event.linesCount).toBe(1);
     expect(event.schedulesCount).toBe(1);
     expect(event.tripsCount).toBe(1);
+  });
+
+  it("should run every delete and save inside the transaction", async () => {
+    const mocks = makeMocks();
+    let insideTransaction = false;
+    const writesOutsideTransaction: string[] = [];
+    mocks.transactionManager.run = mock(async (work: () => Promise<unknown>) => {
+      insideTransaction = true;
+      try {
+        return await work();
+      } finally {
+        insideTransaction = false;
+      }
+    }) as TransactionManager["run"];
+    const trackWrite = (name: string) =>
+      mock(() => {
+        if (!insideTransaction) writesOutsideTransaction.push(name);
+        return Promise.resolve();
+      });
+    mocks.stationRepository.deleteByFeedId = trackWrite("stations.delete");
+    mocks.stationRepository.saveAll = trackWrite("stations.save");
+    mocks.stationRepository.updateTransportTypes = trackWrite("stations.updateTransportTypes");
+    mocks.scheduleRepository.deleteByFeedId = trackWrite("schedules.delete");
+    mocks.scheduleRepository.saveAll = trackWrite("schedules.save");
+    mocks.lineRepository.deleteByFeedId = trackWrite("lines.delete");
+    mocks.lineRepository.saveMany = trackWrite("lines.save");
+    mocks.routeRepository.deleteByFeedId = trackWrite("routes.delete");
+    mocks.routeRepository.saveMany = trackWrite("routes.save");
+    mocks.tripRepository.deleteByFeedId = trackWrite("trips.delete");
+    mocks.tripRepository.saveAll = trackWrite("trips.save");
+    const useCase = new ImportTransitData(
+      mocks.stationRepository,
+      mocks.routeRepository,
+      mocks.lineRepository,
+      mocks.scheduleRepository,
+      mocks.tripRepository,
+      mocks.eventBus,
+      mocks.transactionManager,
+    );
+
+    await useCase.execute(makeGtfsData(), "feed-2026");
+
+    expect(mocks.transactionManager.run).toHaveBeenCalledTimes(1);
+    expect(writesOutsideTransaction).toEqual([]);
+  });
+
+  it("should not publish DatasetImported when the transaction fails", async () => {
+    const mocks = makeMocks();
+    mocks.transactionManager.run = mock(() => Promise.reject(new Error("db down")));
+    const useCase = new ImportTransitData(
+      mocks.stationRepository,
+      mocks.routeRepository,
+      mocks.lineRepository,
+      mocks.scheduleRepository,
+      mocks.tripRepository,
+      mocks.eventBus,
+      mocks.transactionManager,
+    );
+
+    await expect(useCase.execute(makeGtfsData(), "feed-2026")).rejects.toThrow("db down");
+    expect(mocks.eventBus.publish).not.toHaveBeenCalled();
   });
 });

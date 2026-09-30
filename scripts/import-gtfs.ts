@@ -62,6 +62,7 @@ async function main() {
       container.scheduleRepository,
       container.tripRepository,
       container.eventBus,
+      container.transactionManager,
     );
 
     const summary = await importUseCase.execute(gtfsData, feedId);
