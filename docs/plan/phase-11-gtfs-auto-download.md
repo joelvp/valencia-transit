@@ -25,6 +25,7 @@ Automate the full data pipeline: detect new GTFS versions, download, import, not
 - [ ] Full automated flow: detect → download → import → sync FGV station ids → notify admin
 - [ ] Run the `SyncLiveStationMapping` use case (same wiring as `scripts/sync-fgv-station-ids.ts`) as an independent step after each import: if FGV fails, notify admin and keep the previous mapping (no FK to `stations`, so imports never wipe it; `saveAll` is transactional)
 - [ ] Also run the FGV station-id sync on its own schedule (e.g. weekly) even without a new GTFS, to catch FGV-side changes (new stations, renumbered ids)
+- [ ] Single source for the Metrovalencia feed id: `import-gtfs.ts` derives it from the zip name and `container.ts` hardcodes `"metrovalencia"` for the FGV sync — unify in one constant/public config so they can't drift (a mismatch would silently break live departures)
 - [ ] `TelegramNotifier.ts` — notify admin of success/failure via Telegram
 
 **Exit criteria**: System automatically detects new GTFS versions, downloads, imports, and notifies admin. Manual intervention only needed if something fails.
