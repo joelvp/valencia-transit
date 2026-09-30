@@ -16,4 +16,15 @@ export class StationLocation {
   equals(other: StationLocation): boolean {
     return this.latitude === other.latitude && this.longitude === other.longitude;
   }
+
+  /** Great-circle distance in meters (haversine). */
+  distanceTo(other: StationLocation): number {
+    const toRad = (deg: number): number => (deg * Math.PI) / 180;
+    const dLat = toRad(other.latitude - this.latitude);
+    const dLon = toRad(other.longitude - this.longitude);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(this.latitude)) * Math.cos(toRad(other.latitude)) * Math.sin(dLon / 2) ** 2;
+    return 2 * 6371000 * Math.asin(Math.sqrt(a));
+  }
 }

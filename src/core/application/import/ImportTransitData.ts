@@ -9,7 +9,7 @@ import type { GtfsData } from "@/core/domain/shared/GtfsData";
 import { DatasetImported } from "@/core/domain/event/DatasetImported";
 import { BuildLines } from "@/core/domain/line/BuildLines";
 import { DeduplicateTrips } from "@/core/domain/trip/DeduplicateTrips";
-import { TransportType } from "@/core/domain/shared/TransportType";
+import { DeriveStationTransportTypes } from "@/core/domain/station/DeriveStationTransportTypes";
 import type { Line } from "@/core/domain/line/Line";
 import type { Trip } from "@/core/domain/trip/Trip";
 import { createLogger } from "@/config/logger";
@@ -110,19 +110,7 @@ export class ImportTransitData {
 
     // Post-process: derive station transport types from lines
     log.info("Updating station transport types from lines");
-    const transportTypesByStation = new Map<string, TransportType[]>();
-    for (const line of lines) {
-      for (const stop of line.stops) {
-        const sid = stop.stationId.value;
-        if (!transportTypesByStation.has(sid)) {
-          transportTypesByStation.set(sid, []);
-        }
-        const types = transportTypesByStation.get(sid)!;
-        if (!types.some((t) => t.equals(line.transportType))) {
-          types.push(line.transportType);
-        }
-      }
-    }
+    const transportTypesByStation = DeriveStationTransportTypes.fromLines(lines);
     await this.stationRepository.updateTransportTypes(transportTypesByStation, feedId);
     log.info("Station transport types updated");
   }
