@@ -195,6 +195,21 @@ export const passingTimes = pgTable(
   }),
 );
 
+// Maps our station_id -> FGV's own estacion_id. Scoped to FGV only, not a shared `provider` column.
+// No FK to stations on purpose: GTFS re-imports delete stations, a cascade would wipe this mapping.
+export const fgvStationIds = pgTable(
+  "fgv_station_ids",
+  {
+    stationId: text("station_id").notNull(),
+    feedId: text("feed_id").notNull(),
+    fgvStationId: integer("fgv_station_id").notNull(), // FGV's estacion_id_FGV
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.stationId, t.feedId] }),
+  }),
+);
+
 // Application concern: Dataset versions
 export const datasetVersions = pgTable("dataset_versions", {
   id: serial("id").primaryKey(),

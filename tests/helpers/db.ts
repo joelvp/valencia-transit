@@ -11,6 +11,7 @@ type TableName =
   | "schedule_exceptions"
   | "trips"
   | "passing_times"
+  | "fgv_station_ids"
   | "dataset_versions"
   | "domain_events"
   | "analytics_events"
@@ -25,6 +26,7 @@ const ALL_TABLES: TableName[] = [
   "lines",
   "route_stations",
   "routes",
+  "fgv_station_ids",
   "stations",
   "domain_events",
   "analytics_events",
