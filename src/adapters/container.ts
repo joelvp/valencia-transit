@@ -6,6 +6,7 @@ import { createSqlConnection } from "@/config/database";
 import { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
 import { createDatabase } from "@/adapters/out/persistence/drizzle/db";
 import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
+import { TransactionManagerDrizzle } from "@/adapters/out/persistence/drizzle/TransactionManagerDrizzle";
 import { StationRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/StationRepositoryDrizzle";
 import { LineRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/LineRepositoryDrizzle";
 import { RouteRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/RouteRepositoryDrizzle";
@@ -24,6 +25,7 @@ import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleReposito
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
 
 export interface Container {
   secrets: Secrets;
@@ -36,6 +38,7 @@ export interface Container {
   tripRepository: TripRepository;
   userRepository: UserRepository;
   eventBus: EventBus;
+  transactionManager: TransactionManager;
   db: AppDatabase;
   dispose(): Promise<void>;
 }
@@ -45,7 +48,8 @@ export function createContainer(): Container {
   const publicConfig = loadPublicConfig(secrets.APP_ENV);
   const serviceCalendar = new ServiceCalendar(publicConfig.timezone);
   const sql = createSqlConnection(secrets.DATABASE_URL);
-  const db = createDatabase(sql);
+  const transactionManager = new TransactionManagerDrizzle(createDatabase(sql));
+  const db = transactionManager.transactionAwareDb();
 
   const stationRepository = new StationRepositoryDrizzle(db);
   const lineRepository = new LineRepositoryDrizzle(db);
@@ -71,6 +75,7 @@ export function createContainer(): Container {
     tripRepository,
     userRepository,
     eventBus,
+    transactionManager,
     db,
     dispose: () => sql.end(),
   };
