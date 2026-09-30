@@ -65,7 +65,7 @@
 
 The container (`src/adapters/container.ts`) is a **manual factory function** that only exposes **infrastructure**:
 
-- Repositories, database, event bus, secrets, `dispose()`
+- Repositories, database, event bus, transaction manager, secrets, `dispose()`
 - **No use cases**. No primary adapters (bot, CLI).
 
 **Entry points** (`main.ts`, scripts) are the composition root for application logic:

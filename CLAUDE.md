@@ -93,7 +93,7 @@ Two separate channels — never mixed:
 
 ```
 core/domain/       → NOTHING (pure, no external imports)
-core/application/  → core/domain/ only
+core/application/  → core/domain/ only (+ @/config/logger, allowed by ESLint)
 adapters/          → core/ + config/
 config/            → own utilities + external libs
 main.ts            → everything
