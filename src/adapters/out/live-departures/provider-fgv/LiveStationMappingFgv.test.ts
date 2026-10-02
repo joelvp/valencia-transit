@@ -5,6 +5,7 @@ import { StationLocation } from "@/core/domain/station/StationLocation";
 import type { FgvStation } from "./FgvApiClient";
 import { FgvStationMatcher } from "./FgvStationMatcher";
 import type { FgvStationIdMapping, FgvStationIdStore } from "./FgvStationIdStore";
+import { FgvStationMappingError } from "./FgvStationMappingError";
 import { LiveStationMappingFgv } from "./LiveStationMappingFgv";
 
 const FEED_ID = "feed-1";
@@ -111,7 +112,7 @@ describe("LiveStationMappingFgv", () => {
   it("should keep the previous mapping when nothing matches", async () => {
     const { mapping, saved } = setup({ fetch: async () => [fgvStation(10, "Colón")] });
 
-    await expect(mapping.sync([])).rejects.toThrow("previous mapping kept");
+    await expect(mapping.sync([])).rejects.toThrow(FgvStationMappingError);
     expect(saved).toHaveLength(0);
   });
 

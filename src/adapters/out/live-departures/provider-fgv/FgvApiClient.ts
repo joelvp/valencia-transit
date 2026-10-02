@@ -1,3 +1,5 @@
+import { FgvApiError } from "./FgvApiError";
+
 /** Injectable fetch for tests. Derived from `typeof fetch`, not `RequestInit` directly — that
  *  type-only global trips this project's `no-undef` lint rule. */
 export type FgvFetch = (
@@ -69,7 +71,7 @@ export class FgvApiClient {
     }
 
     if (!response.ok) {
-      throw new Error(`FGV horarios-prevision-3 request failed with status ${response.status}`);
+      throw new FgvApiError("horarios-prevision-3", response.status);
     }
 
     return (await response.json()) as FgvPrevisionResponse;
@@ -88,7 +90,7 @@ export class FgvApiClient {
       signal: AbortSignal.timeout(this.timeoutMs),
     });
     if (!response.ok) {
-      throw new Error(`FGV /estaciones request failed with status ${response.status}`);
+      throw new FgvApiError("/estaciones", response.status);
     }
     return response;
   }

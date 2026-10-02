@@ -4,6 +4,7 @@ import type { TransactionManager } from "@/core/domain/shared/TransactionManager
 import type { Station } from "@/core/domain/station/Station";
 import type { FgvApiClient } from "./FgvApiClient";
 import type { FgvStationMatcher } from "./FgvStationMatcher";
+import { FgvStationMappingError } from "./FgvStationMappingError";
 import type { FgvStationIdStore } from "./FgvStationIdStore";
 
 /** Maps our stations to FGV's station ids and persists the result. */
@@ -23,9 +24,7 @@ export class LiveStationMappingFgv implements LiveStationMapping {
 
     // Never replace a working mapping with an empty one: live data would silently stop.
     if (mappings.length === 0) {
-      throw new Error(
-        `FGV sync matched 0 of ${fgvStations.length} FGV stations (ours: ${stations.length}); previous mapping kept`,
-      );
+      throw new FgvStationMappingError(fgvStations.length, stations.length);
     }
 
     // Atomic: if the insert fails, the previous mapping stays in place.

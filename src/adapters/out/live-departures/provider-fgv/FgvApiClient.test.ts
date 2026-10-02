@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
 import { FgvApiClient } from "./FgvApiClient";
+import { FgvApiError } from "./FgvApiError";
 
 function jsonResponse(
   body: unknown,
@@ -112,7 +113,7 @@ describe("FgvApiClient", () => {
     });
     const client = new FgvApiClient(fetchFn);
 
-    await expect(client.fetchPrevisiones(78)).rejects.toThrow();
+    await expect(client.fetchPrevisiones(78)).rejects.toThrow(FgvApiError);
   });
 
   it("should not re-bootstrap on every call when FGV sets no session cookies", async () => {
@@ -167,6 +168,6 @@ describe("FgvApiClient", () => {
     const fetchFn = mock(() => Promise.resolve(jsonResponse({}, { status: 500 })));
     const client = new FgvApiClient(fetchFn);
 
-    await expect(client.fetchStations()).rejects.toThrow();
+    await expect(client.fetchStations()).rejects.toThrow(FgvApiError);
   });
 });
