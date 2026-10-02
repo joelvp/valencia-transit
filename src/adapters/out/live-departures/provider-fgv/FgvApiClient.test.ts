@@ -145,6 +145,45 @@ describe("FgvApiClient", () => {
     await expect(client.fetchPrevisiones(78)).rejects.toThrow();
   });
 
+  describe("global deadline", () => {
+    const delay = (ms: number, signal?: AbortSignal | null) =>
+      new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, ms);
+        signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(signal.reason);
+        });
+      });
+
+    it("should abort when the combined requests exceed the deadline", async () => {
+      let previsionCalls = 0;
+      const slowFetch = mock(async (url: string, init?: Parameters<typeof fetch>[1]) => {
+        await delay(40, init?.signal);
+        if (url.includes("/estaciones")) return BOOTSTRAP_OK();
+        previsionCalls++;
+        return previsionCalls === 1
+          ? jsonResponse({}, { status: 404 })
+          : jsonResponse(PREVISION_BODY);
+      });
+      const client = new FgvApiClient(slowFetch, undefined, 100);
+
+      await expect(client.fetchPrevisiones(78)).rejects.toThrow();
+    });
+
+    it("should return the response when all requests finish within the deadline", async () => {
+      const fastFetch = mock(async (url: string, init?: Parameters<typeof fetch>[1]) => {
+        await delay(10, init?.signal);
+        if (url.includes("/estaciones")) return BOOTSTRAP_OK();
+        return jsonResponse(PREVISION_BODY);
+      });
+      const client = new FgvApiClient(fastFetch, undefined, 500);
+
+      const result = await client.fetchPrevisiones(78);
+
+      expect(result.previsiones.length).toBe(2);
+    });
+  });
+
   it("should fetch the station catalogue and prime the session from its cookies", async () => {
     let sentCookie: string | null = null;
     const fetchFn = mock((url: string, init?: Parameters<typeof fetch>[1]) => {

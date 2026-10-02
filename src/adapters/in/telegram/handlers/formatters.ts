@@ -30,6 +30,14 @@ function formatHeader(
   return `${emoji} <b>${origin} → ${destination}</b>${duration}`;
 }
 
+const SOURCE_ICON: Record<Departure["source"], string> = { live: "📡", scheduled: "🕒" };
+
+function legendKey(departures: Departure[]): "legendLive" | "legendMixed" | "legendScheduled" {
+  const live = departures.filter((d) => d.source === "live").length;
+  if (live === 0) return "legendScheduled";
+  return live === departures.length ? "legendLive" : "legendMixed";
+}
+
 export function formatDepartures(
   t: ReturnType<typeof getT>,
   origin: string,
@@ -38,14 +46,15 @@ export function formatDepartures(
   firstTomorrow: Departure | null = null,
   routeLineName: string | null = null,
 ): string {
-  const header = formatHeader(origin, destination, routeLineName, departures[0]?.durationMinutes);
+  const duration = departures.find((d) => d.durationMinutes !== null)?.durationMinutes;
+  const header = formatHeader(origin, destination, routeLineName, duration);
   const lines = departures.map((d) => {
     const time = `<b>${formatTime(d.departureTime.hours, d.departureTime.minutes)}</b>`;
     const headsign = d.headsign ? ` → ${d.headsign}` : "";
     const lineInfo = d.lineName
       ? ` — ${lineNumberToEmoji(d.lineName)}<b>${lineNumberToName(d.lineName)}</b>`
       : "";
-    return `${time} (${formatWait(d.minutesRemaining)})${lineInfo}${headsign}`;
+    return `${SOURCE_ICON[d.source]} ${time} (${formatWait(d.minutesRemaining)})${lineInfo}${headsign}`;
   });
 
   const tomorrowLine = firstTomorrow
@@ -63,7 +72,7 @@ export function formatDepartures(
     ...lines,
     ...(tomorrowLine.length ? ["", ...tomorrowLine] : []),
     "",
-    t("disclaimer"),
+    t(legendKey(departures)),
   ].join("\n");
 }
 

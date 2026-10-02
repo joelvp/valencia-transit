@@ -19,6 +19,7 @@ import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
+import { logger } from "@/config/logger";
 
 export interface DepartureResult {
   origin: Station;
@@ -60,8 +61,8 @@ export class SearchNextDepartures {
     private readonly routeRepository: RouteRepository,
     private readonly eventBus: EventBus,
     private readonly serviceCalendar: ServiceCalendar,
-    private readonly maxDepartures: number = 5,
     private readonly liveDepartureProvider?: LiveDepartureProvider,
+    private readonly maxDepartures: number = 5,
   ) {}
 
   async execute(
@@ -406,7 +407,11 @@ export class SearchNextDepartures {
         )
         .sort((a, b) => a.minutesRemaining - b.minutesRemaining)
         .map((arrival) => this.buildLiveDeparture(arrival, currentTime, matchingLines));
-    } catch {
+    } catch (error) {
+      logger.warn(
+        { originId: originId.value, err: error instanceof Error ? error.message : String(error) },
+        "Live departures failed, falling back to scheduled",
+      );
       return [];
     }
   }
@@ -419,7 +424,7 @@ export class SearchNextDepartures {
     const matchingLine = matchingLines.find((l) => l.id.equals(arrival.lineId));
     const lineName = matchingLine ? matchingLine.id.value : null;
     const lineColor = matchingLine?.color?.value ?? null;
-    const departureTime = SearchNextDepartures.addMinutes(currentTime, arrival.minutesRemaining);
+    const departureTime = currentTime.plusMinutes(arrival.minutesRemaining);
 
     return new Departure(
       departureTime,
@@ -429,19 +434,6 @@ export class SearchNextDepartures {
       lineColor,
       null,
       "live",
-    );
-  }
-
-  /** Synthesizes a TimeOfDay `minutes` ahead of `base`, clamped to avoid a negative time. */
-  private static addMinutes(base: TimeOfDay, minutes: number): TimeOfDay {
-    const totalSeconds = Math.max(
-      base.hours * 3600 + base.minutes * 60 + base.seconds + Math.round(minutes) * 60,
-      0,
-    );
-    return TimeOfDay.of(
-      Math.floor(totalSeconds / 3600),
-      Math.floor((totalSeconds % 3600) / 60),
-      totalSeconds % 60,
     );
   }
 

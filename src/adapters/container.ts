@@ -28,8 +28,10 @@ import {
   FgvApiClient,
   FGV_BASE_URL,
 } from "@/adapters/out/live-departures/provider-fgv/FgvApiClient";
+import { LiveDepartureProviderFgv } from "@/adapters/out/live-departures/provider-fgv/LiveDepartureProviderFgv";
 import { FgvLiveStationCatalog } from "@/adapters/out/live-departures/provider-fgv/FgvLiveStationCatalog";
 import { FgvStationIdRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/FgvStationIdRepositoryDrizzle";
+import type { LiveDepartureProvider } from "@/core/domain/shared/LiveDepartureProvider";
 import type { LiveStationCatalog } from "@/core/domain/shared/LiveStationCatalog";
 import type { LiveStationLinkRepository } from "@/core/domain/shared/LiveStationLinkRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
@@ -49,6 +51,7 @@ export interface Container {
   transactionManager: TransactionManager;
   liveStationCatalog: LiveStationCatalog;
   liveStationLinkRepository: LiveStationLinkRepository;
+  liveDepartureProvider: LiveDepartureProvider;
   db: AppDatabase;
   dispose(): Promise<void>;
 }
@@ -78,6 +81,10 @@ export function createContainer(): Container {
     new FgvApiClient(fetch, FGV_BASE_URL, 30_000),
   );
   const liveStationLinkRepository = new FgvStationIdRepositoryDrizzle(db, "metrovalencia");
+  const liveDepartureProvider = new LiveDepartureProviderFgv(
+    liveStationLinkRepository,
+    new FgvApiClient(fetch, FGV_BASE_URL, publicConfig.liveDepartures.timeoutMs),
+  );
 
   return {
     secrets,
@@ -93,6 +100,7 @@ export function createContainer(): Container {
     transactionManager,
     liveStationCatalog,
     liveStationLinkRepository,
+    liveDepartureProvider,
     db,
     dispose: () => sql.end(),
   };

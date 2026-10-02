@@ -18,6 +18,7 @@ function dep(
   lineColor: string | null = null,
   durationMinutes: number | null = null,
   currentHHMMSS = "14:00:00",
+  source: "live" | "scheduled" = "scheduled",
 ): Departure {
   return new Departure(
     new TimeOfDay(departureHHMMSS),
@@ -26,8 +27,12 @@ function dep(
     new TimeOfDay(currentHHMMSS),
     lineColor,
     durationMinutes,
+    source,
   );
 }
+
+const live = (time: string, line = "3", duration: number | null = null) =>
+  dep(time, line, "Aeroport", null, duration, "14:00:00", "live");
 
 describe("formatDepartures", () => {
   it("should include origin and destination in the header", () => {
@@ -111,10 +116,53 @@ describe("formatDepartures", () => {
     expect(result).toContain("Próximas salidas:");
   });
 
-  it("should include the disclaimer line", () => {
+  it("should use the scheduled legend when all departures are scheduled", () => {
     const t = getT("es");
     const result = formatDepartures(t, "Xàtiva", "Colón", [dep("14:30:00")]);
-    expect(result).toContain("Horarios planificados");
+    expect(result).toContain("🕒 Horarios planificados. Los tiempos reales pueden variar.");
+  });
+
+  it("should use the live legend when all departures are live", () => {
+    const t = getT("es");
+    const result = formatDepartures(t, "Colón", "Aeroport", [live("14:03:00"), live("14:07:00")]);
+    expect(result).toContain("📡 Tiempos en directo de FGV");
+    expect(result).not.toContain("🕒");
+  });
+
+  it("should use the mixed legend and per-row icons when sources are mixed", () => {
+    const t = getT("es");
+    const result = formatDepartures(t, "Colón", "Aeroport", [
+      live("14:03:00"),
+      dep("14:17:00", "5", "Aeroport"),
+    ]);
+    expect(result).toContain("📡 <b>14:03</b> (3 min)");
+    expect(result).toContain("🕒 <b>14:17</b> (17 min)");
+    expect(result).toContain("📡 en directo · 🕒 horario previsto");
+  });
+
+  it("should translate the legend to en and val", () => {
+    const deps = [live("14:03:00"), dep("14:17:00")];
+    expect(formatDepartures(getT("en"), "A", "B", deps)).toContain("📡 live · 🕒 scheduled");
+    expect(formatDepartures(getT("val"), "A", "B", deps)).toContain(
+      "📡 en directe · 🕒 horari previst",
+    );
+  });
+
+  it("should take the header duration from the first departure that has one", () => {
+    const t = getT("es");
+    const result = formatDepartures(t, "Colón", "Aeroport", [
+      live("14:03:00"),
+      dep("14:17:00", "5", null, null, 22),
+    ]);
+    expect(result).toContain("(~22 min)");
+  });
+
+  it("should keep firstTomorrow and the legend after live rows", () => {
+    const t = getT("es");
+    const result = formatDepartures(t, "Colón", "Aeroport", [live("23:50:00")], dep("05:30:00"));
+    const lines = result.split("\n");
+    expect(lines.at(-1)).toBe("📡 Tiempos en directo de FGV");
+    expect(lines.at(-3)).toContain("Primera salida mañana: <b>05:30</b>");
   });
 });
 

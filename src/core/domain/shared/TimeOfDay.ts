@@ -46,6 +46,12 @@ export class TimeOfDay {
     return Math.floor(diffSeconds / 60);
   }
 
+  /** Returns a time `minutes` ahead (rounded), clamped at 00:00:00. Does not wrap at 24h. */
+  plusMinutes(minutes: number): TimeOfDay {
+    const total = Math.max(this.toTotalSeconds() + Math.round(minutes) * 60, 0);
+    return TimeOfDay.of(Math.floor(total / 3600), Math.floor((total % 3600) / 60), total % 60);
+  }
+
   equals(other: TimeOfDay): boolean {
     return this.value === other.value;
   }

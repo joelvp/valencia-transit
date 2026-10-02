@@ -126,6 +126,37 @@ describe("TimeOfDay", () => {
     });
   });
 
+  describe("plusMinutes", () => {
+    it("should add minutes", () => {
+      expect(new TimeOfDay("14:30:00").plusMinutes(5).value).toBe("14:35:00");
+    });
+
+    it("should carry into the next hour", () => {
+      expect(new TimeOfDay("14:50:00").plusMinutes(20).value).toBe("15:10:00");
+    });
+
+    it("should preserve seconds", () => {
+      expect(new TimeOfDay("14:30:45").plusMinutes(3).value).toBe("14:33:45");
+    });
+
+    it("should round fractional minutes", () => {
+      expect(new TimeOfDay("14:30:00").plusMinutes(2.4).value).toBe("14:32:00");
+      expect(new TimeOfDay("14:30:00").plusMinutes(2.6).value).toBe("14:33:00");
+    });
+
+    it("should not wrap past 24h", () => {
+      expect(new TimeOfDay("23:50:00").plusMinutes(20).value).toBe("24:10:00");
+    });
+
+    it("should return an equal time for zero minutes", () => {
+      expect(new TimeOfDay("14:30:00").plusMinutes(0).equals(new TimeOfDay("14:30:00"))).toBe(true);
+    });
+
+    it("should clamp at midnight when result is negative", () => {
+      expect(new TimeOfDay("00:05:00").plusMinutes(-10).value).toBe("00:00:00");
+    });
+  });
+
   describe("equals", () => {
     it("should be equal when values match", () => {
       const a = new TimeOfDay("14:30:00");
