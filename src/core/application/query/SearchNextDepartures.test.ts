@@ -398,6 +398,7 @@ describe("SearchNextDepartures", () => {
       routeRepo,
       eventBus,
       calendar,
+      undefined,
       3,
     );
     const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -705,6 +706,7 @@ describe("SearchNextDepartures", () => {
       routeRepo,
       eventBus,
       calendar,
+      undefined,
       5,
     );
     const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
@@ -769,6 +771,7 @@ describe("SearchNextDepartures", () => {
       routeRepo,
       eventBus,
       calendar,
+      undefined,
       5,
     );
     const result = await useCase.execute("Xàtiva", "Colón", earlyMorning);
@@ -1004,7 +1007,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1054,7 +1056,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1088,7 +1089,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1118,7 +1118,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1146,7 +1145,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1189,7 +1187,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1233,7 +1230,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1279,7 +1275,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);
@@ -1325,7 +1320,6 @@ describe("SearchNextDepartures", () => {
         routeRepo,
         eventBus,
         calendar,
-        5,
         liveProvider,
       );
       const result = await useCase.execute("Xàtiva", "Colón", now);

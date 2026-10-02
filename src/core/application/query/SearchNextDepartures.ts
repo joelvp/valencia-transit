@@ -60,8 +60,8 @@ export class SearchNextDepartures {
     private readonly routeRepository: RouteRepository,
     private readonly eventBus: EventBus,
     private readonly serviceCalendar: ServiceCalendar,
-    private readonly maxDepartures: number = 5,
     private readonly liveDepartureProvider?: LiveDepartureProvider,
+    private readonly maxDepartures: number = 5,
   ) {}
 
   async execute(
