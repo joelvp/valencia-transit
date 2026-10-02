@@ -116,6 +116,7 @@ describe("ImportTransitData Component Test", () => {
       container.scheduleRepository,
       container.tripRepository,
       container.eventBus,
+      container.transactionManager,
     );
 
     const summary = await importUseCase.execute(gtfsData, TEST_FEED_ID);
@@ -157,6 +158,7 @@ describe("ImportTransitData Component Test", () => {
       container.scheduleRepository,
       container.tripRepository,
       container.eventBus,
+      container.transactionManager,
     );
 
     // First import

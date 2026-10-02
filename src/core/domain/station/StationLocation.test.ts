@@ -36,4 +36,21 @@ describe("StationLocation", () => {
     const b = new StationLocation(39.47, -0.3763);
     expect(a.equals(b)).toBe(false);
   });
+
+  describe("distanceTo", () => {
+    const xativa = new StationLocation(39.4667, -0.3775);
+    const colon = new StationLocation(39.4699, -0.3707);
+
+    it("should return 0 for the same point", () => {
+      expect(xativa.distanceTo(new StationLocation(39.4667, -0.3775))).toBe(0);
+    });
+
+    it("should return the approximate distance between known points", () => {
+      expect(Math.abs(xativa.distanceTo(colon) - 670)).toBeLessThan(50);
+    });
+
+    it("should be symmetric", () => {
+      expect(xativa.distanceTo(colon)).toBeCloseTo(colon.distanceTo(xativa), 6);
+    });
+  });
 });

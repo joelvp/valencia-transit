@@ -6,6 +6,7 @@ import { createSqlConnection } from "@/config/database";
 import { ServiceCalendar } from "@/core/domain/shared/ServiceCalendar";
 import { createDatabase } from "@/adapters/out/persistence/drizzle/db";
 import type { AppDatabase } from "@/adapters/out/persistence/drizzle/db";
+import { TransactionManagerDrizzle } from "@/adapters/out/persistence/drizzle/TransactionManagerDrizzle";
 import { StationRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/StationRepositoryDrizzle";
 import { LineRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/LineRepositoryDrizzle";
 import { RouteRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/RouteRepositoryDrizzle";
@@ -23,7 +24,16 @@ import type { RouteRepository } from "@/core/domain/route/RouteRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { UserRepository } from "@/core/domain/user/UserRepository";
+import {
+  FgvApiClient,
+  FGV_BASE_URL,
+} from "@/adapters/out/live-departures/provider-fgv/FgvApiClient";
+import { FgvLiveStationCatalog } from "@/adapters/out/live-departures/provider-fgv/FgvLiveStationCatalog";
+import { FgvStationIdRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/FgvStationIdRepositoryDrizzle";
+import type { LiveStationCatalog } from "@/core/domain/shared/LiveStationCatalog";
+import type { LiveStationLinkRepository } from "@/core/domain/shared/LiveStationLinkRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
 
 export interface Container {
   secrets: Secrets;
@@ -36,6 +46,9 @@ export interface Container {
   tripRepository: TripRepository;
   userRepository: UserRepository;
   eventBus: EventBus;
+  transactionManager: TransactionManager;
+  liveStationCatalog: LiveStationCatalog;
+  liveStationLinkRepository: LiveStationLinkRepository;
   db: AppDatabase;
   dispose(): Promise<void>;
 }
@@ -45,7 +58,8 @@ export function createContainer(): Container {
   const publicConfig = loadPublicConfig(secrets.APP_ENV);
   const serviceCalendar = new ServiceCalendar(publicConfig.timezone);
   const sql = createSqlConnection(secrets.DATABASE_URL);
-  const db = createDatabase(sql);
+  const transactionManager = new TransactionManagerDrizzle(createDatabase(sql));
+  const db = transactionManager.transactionAwareDb();
 
   const stationRepository = new StationRepositoryDrizzle(db);
   const lineRepository = new LineRepositoryDrizzle(db);
@@ -60,6 +74,11 @@ export function createContainer(): Container {
   const persistAnalyticsEvents = new PersistAnalyticsEventsSubscriber(analyticsEventRepository);
   const eventBus = new InMemoryEventBus([persistDomainEvents, persistAnalyticsEvents]);
 
+  const liveStationCatalog = new FgvLiveStationCatalog(
+    new FgvApiClient(fetch, FGV_BASE_URL, 30_000),
+  );
+  const liveStationLinkRepository = new FgvStationIdRepositoryDrizzle(db, "metrovalencia");
+
   return {
     secrets,
     publicConfig,
@@ -71,6 +90,9 @@ export function createContainer(): Container {
     tripRepository,
     userRepository,
     eventBus,
+    transactionManager,
+    liveStationCatalog,
+    liveStationLinkRepository,
     db,
     dispose: () => sql.end(),
   };

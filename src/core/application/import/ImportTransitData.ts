@@ -4,11 +4,14 @@ import type { LineRepository } from "@/core/domain/line/LineRepository";
 import type { ScheduleRepository } from "@/core/domain/schedule/ScheduleRepository";
 import type { TripRepository } from "@/core/domain/trip/TripRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
+import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
 import type { GtfsData } from "@/core/domain/shared/GtfsData";
 import { DatasetImported } from "@/core/domain/event/DatasetImported";
 import { BuildLines } from "@/core/domain/line/BuildLines";
 import { DeduplicateTrips } from "@/core/domain/trip/DeduplicateTrips";
-import { TransportType } from "@/core/domain/shared/TransportType";
+import { DeriveStationTransportTypes } from "@/core/domain/station/DeriveStationTransportTypes";
+import type { Line } from "@/core/domain/line/Line";
+import type { Trip } from "@/core/domain/trip/Trip";
 import { createLogger } from "@/config/logger";
 
 const log = createLogger("ImportTransitData");
@@ -30,6 +33,7 @@ export class ImportTransitData {
     private readonly scheduleRepository: ScheduleRepository,
     private readonly tripRepository: TripRepository,
     private readonly eventBus: EventBus,
+    private readonly transactionManager: TransactionManager,
   ) {}
 
   async execute(data: GtfsData, feedId: string): Promise<ImportSummary> {
@@ -43,6 +47,36 @@ export class ImportTransitData {
 
     const lines = BuildLines.fromRoutesAndTrips(data.routes, trips);
 
+    // All-or-nothing: a failure mid-import rolls back and keeps the previous feed intact.
+    await this.transactionManager.run(() => this.replaceFeedData(data, trips, lines, feedId));
+
+    // Published after commit, so subscribers never see a rolled-back import.
+    await this.eventBus.publish(
+      new DatasetImported(
+        feedId,
+        data.stations.length,
+        lines.length,
+        data.schedules.length,
+        trips.length,
+      ),
+    );
+
+    return {
+      feedId,
+      stationsImported: data.stations.length,
+      routesImported: data.routes.length,
+      linesImported: lines.length,
+      schedulesImported: data.schedules.length,
+      tripsImported: trips.length,
+    };
+  }
+
+  private async replaceFeedData(
+    data: GtfsData,
+    trips: Trip[],
+    lines: Line[],
+    feedId: string,
+  ): Promise<void> {
     // Delete in FK-safe order:
     // trips (cascades passing_times) → routes (cascades route_stations, refs lines) → lines (cascades line_stations) → schedules → stations
     log.info({ feedId }, "Clearing existing data");
@@ -76,39 +110,8 @@ export class ImportTransitData {
 
     // Post-process: derive station transport types from lines
     log.info("Updating station transport types from lines");
-    const transportTypesByStation = new Map<string, TransportType[]>();
-    for (const line of lines) {
-      for (const stop of line.stops) {
-        const sid = stop.stationId.value;
-        if (!transportTypesByStation.has(sid)) {
-          transportTypesByStation.set(sid, []);
-        }
-        const types = transportTypesByStation.get(sid)!;
-        if (!types.some((t) => t.equals(line.transportType))) {
-          types.push(line.transportType);
-        }
-      }
-    }
+    const transportTypesByStation = DeriveStationTransportTypes.fromLines(lines);
     await this.stationRepository.updateTransportTypes(transportTypesByStation, feedId);
     log.info("Station transport types updated");
-
-    await this.eventBus.publish(
-      new DatasetImported(
-        feedId,
-        data.stations.length,
-        lines.length,
-        data.schedules.length,
-        trips.length,
-      ),
-    );
-
-    return {
-      feedId,
-      stationsImported: data.stations.length,
-      routesImported: data.routes.length,
-      linesImported: lines.length,
-      schedulesImported: data.schedules.length,
-      tripsImported: trips.length,
-    };
   }
 }

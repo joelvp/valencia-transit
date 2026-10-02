@@ -10,12 +10,12 @@ Research context (do not re-derive, read first): `/home/joelvp/Work/fgv/SESSION_
 
 **Agent: `domain-expert`**
 
-- [ ] `LiveDepartureProvider` port (interface) in `core/domain/shared/` (or a new `core/domain/departure/` folder if it grows) — method to fetch live arrivals for a given `StationId`, returning a domain-shaped result (line reference, headsign/destination, minutes remaining). No FGV vocabulary (`seconds`, `previsiones`, `vehicle`) leaking past the port boundary.
-- [ ] `Departure` gains a `source` discriminant (`'live' | 'scheduled'`) — decide VO vs. plain union type; current constructor is already 6 positional params (`Departure.ts:6-13`), consider whether this is the point to move to a options object.
-- [ ] `SearchNextDepartures` takes a new **optional** constructor dependency `liveDepartureProvider?: LiveDepartureProvider`. With it absent, behavior must be byte-for-byte identical to today (existing tests keep passing unmodified).
-- [ ] Inside `execute()`, after `matchingLines`/`filteredTrips` are computed (unchanged): if a live provider is injected, try it (wrapped so any failure falls back silently, per design-principles.md #8 fail-safe); filter live results to `line_id ∈ matchingLineIds` AND headsign/destino matching the direction already validated by `filteredTrips`; sort by minutes remaining; if fewer than `maxDepartures` valid live results, top up with the existing static-derived departures (marked `source: 'scheduled'`); if still short, existing `firstTomorrow` logic applies unchanged.
-- [ ] Split into private helper methods (e.g. `tryLiveDepartures()`, `buildScheduledDepartures()`) rather than one branchy `execute()`.
-- [ ] Unit tests: `SearchNextDepartures` with `liveDepartureProvider` mocked — scenarios: live returns ≥5 valid matches (all live), live returns <5 (live + scheduled top-up), live throws (pure scheduled fallback, unchanged behavior), no provider injected (unchanged behavior — regression guard).
+- [x] `LiveDepartureProvider` port (interface) in `core/domain/shared/` (or a new `core/domain/departure/` folder if it grows) — method to fetch live arrivals for a given `StationId`, returning a domain-shaped result (line reference, headsign/destination, minutes remaining). No FGV vocabulary (`seconds`, `previsiones`, `vehicle`) leaking past the port boundary.
+- [x] `Departure` gains a `source` discriminant (`'live' | 'scheduled'`) — decide VO vs. plain union type; current constructor is already 6 positional params (`Departure.ts:6-13`), consider whether this is the point to move to a options object.
+- [x] `SearchNextDepartures` takes a new **optional** constructor dependency `liveDepartureProvider?: LiveDepartureProvider`. With it absent, behavior must be byte-for-byte identical to today (existing tests keep passing unmodified).
+- [x] Inside `execute()`, after `matchingLines`/`filteredTrips` are computed (unchanged): if a live provider is injected, try it (wrapped so any failure falls back silently, per design-principles.md #8 fail-safe); filter live results to `line_id ∈ matchingLineIds` AND headsign/destino matching the direction already validated by `filteredTrips`; sort by minutes remaining; if fewer than `maxDepartures` valid live results, top up with the existing static-derived departures (marked `source: 'scheduled'`); if still short, existing `firstTomorrow` logic applies unchanged.
+- [x] Split into private helper methods (e.g. `tryLiveDepartures()`, `buildScheduledDepartures()`) rather than one branchy `execute()`.
+- [x] Unit tests: `SearchNextDepartures` with `liveDepartureProvider` mocked — scenarios: live returns ≥5 valid matches (all live), live returns <5 (live + scheduled top-up), live throws (pure scheduled fallback, unchanged behavior), no provider injected (unchanged behavior — regression guard).
 
 **Exit criteria**: port + updated use case merge with full test coverage; no adapter exists yet, everything is mocked; existing `SearchNextDepartures` tests still pass unmodified.
 
@@ -23,15 +23,15 @@ Research context (do not re-derive, read first): `/home/joelvp/Work/fgv/SESSION_
 
 **Agent: `adapters`**
 
-- [ ] Migration: `fgv_station_ids` table (`station_id` FK → `stations`, `fgv_station_id`, `updated_at`). Scoped to FGV only — no speculative `provider` column (see chat decision: EMT/Renfe would be different stations entirely, not a remap of the same ones; generalize later only if a second provider hits the same live-id-vs-GTFS-id mismatch).
-- [ ] `scripts/sync-fgv-station-ids.ts` — `GET /estaciones` (public, no session needed — see `/home/joelvp/Work/fgv/fgv-api-notes.md`), match against our `StationRepository` by normalized name + coordinate proximity (`StationLocation`), upsert into `fgv_station_ids`. Log/report any FGV station without a confident match instead of silently mismapping.
-- [ ] `LiveDepartureProviderFgv.ts` — implements `LiveDepartureProvider` from 9A:
+- [x] Migration: `fgv_station_ids` table (`station_id` + `feed_id` PK, `fgv_station_id`, `updated_at`; deliberately no FK to `stations`, GTFS re-imports would cascade-wipe it). Scoped to FGV only — no speculative `provider` column (see chat decision: EMT/Renfe would be different stations entirely, not a remap of the same ones; generalize later only if a second provider hits the same live-id-vs-GTFS-id mismatch).
+- [x] `scripts/sync-fgv-station-ids.ts` — `GET /estaciones` (public, no session needed — see `/home/joelvp/Work/fgv/fgv-api-notes.md`), match against our `StationRepository` by normalized name + coordinate proximity (`StationLocation`), upsert into `fgv_station_ids`. Log/report any FGV station without a confident match instead of silently mismapping.
+- [x] `LiveDepartureProviderFgv.ts` — implements `LiveDepartureProvider` from 9A:
   - Session bootstrap (`comprobar-version-minima-v2` or a catalogue `GET` — verify which still works, FGV changed session requirements around 2026-09-21) + cookie reuse + reset-and-retry-once on expiry.
   - Resolves `StationId` → `fgv_station_id` via the mapping table (repository from this same part).
   - Calls `horarios-prevision-3/{fgv_station_id}`, maps `previsiones[].trains[]` to the port's domain-shaped return type.
   - Honest `User-Agent` identifying our bot and a contact point — never spoofs the official app in production code (see "FGV usage & legal note" below).
-- [ ] Tests: mock the HTTP layer (undocumented third-party endpoint — do not hit the real FGV API in CI; this isn't "our own infra" per the testing-conventions table, treat as a unit test with a fake HTTP client, not a true integration test). Cover: session priming, cookie reuse across calls, retry-once on session expiry, station-id resolution, mapping/parsing.
-- [ ] `provider-fgv/NOTES.md` (or similar, co-located with the adapter) — short, public write-up of which FGV endpoints we call, why, and the legal reasoning below, so the usage is documented in the open rather than left implicit in code.
+- [x] Tests: mock the HTTP layer (undocumented third-party endpoint — do not hit the real FGV API in CI; this isn't "our own infra" per the testing-conventions table, treat as a unit test with a fake HTTP client, not a true integration test). Cover: session priming, cookie reuse across calls, retry-once on session expiry, station-id resolution, mapping/parsing.
+- [x] `provider-fgv/NOTES.md` (or similar, co-located with the adapter) — short, public write-up of which FGV endpoints we call, why, and the legal reasoning below, so the usage is documented in the open rather than left implicit in code.
 
 **Exit criteria**: `LiveDepartureProviderFgv` works standalone (verifiable via a throwaway script against the real endpoint), fully unit-tested with mocked HTTP, not yet wired into the bot.
 

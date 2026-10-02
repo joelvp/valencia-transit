@@ -28,11 +28,11 @@ jobs:
           fi
 
           # Placeholder guard: these secrets don't exist yet (no Coolify instance
-          # set up). Once Phase 9 (docs/plan/phase-9-vps-coolify-migration.md) is
+          # set up). Once Phase 10 (docs/plan/phase-10-vps-coolify-migration.md) is
           # done, add COOLIFY_URL, COOLIFY_TOKEN, COOLIFY_PROD_RESOURCE_UUID and
           # COOLIFY_DEV_RESOURCE_UUID as repo secrets and this check passes through.
           if [ -z "$COOLIFY_URL" ] || [ -z "$COOLIFY_TOKEN" ] || [ -z "$RESOURCE_UUID" ]; then
-            echo "::warning::Coolify secrets not configured yet for branch '$BRANCH' — skipping deploy (see docs/plan/phase-9-vps-coolify-migration.md)"
+            echo "::warning::Coolify secrets not configured yet for branch '$BRANCH' — skipping deploy (see docs/plan/phase-10-vps-coolify-migration.md)"
             exit 0
           fi
 
