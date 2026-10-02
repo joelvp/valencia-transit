@@ -1,4 +1,5 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, spyOn } from "bun:test";
+import { logger } from "@/config/logger";
 import { SearchNextDepartures } from "./SearchNextDepartures";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { LineRepository } from "@/core/domain/line/LineRepository";
@@ -1099,6 +1100,40 @@ describe("SearchNextDepartures", () => {
       expect(result.data.departures[0]!.source).toBe("scheduled");
       expect(result.data.departures[0]!.lineName).toBe("L3");
       expect(result.data.departures[0]!.headsign).toBe("Direction A");
+    });
+
+    it("should log a warning when the live provider throws", async () => {
+      const warnSpy = spyOn(logger, "warn").mockImplementation(() => {});
+      try {
+        const liveProvider = makeLiveProvider(() => Promise.reject(new Error("FGV unreachable")));
+        const { stationRepo, lineRepo, routeRepo, scheduleRepo, tripRepo, eventBus } = makeRepos({
+          findByName: (name) =>
+            Promise.resolve(name === "Xàtiva" ? origin : name === "Colón" ? destination : null),
+        });
+
+        const useCase = new SearchNextDepartures(
+          stationRepo,
+          lineRepo,
+          scheduleRepo,
+          tripRepo,
+          routeRepo,
+          eventBus,
+          calendar,
+          liveProvider,
+        );
+        const result = await useCase.execute("Xàtiva", "Colón", now);
+
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy.mock.calls[0]![0]).toEqual({
+          originId: origin.id.value,
+          err: "FGV unreachable",
+        });
+        expect(result.type).toBe("departures");
+        if (result.type !== "departures") return;
+        expect(result.data.departures[0]!.source).toBe("scheduled");
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it("should ignore live arrivals whose line is not among matchingLines", async () => {

@@ -19,6 +19,7 @@ import { StationNotFoundError } from "@/core/domain/error/StationNotFoundError";
 import { StationsNotConnectedError } from "@/core/domain/error/StationsNotConnectedError";
 import { NoServiceError } from "@/core/domain/error/NoServiceError";
 import { NoActiveServiceError } from "@/core/domain/error/NoActiveServiceError";
+import { logger } from "@/config/logger";
 
 export interface DepartureResult {
   origin: Station;
@@ -406,7 +407,11 @@ export class SearchNextDepartures {
         )
         .sort((a, b) => a.minutesRemaining - b.minutesRemaining)
         .map((arrival) => this.buildLiveDeparture(arrival, currentTime, matchingLines));
-    } catch {
+    } catch (error) {
+      logger.warn(
+        { originId: originId.value, err: error instanceof Error ? error.message : String(error) },
+        "Live departures failed, falling back to scheduled",
+      );
       return [];
     }
   }
