@@ -1,6 +1,8 @@
 import { describe, it, expect } from "bun:test";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
+import { UnmatchedLiveStation } from "@/core/domain/shared/UnmatchedLiveStation";
+import { UnmatchedLiveStationReason } from "@/core/domain/shared/UnmatchedLiveStationReason";
 import type { FgvStation } from "./FgvApiClient";
 import { FgvStationMatcher } from "./FgvStationMatcher";
 
@@ -24,8 +26,7 @@ describe("FgvStationMatcher", () => {
     expect(result.mappings).toHaveLength(1);
     expect(result.mappings[0]!.stationId.value).toBe("s1");
     expect(result.mappings[0]!.fgvStationId).toBe(10);
-    expect(result.unmatched).toEqual([]);
-    expect(result.lowConfidence).toEqual([]);
+    expect(result.unmatchedLiveStations).toEqual([]);
   });
 
   it("should match names ignoring accents and case", () => {
@@ -50,30 +51,58 @@ describe("FgvStationMatcher", () => {
     expect(result.mappings[0]!.stationId.value).toBe("near");
   });
 
-  it("should flag low confidence and not map when the name matches but is too far", () => {
+  it("should report TOO_FAR and not map when the name matches but is too far", () => {
     const result = matcher.match([ours("s1", "Colón")], [fgv(4, "Colón", LAT + 0.01)]);
 
     expect(result.mappings).toEqual([]);
-    expect(result.lowConfidence).toHaveLength(1);
-    expect(result.lowConfidence[0]).toContain("Colón");
+    expect(result.unmatchedLiveStations).toEqual([
+      new UnmatchedLiveStation("Colón", "4", UnmatchedLiveStationReason.TOO_FAR),
+    ]);
   });
 
-  it("should report unmatched when no station has the name", () => {
+  it("should report NO_NAME_MATCH when no station has the name", () => {
     const result = matcher.match([ours("s1", "Colón")], [fgv(5, "Nowhere")]);
 
     expect(result.mappings).toEqual([]);
-    expect(result.unmatched).toEqual(["Nowhere"]);
+    expect(result.unmatchedLiveStations).toEqual([
+      new UnmatchedLiveStation("Nowhere", "5", UnmatchedLiveStationReason.NO_NAME_MATCH),
+    ]);
   });
 
-  it("should flag low confidence without throwing on invalid FGV coordinates", () => {
+  it("should report INVALID_COORDINATES without throwing on invalid FGV coordinates", () => {
     const result = matcher.match([ours("s1", "Colón")], [fgv(6, "Colón", 999)]);
 
     expect(result.mappings).toEqual([]);
-    expect(result.lowConfidence).toHaveLength(1);
-    expect(result.lowConfidence[0]).toContain("invalid coordinates");
+    expect(result.unmatchedLiveStations).toEqual([
+      new UnmatchedLiveStation("Colón", "6", UnmatchedLiveStationReason.INVALID_COORDINATES),
+    ]);
+  });
+
+  it("should keep the closer FGV station and report the later one as DUPLICATE", () => {
+    const result = matcher.match(
+      [ours("s1", "Colón")],
+      [fgv(7, "Colón", LAT + 0.0001), fgv(8, "Colón", LAT + 0.002)],
+    );
+
+    expect(result.mappings.map((m) => [m.stationId.value, m.fgvStationId])).toEqual([["s1", 7]]);
+    expect(result.unmatchedLiveStations).toEqual([
+      new UnmatchedLiveStation("Colón", "8", UnmatchedLiveStationReason.DUPLICATE),
+    ]);
+  });
+
+  it("should replace an earlier mapping when a later FGV station is closer", () => {
+    const result = matcher.match(
+      [ours("s1", "Colón")],
+      [fgv(8, "Colón", LAT + 0.002), fgv(7, "Colón", LAT + 0.0001)],
+    );
+
+    expect(result.mappings.map((m) => [m.stationId.value, m.fgvStationId])).toEqual([["s1", 7]]);
+    expect(result.unmatchedLiveStations).toEqual([
+      new UnmatchedLiveStation("Colón", "8", UnmatchedLiveStationReason.DUPLICATE),
+    ]);
   });
 
   it("should return empty results for empty inputs", () => {
-    expect(matcher.match([], [])).toEqual({ mappings: [], unmatched: [], lowConfidence: [] });
+    expect(matcher.match([], [])).toEqual({ mappings: [], unmatchedLiveStations: [] });
   });
 });

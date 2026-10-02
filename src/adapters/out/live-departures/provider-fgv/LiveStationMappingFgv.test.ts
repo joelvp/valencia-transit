@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
+import { UnmatchedLiveStationReason } from "@/core/domain/shared/UnmatchedLiveStationReason";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
 import type { FgvStation } from "./FgvApiClient";
@@ -79,7 +80,7 @@ describe("LiveStationMappingFgv", () => {
     expect(events).toEqual(["fetch:outside", "saveAll"]);
   });
 
-  it("should return a report reflecting mapped, unmatched and low confidence stations", async () => {
+  it("should return a report carrying mapped ids and unmatched live stations", async () => {
     const far: FgvStation = {
       estacion_id_FGV: 12,
       nombre: "Lejos",
@@ -93,8 +94,11 @@ describe("LiveStationMappingFgv", () => {
     const report = await mapping.sync([station("s1", "Colón"), station("s2", "Lejos")]);
 
     expect(report.mappedCount).toBe(1);
-    expect(report.unmatched).toEqual(["Nowhere"]);
-    expect(report.lowConfidence).toHaveLength(1);
+    expect(report.mappedStationIds.map((id) => id.value)).toEqual(["s1"]);
+    expect(report.unmatchedLiveStations.map((u) => [u.liveId, u.reason])).toEqual([
+      ["11", UnmatchedLiveStationReason.NO_NAME_MATCH],
+      ["12", UnmatchedLiveStationReason.TOO_FAR],
+    ]);
     expect(report.hasIssues).toBe(true);
   });
 

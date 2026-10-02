@@ -20,7 +20,7 @@ export class LiveStationMappingFgv implements LiveStationMapping {
   async sync(stations: Station[]): Promise<LiveStationMappingReport> {
     // Network call stays outside the transaction so it never holds a DB connection open.
     const fgvStations = await this.client.fetchStations();
-    const { mappings, unmatched, lowConfidence } = this.matcher.match(stations, fgvStations);
+    const { mappings, unmatchedLiveStations } = this.matcher.match(stations, fgvStations);
 
     // Never replace a working mapping with an empty one: live data would silently stop.
     if (mappings.length === 0) {
@@ -30,6 +30,9 @@ export class LiveStationMappingFgv implements LiveStationMapping {
     // Atomic: if the insert fails, the previous mapping stays in place.
     await this.transactionManager.run(() => this.store.saveAll(mappings, this.feedId));
 
-    return new LiveStationMappingReport(mappings.length, unmatched, lowConfidence);
+    return new LiveStationMappingReport(
+      mappings.map((m) => m.stationId),
+      unmatchedLiveStations,
+    );
   }
 }

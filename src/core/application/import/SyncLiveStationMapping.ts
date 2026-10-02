@@ -10,6 +10,7 @@ export class SyncLiveStationMapping {
 
   async execute(): Promise<LiveStationMappingReport> {
     const stations = await this.stationRepository.findAll();
-    return this.liveStationMapping.sync(stations);
+    const report = await this.liveStationMapping.sync(stations);
+    return report.withCoverageOf(stations);
   }
 }

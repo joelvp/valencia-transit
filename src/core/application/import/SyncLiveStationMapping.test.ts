@@ -3,6 +3,7 @@ import { SyncLiveStationMapping } from "./SyncLiveStationMapping";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
 import type { LiveStationMapping } from "@/core/domain/shared/LiveStationMapping";
 import { LiveStationMappingReport } from "@/core/domain/shared/LiveStationMappingReport";
+import { StationId } from "@/core/domain/station/StationId";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
 
@@ -25,14 +26,25 @@ function makeRepo(): StationRepository {
 }
 
 describe("SyncLiveStationMapping", () => {
-  it("should pass all stations to the mapping and return its report", async () => {
-    const report = new LiveStationMappingReport(2, ["X"], []);
+  it("should pass all stations to the mapping", async () => {
+    const mapping: LiveStationMapping = {
+      sync: mock(() => Promise.resolve(new LiveStationMappingReport([], []))),
+    };
+
+    await new SyncLiveStationMapping(makeRepo(), mapping).execute();
+
+    expect(mapping.sync).toHaveBeenCalledWith(stations);
+  });
+
+  it("should report stations that did not get a live id", async () => {
+    const report = new LiveStationMappingReport([new StationId("S1")], []);
     const mapping: LiveStationMapping = { sync: mock(() => Promise.resolve(report)) };
 
     const result = await new SyncLiveStationMapping(makeRepo(), mapping).execute();
 
-    expect(mapping.sync).toHaveBeenCalledWith(stations);
-    expect(result).toBe(report);
+    expect(result.mappedCount).toBe(1);
+    expect(result.unmatchedStations).toEqual(stations.slice(1));
+    expect(result.hasIssues).toBe(true);
   });
 
   it("should propagate sync errors", async () => {

@@ -1,19 +1,25 @@
-import { InvalidArgumentError } from "@/core/domain/error/InvalidArgumentError";
+import type { Station } from "@/core/domain/station/Station";
+import type { StationId } from "@/core/domain/station/StationId";
+import type { UnmatchedLiveStation } from "./UnmatchedLiveStation";
 
 export class LiveStationMappingReport {
   constructor(
-    readonly mappedCount: number,
-    readonly unmatched: readonly string[],
-    readonly lowConfidence: readonly string[],
-  ) {
-    if (!Number.isInteger(mappedCount) || mappedCount < 0) {
-      throw new InvalidArgumentError(
-        `mappedCount must be a non-negative integer, got ${mappedCount}`,
-      );
-    }
+    readonly mappedStationIds: readonly StationId[],
+    readonly unmatchedLiveStations: readonly UnmatchedLiveStation[],
+    readonly unmatchedStations: readonly Station[] = [],
+  ) {}
+
+  get mappedCount(): number {
+    return this.mappedStationIds.length;
   }
 
   get hasIssues(): boolean {
-    return this.unmatched.length > 0 || this.lowConfidence.length > 0;
+    return this.unmatchedLiveStations.length > 0 || this.unmatchedStations.length > 0;
+  }
+
+  // Every station we own should get a live id; reports those that did not.
+  withCoverageOf(stations: Station[]): LiveStationMappingReport {
+    const missing = stations.filter((s) => !this.mappedStationIds.some((id) => id.equals(s.id)));
+    return new LiveStationMappingReport(this.mappedStationIds, this.unmatchedLiveStations, missing);
   }
 }

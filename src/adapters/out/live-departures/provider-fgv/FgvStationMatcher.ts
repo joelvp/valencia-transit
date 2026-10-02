@@ -1,3 +1,5 @@
+import { UnmatchedLiveStation } from "@/core/domain/shared/UnmatchedLiveStation";
+import { UnmatchedLiveStationReason } from "@/core/domain/shared/UnmatchedLiveStationReason";
 import type { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
 import type { FgvStation } from "./FgvApiClient";
@@ -9,8 +11,13 @@ export const MAX_MATCH_DISTANCE_METERS = 500;
 
 export interface FgvStationMatchResult {
   mappings: FgvStationIdMapping[];
-  unmatched: string[];
-  lowConfidence: string[];
+  unmatchedLiveStations: UnmatchedLiveStation[];
+}
+
+interface Claim {
+  mapping: FgvStationIdMapping;
+  fgv: FgvStation;
+  distance: number;
 }
 
 /** Pure matching of our stations to FGV's by normalized name + coordinate proximity. */
@@ -24,21 +31,25 @@ export class FgvStationMatcher {
       byNormalizedName.set(key, bucket);
     }
 
-    const mappings: FgvStationIdMapping[] = [];
-    const unmatched: string[] = [];
-    const lowConfidence: string[] = [];
+    // One claim per our station: when two FGV stations resolve to it, the closer one wins.
+    const claims = new Map<string, Claim>();
+    const unmatchedLiveStations: UnmatchedLiveStation[] = [];
+    const reject = (fgv: FgvStation, reason: UnmatchedLiveStationReason) =>
+      unmatchedLiveStations.push(
+        new UnmatchedLiveStation(fgv.nombre, String(fgv.estacion_id_FGV), reason),
+      );
 
     for (const fgv of fgvStations) {
       const candidates = byNormalizedName.get(normalize(fgv.nombre)) ?? [];
 
       if (candidates.length === 0) {
-        unmatched.push(fgv.nombre);
+        reject(fgv, UnmatchedLiveStationReason.NO_NAME_MATCH);
         continue;
       }
 
       const fgvLocation = toLocation(fgv);
       if (!fgvLocation) {
-        lowConfidence.push(`${fgv.nombre} (fgv_id=${fgv.estacion_id_FGV}) — invalid coordinates`);
+        reject(fgv, UnmatchedLiveStationReason.INVALID_COORDINATES);
         continue;
       }
 
@@ -51,16 +62,28 @@ export class FgvStationMatcher {
       );
 
       if (closest.distance > MAX_MATCH_DISTANCE_METERS) {
-        lowConfidence.push(
-          `${fgv.nombre} (fgv_id=${fgv.estacion_id_FGV}) — closest name match "${closest.candidate.name.value}" is ${closest.distance.toFixed(0)}m away`,
-        );
+        reject(fgv, UnmatchedLiveStationReason.TOO_FAR);
         continue;
       }
 
-      mappings.push({ stationId: closest.candidate.id, fgvStationId: fgv.estacion_id_FGV });
+      const key = closest.candidate.id.value;
+      const claim: Claim = {
+        mapping: { stationId: closest.candidate.id, fgvStationId: fgv.estacion_id_FGV },
+        fgv,
+        distance: closest.distance,
+      };
+      const existing = claims.get(key);
+      if (!existing) {
+        claims.set(key, claim);
+      } else if (claim.distance < existing.distance) {
+        reject(existing.fgv, UnmatchedLiveStationReason.DUPLICATE);
+        claims.set(key, claim);
+      } else {
+        reject(fgv, UnmatchedLiveStationReason.DUPLICATE);
+      }
     }
 
-    return { mappings, unmatched, lowConfidence };
+    return { mappings: [...claims.values()].map((c) => c.mapping), unmatchedLiveStations };
   }
 }
 

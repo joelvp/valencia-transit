@@ -21,15 +21,25 @@ async function main() {
 
     if (report.hasIssues) {
       log.warn(
-        { unmatched: report.unmatched, lowConfidence: report.lowConfidence },
+        {
+          unmatchedLiveStations: report.unmatchedLiveStations.map((u) => ({
+            name: u.name,
+            liveId: u.liveId,
+            reason: u.reason,
+          })),
+          unmatchedStations: report.unmatchedStations.map((s) => ({
+            id: s.id.value,
+            name: s.name.value,
+          })),
+        },
         "FGV sync finished with unmapped stations, needs manual review",
       );
     }
     log.info(
       {
         mapped: report.mappedCount,
-        unmatched: report.unmatched.length,
-        lowConfidence: report.lowConfidence.length,
+        unmatchedLiveStations: report.unmatchedLiveStations.length,
+        unmatchedStations: report.unmatchedStations.length,
       },
       "FGV station-id sync completed",
     );
