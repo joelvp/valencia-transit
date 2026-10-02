@@ -419,7 +419,7 @@ export class SearchNextDepartures {
     const matchingLine = matchingLines.find((l) => l.id.equals(arrival.lineId));
     const lineName = matchingLine ? matchingLine.id.value : null;
     const lineColor = matchingLine?.color?.value ?? null;
-    const departureTime = SearchNextDepartures.addMinutes(currentTime, arrival.minutesRemaining);
+    const departureTime = currentTime.plusMinutes(arrival.minutesRemaining);
 
     return new Departure(
       departureTime,
@@ -429,19 +429,6 @@ export class SearchNextDepartures {
       lineColor,
       null,
       "live",
-    );
-  }
-
-  /** Synthesizes a TimeOfDay `minutes` ahead of `base`, clamped to avoid a negative time. */
-  private static addMinutes(base: TimeOfDay, minutes: number): TimeOfDay {
-    const totalSeconds = Math.max(
-      base.hours * 3600 + base.minutes * 60 + base.seconds + Math.round(minutes) * 60,
-      0,
-    );
-    return TimeOfDay.of(
-      Math.floor(totalSeconds / 3600),
-      Math.floor((totalSeconds % 3600) / 60),
-      totalSeconds % 60,
     );
   }
 
