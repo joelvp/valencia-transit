@@ -52,22 +52,24 @@ export class FgvApiClient {
 
   /** Full station catalogue. Its response also primes the session cookies. */
   async fetchStations(): Promise<FgvStation[]> {
-    const response = await this.requestStations();
+    const response = await this.requestStations(AbortSignal.timeout(this.timeoutMs));
     this.storeSession(response);
     return (await response.json()) as FgvStation[];
   }
 
   /** Primes the session on first use, reuses the cookie afterwards, and resets + retries exactly
-   *  once if the request comes back non-OK (treated as a possibly-expired session). */
+   *  once if the request comes back non-OK (treated as a possibly-expired session).
+   *  One deadline covers every request of the call, so the worst-case wait is `timeoutMs`. */
   async fetchPrevisiones(fgvStationId: number): Promise<FgvPrevisionResponse> {
+    const deadline = AbortSignal.timeout(this.timeoutMs);
     if (!this.sessionPrimed) {
-      await this.bootstrap();
+      await this.bootstrap(deadline);
     }
 
-    let response = await this.requestPrevisiones(fgvStationId);
+    let response = await this.requestPrevisiones(fgvStationId, deadline);
     if (!response.ok) {
-      await this.bootstrap();
-      response = await this.requestPrevisiones(fgvStationId);
+      await this.bootstrap(deadline);
+      response = await this.requestPrevisiones(fgvStationId, deadline);
     }
 
     if (!response.ok) {
@@ -79,15 +81,15 @@ export class FgvApiClient {
 
   // Any public catalogue endpoint sets the session cookies — no need to call the app's own
   // version-check endpoint or claim a platform we aren't (see ./NOTES.md).
-  private async bootstrap(): Promise<void> {
-    const response = await this.requestStations();
+  private async bootstrap(signal: AbortSignal): Promise<void> {
+    const response = await this.requestStations(signal);
     this.storeSession(response);
   }
 
-  private async requestStations(): Promise<Response> {
+  private async requestStations(signal: AbortSignal): Promise<Response> {
     const response = await this.fetchFn(`${this.baseUrl}/estaciones`, {
       headers: { Accept: "application/json", "User-Agent": FGV_USER_AGENT },
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal,
     });
     if (!response.ok) {
       throw new FgvApiError("/estaciones", response.status);
@@ -101,14 +103,14 @@ export class FgvApiClient {
     this.sessionPrimed = true;
   }
 
-  private requestPrevisiones(fgvStationId: number): Promise<Response> {
+  private requestPrevisiones(fgvStationId: number, signal: AbortSignal): Promise<Response> {
     return this.fetchFn(`${this.baseUrl}/horarios-prevision-3/${fgvStationId}`, {
       headers: {
         Accept: "application/json",
         "User-Agent": FGV_USER_AGENT,
         ...(this.cookieHeader ? { Cookie: this.cookieHeader } : {}),
       },
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal,
     });
   }
 }

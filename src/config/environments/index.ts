@@ -14,6 +14,8 @@ export interface PublicConfig {
   liveDepartures: {
     /** Kill switch for the undocumented FGV real-time endpoint; false = scheduled only. */
     enabled: boolean;
+    /** Global deadline for one live lookup (all FGV requests combined). */
+    timeoutMs: number;
   };
 }
 

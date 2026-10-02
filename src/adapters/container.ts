@@ -81,10 +81,9 @@ export function createContainer(): Container {
     new FgvApiClient(fetch, FGV_BASE_URL, 30_000),
   );
   const liveStationLinkRepository = new FgvStationIdRepositoryDrizzle(db, "metrovalencia");
-  // Short timeout: this runs inside a user-facing request.
   const liveDepartureProvider = new LiveDepartureProviderFgv(
     liveStationLinkRepository,
-    new FgvApiClient(fetch, FGV_BASE_URL, 5_000),
+    new FgvApiClient(fetch, FGV_BASE_URL, publicConfig.liveDepartures.timeoutMs),
   );
 
   return {
