@@ -60,21 +60,21 @@ Entry point    Use case    Adapters    Infra
 
 Detailed checklists live in [`docs/plan/`](./docs/plan/), one file per phase — read only the one you need instead of this whole document.
 
-| Phase | Title                                                  | Status                             | File                                                                               |
-| ----- | ------------------------------------------------------ | ---------------------------------- | ---------------------------------------------------------------------------------- |
-| 0     | Project Scaffold & Tooling                             | ✅ Done                            | [phase-0-scaffold.md](./docs/plan/phase-0-scaffold.md)                             |
-| 1     | Domain Model (Entities + VOs + Tests)                  | ✅ Done                            | [phase-1-domain-model.md](./docs/plan/phase-1-domain-model.md)                     |
-| 2     | CI/CD & Railway Deployment                             | ✅ Historical                      | [phase-2-cicd-railway.md](./docs/plan/phase-2-cicd-railway.md)                     |
-| 3     | Database Schema & Persistence Adapters                 | ✅ Done                            | [phase-3-database-persistence.md](./docs/plan/phase-3-database-persistence.md)     |
-| 4     | GTFS Import Pipeline                                   | ✅ Done                            | [phase-4-gtfs-import.md](./docs/plan/phase-4-gtfs-import.md)                       |
-| 5     | Departure Calculation & Station Queries                | ✅ Done                            | [phase-5-departure-calculation.md](./docs/plan/phase-5-departure-calculation.md)   |
-| 6     | Telegram Bot                                           | ✅ Done                            | [phase-6-telegram-bot.md](./docs/plan/phase-6-telegram-bot.md)                     |
-| 7     | Event Bus & Event Store                                | ✅ Done                            | [phase-7-event-bus.md](./docs/plan/phase-7-event-bus.md)                           |
-| 8     | UX & Usability                                         | ✅ Done                            | [phase-8-ux-usability.md](./docs/plan/phase-8-ux-usability.md)                     |
-| 9     | **Live Departures (FGV real-time provider)**           | 🔵 **Not started — current focus** | [phase-9-live-departures-fgv.md](./docs/plan/phase-9-live-departures-fgv.md)       |
-| 10    | Migrate Deployment: Northflank → Hetzner VPS + Coolify | ⏸️ Postponed (after Phase 9)       | [phase-10-vps-coolify-migration.md](./docs/plan/phase-10-vps-coolify-migration.md) |
-| 11    | Automatic GTFS Download & Version Detection            | ⏸️ Postponed (after Phase 10)      | [phase-11-gtfs-auto-download.md](./docs/plan/phase-11-gtfs-auto-download.md)       |
-| 12    | Hardening                                              | ⬜ Not started                     | [phase-12-hardening.md](./docs/plan/phase-12-hardening.md)                         |
+| Phase | Title                                                  | Status                           | File                                                                               |
+| ----- | ------------------------------------------------------ | -------------------------------- | ---------------------------------------------------------------------------------- |
+| 0     | Project Scaffold & Tooling                             | ✅ Done                          | [phase-0-scaffold.md](./docs/plan/phase-0-scaffold.md)                             |
+| 1     | Domain Model (Entities + VOs + Tests)                  | ✅ Done                          | [phase-1-domain-model.md](./docs/plan/phase-1-domain-model.md)                     |
+| 2     | CI/CD & Railway Deployment                             | ✅ Historical                    | [phase-2-cicd-railway.md](./docs/plan/phase-2-cicd-railway.md)                     |
+| 3     | Database Schema & Persistence Adapters                 | ✅ Done                          | [phase-3-database-persistence.md](./docs/plan/phase-3-database-persistence.md)     |
+| 4     | GTFS Import Pipeline                                   | ✅ Done                          | [phase-4-gtfs-import.md](./docs/plan/phase-4-gtfs-import.md)                       |
+| 5     | Departure Calculation & Station Queries                | ✅ Done                          | [phase-5-departure-calculation.md](./docs/plan/phase-5-departure-calculation.md)   |
+| 6     | Telegram Bot                                           | ✅ Done                          | [phase-6-telegram-bot.md](./docs/plan/phase-6-telegram-bot.md)                     |
+| 7     | Event Bus & Event Store                                | ✅ Done                          | [phase-7-event-bus.md](./docs/plan/phase-7-event-bus.md)                           |
+| 8     | UX & Usability                                         | ✅ Done                          | [phase-8-ux-usability.md](./docs/plan/phase-8-ux-usability.md)                     |
+| 9     | **Live Departures (FGV real-time provider)**           | 🔄 **In progress (9A, 9B done)** | [phase-9-live-departures-fgv.md](./docs/plan/phase-9-live-departures-fgv.md)       |
+| 10    | Migrate Deployment: Northflank → Hetzner VPS + Coolify | ⏸️ Postponed (after Phase 9)     | [phase-10-vps-coolify-migration.md](./docs/plan/phase-10-vps-coolify-migration.md) |
+| 11    | Automatic GTFS Download & Version Detection            | ⏸️ Postponed (after Phase 10)    | [phase-11-gtfs-auto-download.md](./docs/plan/phase-11-gtfs-auto-download.md)       |
+| 12    | Hardening                                              | ⬜ Not started                   | [phase-12-hardening.md](./docs/plan/phase-12-hardening.md)                         |
 
 ---
 
