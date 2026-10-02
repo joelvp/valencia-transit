@@ -16,7 +16,7 @@ export class SyncLiveStationMapping {
 
   async execute(): Promise<LiveStationMappingReport> {
     const stations = await this.stationRepository.findAll();
-    // Network call stays outside the transaction.
+    // Network call stays outside the transaction so it never holds a DB connection open.
     const liveStations = await this.liveStationCatalog.fetchAll();
 
     const { links, unmatchedLiveStations } = MatchLiveStations.match(stations, liveStations);

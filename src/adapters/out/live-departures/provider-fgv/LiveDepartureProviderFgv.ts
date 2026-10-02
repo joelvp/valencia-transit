@@ -13,8 +13,7 @@ export class LiveDepartureProviderFgv implements LiveDepartureProvider {
   ) {}
 
   async findLiveArrivals(stationId: StationId, now: Date): Promise<LiveArrival[]> {
-    // `now` is part of the port signature (other providers may need it) but FGV's endpoint
-    // already returns seconds-remaining directly, so this adapter has no use for it.
+    // FGV returns seconds-remaining directly; `now` is unused here.
     void now;
     const liveId = await this.links.findLiveId(stationId);
     if (liveId === null) return [];
