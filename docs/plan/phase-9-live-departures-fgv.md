@@ -61,7 +61,11 @@ Research context (do not re-derive, read first): `/home/joelvp/Work/fgv/SESSION_
 
 **Agent: `test-engineer`**
 
-- [ ] Component test: `SearchNextDepartures` + real DB + `LiveDepartureProviderFgv` with mocked HTTP responses — full merge/fallback scenarios (live ≥5, live <5 with scheduled top-up, live failure) against real station/schedule data, not just mocked ports.
-- [ ] Verify fail-safe behavior end-to-end: FGV endpoint erroring must never surface an error to the Telegram user, only silently fall back (principle 8).
+- [x] Component test: `SearchNextDepartures` + real DB + `LiveDepartureProviderFgv` with mocked HTTP responses — full merge/fallback scenarios (live ≥5, live <5 with scheduled top-up, live failure) against real station/schedule data, not just mocked ports.
+- [x] Verify fail-safe behavior end-to-end: FGV endpoint erroring must never surface an error to the Telegram user, only silently fall back (principle 8).
 
 **Exit criteria**: full phase verified against real DB + real domain data, not just unit-level mocks. Ready to close the phase.
+
+> Covered by `tests/component/search-next-departures-live.test.ts` and `tests/e2e/telegram-bot-live-fallback.test.ts` (FGV HTTP faked).
+>
+> ⚠️ Still pending: a real 📡 row against the live FGV endpoint (still returning empty `previsiones` on 2026-10-02). Manual check scheduled for 2026-10-03.
