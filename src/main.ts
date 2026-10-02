@@ -24,6 +24,9 @@ for (const [chatId, lang] of languages) {
   setLang(parseInt(chatId), lang as Lang);
 }
 
+const liveDepartureProvider = container.publicConfig.liveDepartures.enabled
+  ? container.liveDepartureProvider
+  : undefined;
 const searchNextDepartures = new SearchNextDepartures(
   container.stationRepository,
   container.lineRepository,
@@ -32,6 +35,7 @@ const searchNextDepartures = new SearchNextDepartures(
   container.routeRepository,
   container.eventBus,
   container.serviceCalendar,
+  liveDepartureProvider,
 );
 const findStation = new FindStation(container.stationRepository);
 const listLines = new ListLines(

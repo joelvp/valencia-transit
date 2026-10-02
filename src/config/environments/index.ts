@@ -11,6 +11,10 @@ export interface PublicConfig {
    * (`agency_timezone`); MetroValencia publishes "Europe/Madrid".
    */
   timezone: string;
+  liveDepartures: {
+    /** Kill switch for the undocumented FGV real-time endpoint; false = scheduled only. */
+    enabled: boolean;
+  };
 }
 
 export function loadPublicConfig(appEnv: AppEnv): PublicConfig {
