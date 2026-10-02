@@ -48,11 +48,14 @@ Research context (do not re-derive, read first): `/home/joelvp/Work/fgv/SESSION_
 
 **Agent: `adapters`**
 
-- [ ] Wire `LiveDepartureProviderFgv` into `container.ts` / `main.ts` per the existing composition-root convention.
-- [ ] Public config flag (`src/config/environments/`) to disable live fetching entirely without a deploy — fail-safe kill switch for an undocumented endpoint we don't control.
-- [ ] Telegram handler: label each departure line by `source` (e.g. 🔴 en directo vs 📅 previsto); the "next metro tomorrow morning" message already exists via `firstTomorrow`/`no_more_today` — verify it still reads correctly when the preceding departures came from live data.
+- [x] Wire `LiveDepartureProviderFgv` into `container.ts` / `main.ts` per the existing composition-root convention.
+- [x] Public config flag (`src/config/environments/`) to disable live fetching entirely — `liveDepartures.enabled`. It's a committed file, so toggling needs a redeploy; a self-tripping circuit breaker is the real fix (Phase 12).
+- [x] Single deadline for the whole live lookup (session + request + retry), `liveDepartures.timeoutMs` (1500 ms); failures logged before falling back.
+- [x] Telegram handler: label each departure line by `source` — 📡 live / 🕒 scheduled on every row (🔴 is taken by L3), footer legend chosen by content; `firstTomorrow`/`no_more_today` verified to read correctly after live rows.
 
 **Exit criteria**: live data visible end-to-end in the real bot, clearly labeled, degrades silently to today's behavior if the FGV endpoint is down or the config flag is off.
+
+> ⚠️ Fallback verified live (FGV real-time was returning empty `previsiones` on 2026-10-02, also on metrovalencia.es). A real 📡 row is still to be confirmed — carried into 9D.
 
 ## 9D — Cross-cutting verification
 
