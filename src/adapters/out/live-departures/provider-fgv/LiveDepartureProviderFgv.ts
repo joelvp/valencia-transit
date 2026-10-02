@@ -1,26 +1,25 @@
 import type { LiveDepartureProvider } from "@/core/domain/shared/LiveDepartureProvider";
 import { LiveArrival } from "@/core/domain/shared/LiveArrival";
 import { LineId } from "@/core/domain/line/LineId";
+import type { LiveStationLinkRepository } from "@/core/domain/shared/LiveStationLinkRepository";
 import type { StationId } from "@/core/domain/station/StationId";
 import type { FgvApiClient, FgvPrevisionResponse } from "./FgvApiClient";
-import type { FgvStationIdStore } from "./FgvStationIdStore";
 
 /** LiveDepartureProvider backed by FGV's app API — see ./NOTES.md. */
 export class LiveDepartureProviderFgv implements LiveDepartureProvider {
   constructor(
-    private readonly store: FgvStationIdStore,
+    private readonly links: LiveStationLinkRepository,
     private readonly client: Pick<FgvApiClient, "fetchPrevisiones">,
-    private readonly feedId: string,
   ) {}
 
   async findLiveArrivals(stationId: StationId, now: Date): Promise<LiveArrival[]> {
     // `now` is part of the port signature (other providers may need it) but FGV's endpoint
     // already returns seconds-remaining directly, so this adapter has no use for it.
     void now;
-    const fgvStationId = await this.store.findFgvStationId(stationId, this.feedId);
-    if (fgvStationId === null) return [];
+    const liveId = await this.links.findLiveId(stationId);
+    if (liveId === null) return [];
 
-    const data = await this.client.fetchPrevisiones(fgvStationId);
+    const data = await this.client.fetchPrevisiones(Number(liveId));
     return this.toLiveArrivals(data);
   }
 

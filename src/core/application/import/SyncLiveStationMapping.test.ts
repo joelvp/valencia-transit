@@ -1,14 +1,20 @@
 import { describe, it, expect, mock } from "bun:test";
 import { SyncLiveStationMapping } from "./SyncLiveStationMapping";
 import type { StationRepository } from "@/core/domain/station/StationRepository";
-import type { LiveStationMapping } from "@/core/domain/shared/LiveStationMapping";
-import { LiveStationMappingReport } from "@/core/domain/shared/LiveStationMappingReport";
+import type { LiveStationCatalog } from "@/core/domain/shared/LiveStationCatalog";
+import type { LiveStationLinkRepository } from "@/core/domain/shared/LiveStationLinkRepository";
+import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
+import { LiveStation } from "@/core/domain/shared/LiveStation";
+import { LiveStationLink } from "@/core/domain/shared/LiveStationLink";
+import { UnmatchedLiveStationReason } from "@/core/domain/shared/UnmatchedLiveStationReason";
+import { NoLiveStationsMatchedError } from "@/core/domain/error/NoLiveStationsMatchedError";
 import { StationId } from "@/core/domain/station/StationId";
 import { Station } from "@/core/domain/station/Station";
 import { StationLocation } from "@/core/domain/station/StationLocation";
 
+const xativa = new StationLocation(39.4667, -0.3775);
 const stations = [
-  Station.create("S1", "Xàtiva", new StationLocation(39.4667, -0.3775)),
+  Station.create("S1", "Xàtiva", xativa),
   Station.create("S2", "Colón", new StationLocation(39.4699, -0.3707)),
 ];
 
@@ -25,31 +31,86 @@ function makeRepo(): StationRepository {
   };
 }
 
+function makeCatalog(liveStations: LiveStation[]): LiveStationCatalog {
+  return { fetchAll: mock(() => Promise.resolve(liveStations)) };
+}
+
+function makeLinkRepo(): LiveStationLinkRepository {
+  return {
+    replaceAll: mock(() => Promise.resolve()),
+    findLiveId: mock(() => Promise.resolve(null)),
+  };
+}
+
+function makeTx(inside: { value: boolean }): TransactionManager {
+  const run = {
+    run: mock(async (work: () => Promise<unknown>) => {
+      inside.value = true;
+      try {
+        return await work();
+      } finally {
+        inside.value = false;
+      }
+    }),
+  };
+  return run as unknown as TransactionManager;
+}
+
 describe("SyncLiveStationMapping", () => {
-  it("should pass all stations to the mapping", async () => {
-    const mapping: LiveStationMapping = {
-      sync: mock(() => Promise.resolve(new LiveStationMappingReport([], []))),
-    };
+  it("should persist links inside the transaction and report coverage", async () => {
+    const inside = { value: false };
+    const linkRepo = makeLinkRepo();
+    let insideAtWrite = false;
+    linkRepo.replaceAll = mock(() => {
+      insideAtWrite = inside.value;
+      return Promise.resolve();
+    });
+    const catalog = makeCatalog([
+      new LiveStation("10", "Xativa", xativa),
+      new LiveStation("99", "Nowhere", xativa),
+    ]);
 
-    await new SyncLiveStationMapping(makeRepo(), mapping).execute();
+    const report = await new SyncLiveStationMapping(
+      makeRepo(),
+      catalog,
+      linkRepo,
+      makeTx(inside),
+    ).execute();
 
-    expect(mapping.sync).toHaveBeenCalledWith(stations);
+    expect(linkRepo.replaceAll).toHaveBeenCalledWith([
+      new LiveStationLink(new StationId("S1"), "10"),
+    ]);
+    expect(insideAtWrite).toBe(true);
+    expect(report.mappedCount).toBe(1);
+    expect(report.unmatchedLiveStations.map((u) => [u.liveId, u.reason])).toEqual([
+      ["99", UnmatchedLiveStationReason.NO_NAME_MATCH],
+    ]);
+    expect(report.unmatchedStations).toEqual(stations.slice(1));
+    expect(report.hasIssues).toBe(true);
   });
 
-  it("should report stations that did not get a live id", async () => {
-    const report = new LiveStationMappingReport([new StationId("S1")], []);
-    const mapping: LiveStationMapping = { sync: mock(() => Promise.resolve(report)) };
+  it("should throw and write nothing when no live station matches", async () => {
+    const linkRepo = makeLinkRepo();
+    const tx = makeTx({ value: false });
+    const catalog = makeCatalog([new LiveStation("99", "Nowhere", xativa)]);
 
-    const result = await new SyncLiveStationMapping(makeRepo(), mapping).execute();
+    const promise = new SyncLiveStationMapping(makeRepo(), catalog, linkRepo, tx).execute();
 
-    expect(result.mappedCount).toBe(1);
-    expect(result.unmatchedStations).toEqual(stations.slice(1));
-    expect(result.hasIssues).toBe(true);
+    expect(promise).rejects.toThrow(NoLiveStationsMatchedError);
+    await promise.catch(() => {});
+    expect(linkRepo.replaceAll).not.toHaveBeenCalled();
+    expect(tx.run).not.toHaveBeenCalled();
   });
 
-  it("should propagate sync errors", async () => {
-    const mapping: LiveStationMapping = { sync: mock(() => Promise.reject(new Error("boom"))) };
+  it("should propagate catalog errors and write nothing", async () => {
+    const linkRepo = makeLinkRepo();
+    const tx = makeTx({ value: false });
+    const catalog: LiveStationCatalog = { fetchAll: mock(() => Promise.reject(new Error("boom"))) };
 
-    expect(new SyncLiveStationMapping(makeRepo(), mapping).execute()).rejects.toThrow("boom");
+    const promise = new SyncLiveStationMapping(makeRepo(), catalog, linkRepo, tx).execute();
+
+    expect(promise).rejects.toThrow("boom");
+    await promise.catch(() => {});
+    expect(linkRepo.replaceAll).not.toHaveBeenCalled();
   });
 });

@@ -13,7 +13,9 @@ async function main() {
   const container = createContainer();
   const syncMapping = new SyncLiveStationMapping(
     container.stationRepository,
-    container.liveStationMapping,
+    container.liveStationCatalog,
+    container.liveStationLinkRepository,
+    container.transactionManager,
   );
 
   try {

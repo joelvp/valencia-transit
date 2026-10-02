@@ -8,7 +8,7 @@ documented here in the open rather than left implicit in code.
 
 - `FgvApiClient` — HTTP + session handling (cookies, retry, timeout, User-Agent).
 - `LiveDepartureProviderFgv` — station-id lookup + mapping to `LiveArrival`.
-- `FgvStationMatcher` / `LiveStationMappingFgv` — match our stations to FGV's and persist via `FgvStationIdStore`.
+- `FgvLiveStationCatalog` — translates FGV's station list into domain `LiveStation`s (matching lives in the domain).
 
 ## Endpoints called
 
@@ -19,7 +19,7 @@ All under `https://www.fgv.es/fgv/app/ca/api/v1/V`:
   `destino` (headsign) and a line number. Mapped to the domain-shaped `LiveArrival` — no FGV
   field names or vocabulary cross the `LiveDepartureProvider` port boundary.
 - `GET /estaciones` — full station catalogue with FGV's own numeric `estacion_id_FGV`, name, and
-  coordinates. Public, no session required. Used by `LiveStationMappingFgv` (via `scripts/sync-fgv-station-ids.ts`)
+  coordinates. Public, no session required. Used by `FgvLiveStationCatalog` (via `scripts/sync-fgv-station-ids.ts`)
   for the mapping, and by `FgvApiClient` purely to prime a session (see below).
 
 ## Session handling

@@ -28,10 +28,10 @@ import {
   FgvApiClient,
   FGV_BASE_URL,
 } from "@/adapters/out/live-departures/provider-fgv/FgvApiClient";
-import { FgvStationMatcher } from "@/adapters/out/live-departures/provider-fgv/FgvStationMatcher";
-import { LiveStationMappingFgv } from "@/adapters/out/live-departures/provider-fgv/LiveStationMappingFgv";
+import { FgvLiveStationCatalog } from "@/adapters/out/live-departures/provider-fgv/FgvLiveStationCatalog";
 import { FgvStationIdRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/FgvStationIdRepositoryDrizzle";
-import type { LiveStationMapping } from "@/core/domain/shared/LiveStationMapping";
+import type { LiveStationCatalog } from "@/core/domain/shared/LiveStationCatalog";
+import type { LiveStationLinkRepository } from "@/core/domain/shared/LiveStationLinkRepository";
 import type { EventBus } from "@/core/domain/event/EventBus";
 import type { TransactionManager } from "@/core/domain/shared/TransactionManager";
 
@@ -47,7 +47,8 @@ export interface Container {
   userRepository: UserRepository;
   eventBus: EventBus;
   transactionManager: TransactionManager;
-  liveStationMapping: LiveStationMapping;
+  liveStationCatalog: LiveStationCatalog;
+  liveStationLinkRepository: LiveStationLinkRepository;
   db: AppDatabase;
   dispose(): Promise<void>;
 }
@@ -73,13 +74,10 @@ export function createContainer(): Container {
   const persistAnalyticsEvents = new PersistAnalyticsEventsSubscriber(analyticsEventRepository);
   const eventBus = new InMemoryEventBus([persistDomainEvents, persistAnalyticsEvents]);
 
-  const liveStationMapping = new LiveStationMappingFgv(
+  const liveStationCatalog = new FgvLiveStationCatalog(
     new FgvApiClient(fetch, FGV_BASE_URL, 30_000),
-    new FgvStationMatcher(),
-    new FgvStationIdRepositoryDrizzle(db),
-    transactionManager,
-    "metrovalencia",
   );
+  const liveStationLinkRepository = new FgvStationIdRepositoryDrizzle(db, "metrovalencia");
 
   return {
     secrets,
@@ -93,7 +91,8 @@ export function createContainer(): Container {
     userRepository,
     eventBus,
     transactionManager,
-    liveStationMapping,
+    liveStationCatalog,
+    liveStationLinkRepository,
     db,
     dispose: () => sql.end(),
   };

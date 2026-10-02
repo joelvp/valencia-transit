@@ -3,6 +3,7 @@ import { createContainer, type Container } from "@/adapters/container";
 import { clearDatabase, clearTables } from "tests/helpers/db";
 import { FgvStationIdRepositoryDrizzle } from "./FgvStationIdRepositoryDrizzle";
 import { StationId } from "@/core/domain/station/StationId";
+import { LiveStationLink } from "@/core/domain/shared/LiveStationLink";
 import { stations } from "@/adapters/out/persistence/drizzle/schema";
 import { StationMother } from "@/adapters/out/persistence/drizzle/repositories/mothers/StationMother";
 
@@ -18,7 +19,7 @@ describe("FgvStationIdRepositoryDrizzle", () => {
 
   beforeEach(async () => {
     await clearTables(container.db, "fgv_station_ids", "stations");
-    repo = new FgvStationIdRepositoryDrizzle(container.db);
+    repo = new FgvStationIdRepositoryDrizzle(container.db, FEED_ID);
     await container.db.insert(stations).values([
       StationMother.row({ id: "ST1", name: "Colón" }),
       StationMother.row({ id: "ST2", name: "Xàtiva", longitude: -0.38 }),
@@ -30,60 +31,49 @@ describe("FgvStationIdRepositoryDrizzle", () => {
     await container.dispose();
   });
 
-  it("should return null when no mapping exists for the station", async () => {
-    const result = await repo.findFgvStationId(new StationId("ST1"), FEED_ID);
-    expect(result).toBeNull();
+  it("should return null when no link exists for the station", async () => {
+    expect(await repo.findLiveId(new StationId("ST1"))).toBeNull();
   });
 
-  it("should save mappings and retrieve the fgv station id by station id", async () => {
-    await repo.saveAll(
-      [
-        { stationId: new StationId("ST1"), fgvStationId: 51 },
-        { stationId: new StationId("ST2"), fgvStationId: 43 },
-      ],
-      FEED_ID,
-    );
+  it("should save links and retrieve the live id by station id", async () => {
+    await repo.replaceAll([
+      new LiveStationLink(new StationId("ST1"), "51"),
+      new LiveStationLink(new StationId("ST2"), "43"),
+    ]);
 
-    const result = await repo.findFgvStationId(new StationId("ST1"), FEED_ID);
-    expect(result).toBe(51);
+    expect(await repo.findLiveId(new StationId("ST1"))).toBe("51");
+    expect(await repo.findLiveId(new StationId("ST2"))).toBe("43");
   });
 
-  it("should return all mappings for a feedId", async () => {
-    await repo.saveAll(
-      [
-        { stationId: new StationId("ST1"), fgvStationId: 51 },
-        { stationId: new StationId("ST2"), fgvStationId: 43 },
-      ],
-      FEED_ID,
-    );
+  it("should replace existing links on replaceAll (truncate + re-insert)", async () => {
+    await repo.replaceAll([new LiveStationLink(new StationId("ST1"), "51")]);
+    await repo.replaceAll([new LiveStationLink(new StationId("ST2"), "43")]);
 
-    const result = await repo.findAll(FEED_ID);
-    expect(result.length).toBe(2);
-    const ids = result.map((m) => m.stationId.value).sort();
-    expect(ids).toEqual(["ST1", "ST2"]);
+    expect(await repo.findLiveId(new StationId("ST1"))).toBeNull();
+    expect(await repo.findLiveId(new StationId("ST2"))).toBe("43");
   });
 
-  it("should replace existing mappings on saveAll (truncate + re-insert)", async () => {
-    await repo.saveAll([{ stationId: new StationId("ST1"), fgvStationId: 51 }], FEED_ID);
-    await repo.saveAll([{ stationId: new StationId("ST2"), fgvStationId: 43 }], FEED_ID);
+  it("should clear all links when given an empty array", async () => {
+    await repo.replaceAll([new LiveStationLink(new StationId("ST1"), "51")]);
+    await repo.replaceAll([]);
 
-    const result = await repo.findAll(FEED_ID);
-    expect(result.length).toBe(1);
-    expect(result[0]!.stationId.value).toBe("ST2");
+    expect(await repo.findLiveId(new StationId("ST1"))).toBeNull();
   });
 
-  it("should handle empty array without error", async () => {
-    await repo.saveAll([], FEED_ID);
-    const result = await repo.findAll(FEED_ID);
-    expect(result).toEqual([]);
+  it("should reject a non-integer live id and keep the previous links", async () => {
+    await repo.replaceAll([new LiveStationLink(new StationId("ST1"), "51")]);
+
+    await expect(
+      repo.replaceAll([new LiveStationLink(new StationId("ST2"), "abc")]),
+    ).rejects.toThrow("integer");
+
+    expect(await repo.findLiveId(new StationId("ST1"))).toBe("51");
   });
 
-  it("should remove all mappings for the given feedId", async () => {
-    await repo.saveAll([{ stationId: new StationId("ST1"), fgvStationId: 51 }], FEED_ID);
+  it("should only touch links of its own feed", async () => {
+    await repo.replaceAll([new LiveStationLink(new StationId("ST1"), "51")]);
+    const other = new FgvStationIdRepositoryDrizzle(container.db, "other-feed");
 
-    await repo.deleteByFeedId(FEED_ID);
-
-    const result = await repo.findAll(FEED_ID);
-    expect(result).toEqual([]);
+    expect(await other.findLiveId(new StationId("ST1"))).toBeNull();
   });
 });
