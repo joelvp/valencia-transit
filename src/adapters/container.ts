@@ -28,6 +28,7 @@ import {
   FgvApiClient,
   FGV_BASE_URL,
 } from "@/adapters/out/live-departures/provider-fgv/FgvApiClient";
+import { hedgedFetch } from "@/adapters/out/live-departures/provider-fgv/hedgedFetch";
 import { LiveDepartureProviderFgv } from "@/adapters/out/live-departures/provider-fgv/LiveDepartureProviderFgv";
 import { FgvLiveStationCatalog } from "@/adapters/out/live-departures/provider-fgv/FgvLiveStationCatalog";
 import { FgvStationIdRepositoryDrizzle } from "@/adapters/out/persistence/drizzle/repositories/FgvStationIdRepositoryDrizzle";
@@ -53,6 +54,8 @@ export interface Container {
   liveStationLinkRepository: LiveStationLinkRepository;
   liveDepartureProvider: LiveDepartureProvider;
   db: AppDatabase;
+  /** Opens the live provider's session ahead of the first search. */
+  warmUpLiveDepartures(): Promise<void>;
   dispose(): Promise<void>;
 }
 
@@ -81,10 +84,10 @@ export function createContainer(): Container {
     new FgvApiClient(fetch, FGV_BASE_URL, 30_000),
   );
   const liveStationLinkRepository = new FgvStationIdRepositoryDrizzle(db, "metrovalencia");
-  const liveDepartureProvider = new LiveDepartureProviderFgv(
-    liveStationLinkRepository,
-    new FgvApiClient(fetch, FGV_BASE_URL, publicConfig.liveDepartures.timeoutMs),
-  );
+  const { timeoutMs, hedgeAfterMs } = publicConfig.liveDepartures;
+  const liveFetch = hedgedFetch(fetch, hedgeAfterMs);
+  const liveClient = new FgvApiClient(liveFetch, FGV_BASE_URL, timeoutMs);
+  const liveDepartureProvider = new LiveDepartureProviderFgv(liveStationLinkRepository, liveClient);
 
   return {
     secrets,
@@ -102,6 +105,7 @@ export function createContainer(): Container {
     liveStationLinkRepository,
     liveDepartureProvider,
     db,
+    warmUpLiveDepartures: () => liveClient.primeSession(),
     dispose: () => sql.end(),
   };
 }

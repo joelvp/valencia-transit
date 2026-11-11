@@ -6,7 +6,8 @@ documented here in the open rather than left implicit in code.
 
 ## Structure
 
-- `FgvApiClient` — HTTP + session handling (cookies, retry, timeout, User-Agent).
+- `FgvApiClient` — HTTP + session handling (cookies, retry, deadline, User-Agent).
+- `hedgedFetch` — `fetch` decorator that resends unanswered requests (see "Hedged requests").
 - `LiveDepartureProviderFgv` — station-id lookup + mapping to `LiveArrival`.
 - `FgvLiveStationCatalog` — translates FGV's station list into domain `LiveStation`s (matching lives in the domain).
 
@@ -28,8 +29,40 @@ FGV tightened `horarios-prevision-3` around 2026-09-21 to sometimes require sess
 (documented by a third-party open-source client).
 Any public catalogue call sets them, `/estaciones` included, so the adapter primes the session
 with a plain `GET /estaciones`, reuses the cookie across calls, and on any non-OK response resets
-the cookie and retries exactly once before giving up. Every request has a short timeout
-(`FGV_DEFAULT_TIMEOUT_MS`), so a hung endpoint fails fast and the bot falls back to scheduled data.
+the cookie and retries exactly once before giving up. One deadline covers every request of a call
+(`liveDepartures.timeoutMs` for the bot), so a hung endpoint fails fast and the bot falls back to
+scheduled data.
+
+## Hedged requests
+
+FGV is bimodal: a request either answers in 300–500 ms or hangs and never answers. Measured on
+2026-11-10 (same headers, cookie and User-Agent as the bot, 1500 ms budget, 100 queries per
+strategy, interleaved so all saw the same conditions):
+
+| Strategy                             | Failed | p50    | p95    | Requests per query |
+| ------------------------------------ | ------ | ------ | ------ | ------------------ |
+| Single request (before)              | 10–12% | 350 ms | 550 ms | 1.00               |
+| Hedge after 600 ms (now)             | 0%     | 350 ms | 975 ms | 1.10               |
+| Fresh TCP/TLS connection per request | 3–10%  | 410 ms | 665 ms | 1.00               |
+
+A longer timeout does not help (a hung request never answers), and a fresh connection is slower
+without fixing it. So the container wraps the bot's `fetch` in `hedgedFetch`: if a request has no
+answer after `liveDepartures.hedgeAfterMs` (600 ms — above FGV's normal p95), it sends the
+same request once more and keeps whichever answers first, aborting the other. Both attempts share
+the caller's deadline, so the worst-case wait is unchanged. A request that fails outright also waits
+for the 600 ms resend — we have only seen hangs, so that case isn't worth extra code.
+
+Load on FGV: at most 2 attempts per request, and in practice ~1 extra request
+every 10 queries. The station-catalogue client (sync script) gets a plain `fetch` and does not hedge.
+
+Session warm-up: `main.ts` calls `container.warmUpLiveDepartures()` at startup (not awaited, failure
+only logged), which primes the FGV session via `FgvApiClient.primeSession()`. It lives in the
+container, not the `LiveDepartureProvider` port, because it is an FGV detail. Without it, the first
+lookup after a start makes two sequential requests (`/estaciones` + `horarios-prevision-3`) inside
+one `timeoutMs` budget — if both hang, there's no time left for both hedges.
+
+Not a substitute for a circuit breaker: if FGV is fully down, every lookup still waits
+`timeoutMs` (Phase 12).
 
 ## Known limitations
 

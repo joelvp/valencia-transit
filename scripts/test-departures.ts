@@ -82,6 +82,7 @@ const useCase = new SearchNextDepartures(
   container.routeRepository,
   container.eventBus,
   container.serviceCalendar,
+  container.publicConfig.liveDepartures.enabled ? container.liveDepartureProvider : undefined,
 );
 
 log.info(

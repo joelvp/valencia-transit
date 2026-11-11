@@ -27,6 +27,14 @@ for (const [chatId, lang] of languages) {
 const liveDepartureProvider = container.publicConfig.liveDepartures.enabled
   ? container.liveDepartureProvider
   : undefined;
+if (liveDepartureProvider) {
+  // Not awaited: startup never waits on FGV.
+  container.warmUpLiveDepartures().then(
+    () => logger.info("Live departures session ready"),
+    (err: unknown) =>
+      logger.warn({ err }, "Live departures warm-up failed, will retry on first search"),
+  );
+}
 const searchNextDepartures = new SearchNextDepartures(
   container.stationRepository,
   container.lineRepository,

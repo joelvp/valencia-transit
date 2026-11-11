@@ -209,4 +209,49 @@ describe("FgvApiClient", () => {
 
     await expect(client.fetchStations()).rejects.toThrow(FgvApiError);
   });
+
+  describe("primeSession", () => {
+    it("should open the session so the first lookup makes a single request", async () => {
+      const calls: string[] = [];
+      const fetchFn = mock((url: string) => {
+        calls.push(url);
+        if (url.includes("/estaciones")) return Promise.resolve(BOOTSTRAP_OK());
+        return Promise.resolve(jsonResponse(PREVISION_BODY));
+      });
+      const client = new FgvApiClient(fetchFn);
+
+      await client.primeSession();
+      calls.length = 0;
+      await client.fetchPrevisiones(78);
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toContain("horarios-prevision-3/78");
+    });
+
+    it("should not call FGV again when the session is already primed", async () => {
+      const fetchFn = mock(() => Promise.resolve(BOOTSTRAP_OK()));
+      const client = new FgvApiClient(fetchFn);
+
+      await client.primeSession();
+      await client.primeSession();
+
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("should reject when FGV is unavailable, leaving the session to be primed later", async () => {
+      let up = false;
+      const fetchFn = mock((url: string) => {
+        if (!up) return Promise.resolve(jsonResponse({}, { status: 503 }));
+        if (url.includes("/estaciones")) return Promise.resolve(BOOTSTRAP_OK());
+        return Promise.resolve(jsonResponse(PREVISION_BODY));
+      });
+      const client = new FgvApiClient(fetchFn);
+
+      await expect(client.primeSession()).rejects.toThrow(FgvApiError);
+      up = true;
+      const result = await client.fetchPrevisiones(78);
+
+      expect(result.previsiones.length).toBe(2);
+    });
+  });
 });
