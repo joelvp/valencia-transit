@@ -40,6 +40,13 @@
 | Test files         | Same name + `.test.ts`         | `Station.test.ts`, `SearchNextDepartures.test.ts` |
 | Mapper files       | PascalCase + "Mapper"          | `StationMapper.ts`, `TripMapper.ts`               |
 
+## Readability & Comments
+
+- **Code explains itself** (KISS): clear names, small single-purpose functions, independent units. If it needs a comment to be understood, simplify it first.
+- **Comment only what isn't obvious**: complex functions, non-trivial project logic, or transit-domain rules (GTFS quirks, FGV behaviour, service-day edge cases).
+- **Short**: one line, a few at most. No restating the code, no history, no measurements.
+- **Rationale lives in markdown**: decisions, trade-offs and measurements go in `docs/` or a co-located `NOTES.md`; the comment may just link to it.
+
 ## Domain Conventions
 
 - **No anemic entities**. Entities have methods, not just data.
