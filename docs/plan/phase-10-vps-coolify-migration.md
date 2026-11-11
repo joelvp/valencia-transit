@@ -14,6 +14,7 @@ The project outgrew Railway (Phase 2) and later moved to Northflank, but free/ch
 
 - [ ] Connect GitHub to Coolify (so it can pull `valencia-transit`)
 - [ ] Create the resource as **Docker Compose** type, pointing at the existing `docker-compose.yml` (`app` + `postgres` services) — avoids standing up a separate managed database
+- [ ] Mark the `postgres-test` service with a compose `profiles: [test]` so Coolify never starts it (tests only; `bun run test:db` keeps working by naming the service) — see [database-environments.md](../database-environments.md)
 - [ ] Set the real environment variables in Coolify's dashboard: `BOT_TOKEN`, `DATABASE_URL`, `NAP_USERNAME`, `NAP_PASSWORD`, `ADMIN_CHAT_ID`, `APP_ENV`
 - [ ] First deploy: verify the container builds and the `/health` endpoint responds
 
@@ -32,6 +33,7 @@ The project outgrew Railway (Phase 2) and later moved to Northflank, but free/ch
 
 - [ ] Confirm the bot responds live from the new VPS (real Telegram message round-trip)
 - [ ] Import real GTFS data on the new instance (`bun run import:gtfs`, or restore a DB dump)
+- [ ] Run `bun run sync:fgv` on the new instance after the import — without the station links the bot never shows live times
 - [ ] Decommission the Northflank services (`prod-metrovalencia-bot`, `dev-metrovalencia-bot`)
 - [ ] Remove `NORTHFLANK_API_KEY` secret from the GitHub repo settings
 - [ ] Update `CLAUDE.md` / `.env.example` comments that still reference Northflank

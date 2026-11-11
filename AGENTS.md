@@ -65,10 +65,11 @@ bun run format:check   # Prettier check (must pass before commit)
 bun run format         # Prettier auto-fix
 bun x tsc --noEmit     # TypeScript check
 bun run lint           # ESLint (includes hexagonal architecture rules)
+bun run test:db        # Start the test DB container (bun test migrates it itself)
 bun test               # All tests
 bun test <file>        # Single test file
 bun run db:generate    # Generate Drizzle migrations
-bun run db:migrate     # Apply migrations
+bun run db:migrate     # Apply migrations (app DB)
 bun run import:gtfs    # GTFS import pipeline
 ```
 

@@ -65,11 +65,13 @@ bun run format:check   # Prettier check (must pass before commit)
 bun run format         # Prettier auto-fix
 bun x tsc --noEmit     # TypeScript check
 bun run lint           # ESLint (includes hexagonal architecture rules)
+bun run test:db        # Start the test DB container (bun test migrates it itself)
 bun test               # All tests
 bun test <file>        # Single test file
 bun run db:generate    # Generate Drizzle migrations
-bun run db:migrate     # Apply migrations
-bun run import:gtfs    # GTFS import pipeline
+bun run db:migrate     # Apply migrations (app DB)
+bun run import:gtfs    # GTFS import pipeline (app DB)
+bun run sync:fgv       # Link stations to FGV live ids (app DB)
 ```
 
 ---
@@ -86,6 +88,19 @@ Two separate channels — never mixed:
 - Secrets per environment: `src/config/env.ts` → `loadSecrets()`
 - Public config per environment: `src/config/environments/` → `loadPublicConfig()`
 - `APP_ENV` values: `local` (default), `dev`, `prod`
+
+### Databases
+
+The app and the tests use **separate Postgres containers** — tests TRUNCATE every table. Details: [`docs/database-environments.md`](docs/database-environments.md).
+
+| Context           | `DATABASE_URL` from        | Container / database                                     |
+| ----------------- | -------------------------- | -------------------------------------------------------- |
+| `bun run …` (app) | `.env`                     | `postgres` → `:5432/metrovalencia` (data kept)           |
+| `bun test`        | `.env.test` (auto-loaded)  | `postgres-test` → `:5433/metrovalencia_test` (in memory) |
+| CI                | `.github/workflows/ci.yml` | Job service → `metrovalencia_test` (ephemeral)           |
+| `dev` / `prod`    | Coolify env vars           | That environment's database                              |
+
+`bun test` preloads `tests/setup.ts`, which aborts unless the DB host is local and the DB name ends in `_test`.
 
 ---
 

@@ -16,6 +16,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Tests only: in memory, starts empty. `bun test` applies the migrations itself.
+  postgres-test:
+    image: postgres:17
+    container_name: metrovalencia-test-db
+    environment:
+      POSTGRES_DB: metrovalencia_test
+      POSTGRES_USER: metro
+      POSTGRES_PASSWORD: metro
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metro -d metrovalencia_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
   app:
     build: .
     container_name: metrovalencia-app

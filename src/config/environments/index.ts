@@ -16,6 +16,8 @@ export interface PublicConfig {
     enabled: boolean;
     /** Global deadline for one live lookup (all FGV requests combined). */
     timeoutMs: number;
+    /** Resend an unanswered FGV request after this long (see provider-fgv/NOTES.md). */
+    hedgeAfterMs: number;
   };
 }
 

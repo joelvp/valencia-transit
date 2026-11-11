@@ -19,7 +19,7 @@ Run the full verification suite in order. All 4 steps must pass.
 3. **Lint**: Run `bun run lint`
    - Report any lint violations, especially hexagonal architecture violations
 
-4. **Tests**: Run `bun test`
+4. **Tests**: Run `bun test` (needs the test DB container up: `bun run test:db`; bun test migrates it)
    - Report pass/fail count and any failures
 
 ## Output

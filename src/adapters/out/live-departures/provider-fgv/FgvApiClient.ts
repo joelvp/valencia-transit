@@ -1,7 +1,6 @@
 import { FgvApiError } from "./FgvApiError";
 
-/** Injectable fetch for tests. Derived from `typeof fetch`, not `RequestInit` directly — that
- *  type-only global trips this project's `no-undef` lint rule. */
+/** The HTTP function the client sends with: plain `fetch`, or `hedgedFetch` for the bot. */
 export type FgvFetch = (
   url: string,
   init?: Parameters<typeof fetch>[1],
@@ -13,7 +12,7 @@ export const FGV_BASE_URL = "https://www.fgv.es/fgv/app/ca/api/v1/V";
 export const FGV_USER_AGENT =
   "ValenciaTransitBot/1.0 (+https://github.com/joelvp/valencia-transit)";
 
-// A hung FGV request must not hang the bot: fail fast, the use case falls back to scheduled data.
+// Fallback deadline per call; the bot passes its own `liveDepartures.timeoutMs`.
 export const FGV_DEFAULT_TIMEOUT_MS = 3000;
 
 export interface FgvStation {
@@ -55,6 +54,12 @@ export class FgvApiClient {
     const response = await this.requestStations(AbortSignal.timeout(this.timeoutMs));
     this.storeSession(response);
     return (await response.json()) as FgvStation[];
+  }
+
+  /** Opens the session ahead of the first lookup. */
+  async primeSession(): Promise<void> {
+    if (this.sessionPrimed) return;
+    await this.bootstrap(AbortSignal.timeout(this.timeoutMs));
   }
 
   /** Primes the session on first use, reuses the cookie afterwards, and resets + retries exactly
