@@ -19,10 +19,20 @@ cd valencia-transit
 mise install                # optional, only if you use mise — installs the pinned Bun version
 cp .env.example .env        # fill in BOT_TOKEN (create one via @BotFather)
 
-docker compose up -d postgres
+docker compose up -d postgres  # app database
 bun install
+bun run db:migrate
 bun run dev
 ```
+
+## Run the tests
+
+```bash
+bun run test:db                # starts the test database (its own container, empty)
+bun test                       # applies the migrations to it, then runs the tests
+```
+
+The app and the tests use separate Postgres containers; see [docs/database-environments.md](docs/database-environments.md).
 
 ## Import real transit data (optional)
 

@@ -1,4 +1,6 @@
 [test]
+# See docs/database-environments.md
+preload = ["./tests/setup.ts"]
 coveragePathIgnorePatterns = [
   # Test files and helpers
   "**/*.test.ts",
